@@ -1,0 +1,174 @@
+{
+	"info": {
+		"_postman_id": "2f83b716-b062-41f0-b5ab-3d61c2ea3a67",
+		"name": "Social-api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37163798",
+		"_collection_link": "https://red-crater-358945.postman.co/workspace/Team-Workspace~ea98aceb-e482-4321-8f6d-6308273c5482/collection/37163798-2f83b716-b062-41f0-b5ab-3d61c2ea3a67?action=share&source=collection_link&creator=37163798"
+	},
+	"item": [
+		{
+			"name": "filter products",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-API-PASSWORD",
+						"value": "4192b54d63a435f915f4ff315adf78aad1f65f93b4bd4a30e4b1bf6bbabdfc5c",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Language",
+						"value": "en",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n//   \"search\": \"t-shirt\",\n//   \"product_code\": \"5721\",\n  \"colors\": ['white', 'red']\n//   \"sizes\": ['small', '2 years']\n//   \"material\": \"cotton\",\n//   \"sku_code\": \"SKU-001\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api-v1.bww-store.com/api/v1/filter-products",
+					"protocol": "https",
+					"host": [
+						"api-v1",
+						"bww-store",
+						"com"
+					],
+					"path": [
+						"api",
+						"v1",
+						"filter-products"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "example",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-PASSWORD",
+								"value": "4192b54d63a435f915f4ff315adf78aad1f65f93b4bd4a30e4b1bf6bbabdfc5c",
+								"type": "text"
+							},
+							{
+								"key": "Accept-Language",
+								"value": "en",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n//   \"search\": \"t-shirt\",\n//   \"product_code\": \"5721\",\n  \"colors\": ['white', 'red']\n//   \"sizes\": ['small', '2 years']\n//   \"material\": \"cotton\",\n//   \"sku_code\": \"SKU-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://api-v1.bww-store.com/api/v1/filter-products",
+							"protocol": "https",
+							"host": [
+								"api-v1",
+								"bww-store",
+								"com"
+							],
+							"path": [
+								"api",
+								"v1",
+								"filter-products"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": null,
+					"header": [
+						{
+							"key": "Date",
+							"value": "Sat, 11 Oct 2025 12:19:47 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						},
+						{
+							"key": "Server",
+							"value": "cloudflare"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, private"
+						},
+						{
+							"key": "vary",
+							"value": "Origin"
+						},
+						{
+							"key": "cf-cache-status",
+							"value": "DYNAMIC"
+						},
+						{
+							"key": "Nel",
+							"value": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}"
+						},
+						{
+							"key": "Report-To",
+							"value": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=0zToA81GAWplFXWToF6fP1EJGDpKjWWHZgldy34oltKEio12XApjqIELaPyP1Dxh6YmZb1iViUEnYNOc6CfM0pPpb9XQvYRUTChnsqSXn%2BgqYw%3D%3D\"}]}"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "br"
+						},
+						{
+							"key": "CF-RAY",
+							"value": "98ce4ecabd4cd821-MRS"
+						},
+						{
+							"key": "alt-svc",
+							"value": "h3=\":443\"; ma=86400"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"status\": 200,\n    \"message\": \"Products list\",\n    \"data\": {\n        \"total\": 169,\n        \"page\": 1,\n        \"page_size\": 10,\n        \"total_pages\": 17,\n        \"products\": [\n            {\n                \"id\": 188,\n                \"name\": \"UNITED | Men's Dotted Polo T-Shirt\",\n                \"slug\": \"united-mens-dotted-polo-t-shirt\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/qR5PknGz1GAnGjqWzFMJrPV25TDDnNypfvobH4Ng.jpg\",\n                \"original_price\": 519,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 519,\n                \"has_discount\": false,\n                \"rating\": 5,\n                \"count_rating\": 88,\n                \"sold_by\": \"UrbanMen\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 0,\n                \"store_name\": \"UrbanMen\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": false,\n                \"sold_count\": 0,\n                \"category\": {\n                    \"id\": 2,\n                    \"name\": \"Men’s Fashion\",\n                    \"name_en\": \"Men’s Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/o71BSoWK1RGhekVahe6RChu7fBjgiTLI2GWUywuQ.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/0X94QRQpG0Ly9ys5gEIRM07uRQv0CgDDl1IQyMyd.webp\",\n                    \"slug\": \"mens-fashion\"\n                }\n            },\n            {\n                \"id\": 2351,\n                \"name\": \"Girls Autumn Cotton Pajama Jerry Cartoon – Off White\",\n                \"slug\": \"girls-autumn-cotton-pajama-jerry-cartoon-off-white\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/2Dlrrya4GXLbUcZE4a653KdjjaWyTgq27CXUCnB2.jpg\",\n                \"original_price\": 349,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 349,\n                \"has_discount\": false,\n                \"rating\": 5,\n                \"count_rating\": 20,\n                \"sold_by\": \"Tiny Trendz\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 6,\n                \"store_name\": \"Tiny Trendz\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 0,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            },\n            {\n                \"id\": 2346,\n                \"name\": \"Boys Autumn Cotton Pajama Winnie the Pooh – Light Blue\",\n                \"slug\": \"boys-autumn-cotton-pajama-winnie-the-pooh-light-blue\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/22XNLDgxAF3xxkMFaQQtb9Ywl5b63fD5xjeSL1Ly.jpg\",\n                \"original_price\": 349,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 349,\n                \"has_discount\": false,\n                \"rating\": 4.6,\n                \"count_rating\": 20,\n                \"sold_by\": \"Tiny Trendz\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 4,\n                \"store_name\": \"Tiny Trendz\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 2,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            },\n            {\n                \"id\": 2352,\n                \"name\": \"Girls Autumn Cotton Set Red Top + Printed Leggings\",\n                \"slug\": \"girls-autumn-cotton-set-red-top-printed-leggings\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/ctJbAU8S0CWBvMlILhY5dRiBXwPgPqNf0WFHpgfb.jpg\",\n                \"original_price\": 559,\n                \"discount\": 20,\n                \"discount_value\": 111.80000000000001,\n                \"final_price\": 447,\n                \"has_discount\": true,\n                \"rating\": 5,\n                \"count_rating\": 20,\n                \"sold_by\": \"Tiny Trendz\",\n                \"is_best_seller\": true,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 4,\n                \"store_name\": \"Tiny Trendz\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 3,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            },\n            {\n                \"id\": 260,\n                \"name\": \"Unicorn | Plus Size Men's Cotton Set\",\n                \"slug\": \"unicorn-plus-size-mens-cotton-set\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/bRMPh9q7PhBy8CyhMtsuGpp2UKx16JYnZiq5Pwad.jpg\",\n                \"original_price\": 799,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 799,\n                \"has_discount\": false,\n                \"rating\": 5,\n                \"count_rating\": 20,\n                \"sold_by\": \"ZARO\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 3,\n                \"store_name\": \"ZARO\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": null,\n                \"is_favorite\": false,\n                \"is_new_arrival\": false,\n                \"sold_count\": 1,\n                \"category\": {\n                    \"id\": 2,\n                    \"name\": \"Men’s Fashion\",\n                    \"name_en\": \"Men’s Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/o71BSoWK1RGhekVahe6RChu7fBjgiTLI2GWUywuQ.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/0X94QRQpG0Ly9ys5gEIRM07uRQv0CgDDl1IQyMyd.webp\",\n                    \"slug\": \"mens-fashion\"\n                }\n            },\n            {\n                \"id\": 539,\n                \"name\": \"RAIA – Men's Summer Set with Artistic Front Print\",\n                \"slug\": \"raia-mens-summer-set-with-artistic-front-print\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/ltmmjTBVzpPLtpO4JPX4G9IFTsiR7AjyqvfuU5Xj.jpg\",\n                \"original_price\": 729,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 729,\n                \"has_discount\": false,\n                \"rating\": 5,\n                \"count_rating\": 40,\n                \"sold_by\": \"ZARO\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 1,\n                \"store_name\": \"ZARO\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": false,\n                \"sold_count\": 0,\n                \"category\": {\n                    \"id\": 2,\n                    \"name\": \"Men’s Fashion\",\n                    \"name_en\": \"Men’s Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/o71BSoWK1RGhekVahe6RChu7fBjgiTLI2GWUywuQ.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/0X94QRQpG0Ly9ys5gEIRM07uRQv0CgDDl1IQyMyd.webp\",\n                    \"slug\": \"mens-fashion\"\n                }\n            },\n            {\n                \"id\": 523,\n                \"name\": \"Star Fashion Summer Set - Cotton Lycra T-shirt\",\n                \"slug\": \"star-fashion-summer-set-cotton-lycra-t-shirt\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/wMslPbpSYRnGGgs2fdD9280vbumARMsnQz4NkdQP.jpg\",\n                \"original_price\": 879,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 879,\n                \"has_discount\": false,\n                \"rating\": 5,\n                \"count_rating\": 20,\n                \"sold_by\": \"ZARO\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 8,\n                \"store_name\": \"ZARO\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": null,\n                \"is_favorite\": false,\n                \"is_new_arrival\": false,\n                \"sold_count\": 2,\n                \"category\": {\n                    \"id\": 2,\n                    \"name\": \"Men’s Fashion\",\n                    \"name_en\": \"Men’s Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/o71BSoWK1RGhekVahe6RChu7fBjgiTLI2GWUywuQ.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/0X94QRQpG0Ly9ys5gEIRM07uRQv0CgDDl1IQyMyd.webp\",\n                    \"slug\": \"mens-fashion\"\n                }\n            },\n            {\n                \"id\": 2347,\n                \"name\": \"Boys Autumn Cotton Pajama Dinosaur – Green\",\n                \"slug\": \"boys-autumn-cotton-pajama-dinosaur-green\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/WcBi9wwpkYgvLrqu1I4utXxd4raQo60FBralhZuh.jpg\",\n                \"original_price\": 349,\n                \"discount\": 0,\n                \"discount_value\": 0,\n                \"final_price\": 349,\n                \"has_discount\": false,\n                \"rating\": 4.6,\n                \"count_rating\": 20,\n                \"sold_by\": \"Tiny Trendz\",\n                \"is_best_seller\": false,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 3,\n                \"store_name\": \"Tiny Trendz\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 3,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            },\n            {\n                \"id\": 2502,\n                \"name\": \"Disney – Boys Spider Autumn Outfit\",\n                \"slug\": \"disney-boys-spider-autumn-outfit\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/bmFX7i6MteTEx3lyPxeNkLOmrtn7r8QiNXpIXPNO.jpg\",\n                \"original_price\": 250,\n                \"discount\": 20,\n                \"discount_value\": 51,\n                \"final_price\": 199,\n                \"has_discount\": true,\n                \"rating\": 5,\n                \"count_rating\": 46,\n                \"sold_by\": \"Bunny & Bear\",\n                \"is_best_seller\": true,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 0,\n                \"store_name\": \"Bunny & Bear\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 6,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            },\n            {\n                \"id\": 2507,\n                \"name\": \"Disney – Boys Mickey Stripes Autumn Outfit\",\n                \"slug\": \"disney-boys-mickey-stripes-autumn-outfit\",\n                \"main_image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/products/A5lojeClOmFm6hIAGqfKeWJp5rYe4u4g4CFQFrLK.png\",\n                \"original_price\": 250,\n                \"discount\": 20,\n                \"discount_value\": 51,\n                \"final_price\": 199,\n                \"has_discount\": true,\n                \"rating\": 5,\n                \"count_rating\": 24,\n                \"sold_by\": \"Bunny & Bear\",\n                \"is_best_seller\": true,\n                \"is_free_delivery\": false,\n                \"is_refundable\": true,\n                \"has_warranty\": false,\n                \"stock_quantity\": 3,\n                \"store_name\": \"Bunny & Bear\",\n                \"shipping_type\": \"fbb\",\n                \"product_condition\": \"stocked\",\n                \"is_favorite\": false,\n                \"is_new_arrival\": true,\n                \"sold_count\": 1,\n                \"category\": {\n                    \"id\": 3,\n                    \"name\": \"Kids’ Fashion\",\n                    \"name_en\": \"Kids’ Fashion\",\n                    \"image\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/G7wJZoKpyKZSi90tKAlSeWWtgcrGQftDhfws5Ta2.webp\",\n                    \"image_mobile\": \"https://bww-v1.s3.me-south-1.amazonaws.com/images/categories/AhNE52LxiuKTURGeixAWp3RMQmxT3CsCd4yKjWav.webp\",\n                    \"slug\": \"kids-fashion\"\n                }\n            }\n        ],\n        \"applied_filters\": []\n    }\n}"
+				}
+			]
+		}
+	]
+}

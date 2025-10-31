@@ -1,0 +1,21 @@
+include README.md
+include CHANGELOG.md
+include LICENSE
+recursive-include docs *.md
+recursive-include tests *.py
+recursive-include tests *.txt
+exclude *.pyc
+exclude __pycache__
+exclude .git
+exclude .gitignore
+exclude .DS_Store
+exclude *.egg-info
+exclude dist
+exclude build
+exclude .tox
+exclude .venv
+exclude venv
+exclude .mypy_cache
+exclude .pytest_cache
+exclude htmlcov
+exclude .coverage

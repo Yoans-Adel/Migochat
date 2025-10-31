@@ -1,0 +1,33 @@
+# Testing Dependencies for Bww-AI-Assistant
+# Note: Install production dependencies first: pip install -r requirements.txt
+
+# Core Testing Framework
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+pytest-mock>=3.12.0
+
+# HTTP Testing Client
+httpx>=0.27.0
+
+# Coverage Analysis
+coverage>=7.6.0
+
+# Mocking and Testing Utilities
+freezegun>=1.4.0
+
+# Test Data Generation
+factory-boy>=3.3.0
+faker>=27.0.0
+
+# Additional Testing Tools
+responses>=0.24.0  # Mock HTTP requests
+pytest-xdist>=3.5.0  # Parallel test execution
+pytest-html>=4.1.0  # HTML test reports
+pytest-json-report>=1.5.0  # JSON test reports
+
+# Development & Hot-Reload
+watchdog>=3.0.0  # File system monitoring for hot-reload during testing
+
+# Interactive Testing Interface
+gradio>=4.0.0  # Web interface for API testing

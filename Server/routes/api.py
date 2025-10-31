@@ -1,0 +1,1087 @@
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from sqlalchemy import desc, func
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta, timezone
+import logging
+
+from app.database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign
+from Server.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Import BWW Store Integration (optional)
+try:
+    from bww_store import BWWStoreIntegration
+    from bww_store.comprehensive_integration import ComprehensiveBWWStoreIntegration
+    BWW_STORE_AVAILABLE = True
+except ImportError:
+    BWW_STORE_AVAILABLE = False
+    logger.warning("BWW Store integration not available")
+
+router = APIRouter()
+
+# Initialize services directly to avoid circular imports
+from app.services.messaging.messenger_service import MessengerService
+from app.services.messaging.message_handler import MessageHandler
+from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
+from app.services.business.message_source_tracker import MessageSourceTracker
+# health_monitor has been archived - removed
+
+messenger_service = MessengerService()
+message_handler = MessageHandler()
+lead_automation = FacebookLeadCenterService()
+source_tracker = MessageSourceTracker()
+
+# Initialize BWW Store Integration
+# Initialize BWW Store services (if available)
+if BWW_STORE_AVAILABLE:
+    bww_store_integration = BWWStoreIntegration()
+    comprehensive_integration = ComprehensiveBWWStoreIntegration()
+else:
+    bww_store_integration = None
+    comprehensive_integration = None
+
+@router.get("/messages")
+async def get_messages(
+    skip: int = 0,
+    limit: int = 50,
+    user_id: Optional[int] = None,
+    source: Optional[str] = None,
+    db: Session = Depends(get_session)
+):
+    """Get messages with pagination and source filtering"""
+    try:
+        query = db.query(Message)
+        
+        if user_id:
+            query = query.filter(Message.user_id == user_id)
+        
+        if source:
+            query = query.filter(Message.message_source == MessageSource(source))
+        
+        messages = query.order_by(desc(Message.timestamp)).offset(skip).limit(limit).all()
+        
+        return {
+            "messages": [
+                {
+                    "id": msg.id,
+                    "user_id": msg.user_id,
+                    "sender_id": msg.sender_id,
+                    "message_text": msg.message_text,
+                    "direction": msg.direction.value,
+                    "status": msg.status.value,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "message_type": msg.message_type,
+                    "message_source": msg.message_source.value if msg.message_source else None,
+                    "post_id": msg.post_id,
+                    "post_type": msg.post_type.value if msg.post_type else None,
+                    "ad_id": msg.ad_id,
+                    "comment_id": msg.comment_id
+                }
+                for msg in messages
+            ],
+            "total": query.count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting messages: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/messages/send")
+async def send_message(
+    request: Request,
+    db: Session = Depends(get_session)
+):
+    """Send message to user"""
+    try:
+        # Get data from request body
+        data = await request.json()
+        recipient_id = data.get("recipient_id")
+        message_text = data.get("message_text")
+        
+        if not recipient_id or not message_text:
+            raise HTTPException(status_code=400, detail="recipient_id and message_text are required")
+        
+        # Send message via Messenger API
+        response = await message_handler.send_message_to_user(recipient_id, message_text)
+        
+        return {
+            "success": True,
+            "message_id": response.get("message_id"),
+            "response": response
+        }
+        
+    except Exception as e:
+        logger.error(f"Error sending message: {e}")
+        
+        # Check if it's a Facebook API error
+        if "400 Client Error" in str(e) and "graph.facebook.com" in str(e):
+            return {
+                "success": False,
+                "error": "Facebook API Error: Cannot send message to test user ID. Use real Facebook user ID for testing.",
+                "details": "Facebook API requires valid user IDs that have interacted with your page."
+            }
+        elif "401" in str(e):
+            return {
+                "success": False,
+                "error": "Authentication Error: Invalid access token",
+                "details": "Please check your Facebook Page Access Token"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/users")
+async def get_users(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_session)
+):
+    """Get users list"""
+    try:
+        users = db.query(User).order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
+        
+        return {
+            "users": [
+                {
+                    "id": user.id,
+                    "psid": user.psid,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "profile_pic": user.profile_pic,
+                    "governorate": user.governorate.value if user.governorate else None,
+                    "created_at": user.created_at.isoformat(),
+                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                    "is_active": user.is_active,
+                    "lead_stage": user.lead_stage.value if user.lead_stage else None,
+                    "customer_type": user.customer_type.value if user.customer_type else None,
+                    "customer_label": user.customer_label.value if user.customer_label else None,
+                    "lead_score": user.lead_score
+                }
+                for user in users
+            ],
+            "total": db.query(User).count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting users: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/users/{psid}")
+async def get_user_profile(psid: str, db: Session = Depends(get_session)):
+    """Get user profile and message history"""
+    try:
+        user = db.query(User).filter(User.psid == psid).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user's messages
+        messages = db.query(Message).filter(Message.user_id == user.id).order_by(desc(Message.timestamp)).limit(50).all()
+        
+        # Get lead activities
+        activities = db.query(LeadActivity).filter(LeadActivity.user_id == user.id).order_by(desc(LeadActivity.timestamp)).limit(20).all()
+        
+        return {
+            "user": {
+                "id": user.id,
+                "psid": user.psid,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "profile_pic": user.profile_pic,
+                "governorate": user.governorate.value if user.governorate else None,
+                "created_at": user.created_at.isoformat(),
+                "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                "is_active": user.is_active,
+                "lead_stage": user.lead_stage.value if user.lead_stage else None,
+                "customer_type": user.customer_type.value if user.customer_type else None,
+                "customer_label": user.customer_label.value if user.customer_label else None,
+                "lead_score": user.lead_score,
+                "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
+            },
+            "messages": [
+                {
+                    "id": msg.id,
+                    "message_text": msg.message_text,
+                    "direction": msg.direction.value,
+                    "status": msg.status.value,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "message_type": msg.message_type,
+                    "message_source": msg.message_source.value if msg.message_source else None,
+                    "post_id": msg.post_id,
+                    "post_type": msg.post_type.value if msg.post_type else None,
+                    "ad_id": msg.ad_id,
+                    "comment_id": msg.comment_id
+                }
+                for msg in messages
+            ],
+            "activities": [
+                {
+                    "id": activity.id,
+                    "activity_type": activity.activity_type,
+                    "old_value": activity.old_value,
+                    "new_value": activity.new_value,
+                    "reason": activity.reason,
+                    "timestamp": activity.timestamp.isoformat(),
+                    "automated": activity.automated
+                }
+                for activity in activities
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.put("/users/{psid}")
+async def update_user(
+    psid: str,
+    request: Request,
+    db: Session = Depends(get_session)
+):
+    """Update user information"""
+    try:
+        # Get JSON body
+        update_data = await request.json()
+        
+        user = db.query(User).filter(User.psid == psid).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Track changes for lead activity
+        changes = []
+        
+        if "first_name" in update_data:
+            user.first_name = update_data["first_name"]
+        if "last_name" in update_data:
+            user.last_name = update_data["last_name"]
+        if "governorate" in update_data:
+            from app.database import Governorate
+            try:
+                old_value = user.governorate.value if user.governorate else None
+                user.governorate = Governorate(update_data["governorate"])
+                if old_value != update_data["governorate"]:
+                    changes.append(("governorate", old_value, update_data["governorate"]))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid governorate")
+        
+        if "lead_stage" in update_data:
+            try:
+                old_value = user.lead_stage.value if user.lead_stage else None
+                user.lead_stage = LeadStage(update_data["lead_stage"])
+                user.last_stage_change = datetime.now(timezone.utc)
+                if old_value != update_data["lead_stage"]:
+                    changes.append(("lead_stage", old_value, update_data["lead_stage"]))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid lead stage")
+        
+        if "customer_type" in update_data:
+            try:
+                old_value = user.customer_type.value if user.customer_type else None
+                user.customer_type = CustomerType(update_data["customer_type"])
+                if old_value != update_data["customer_type"]:
+                    changes.append(("customer_type", old_value, update_data["customer_type"]))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid customer type")
+        
+        if "customer_label" in update_data:
+            try:
+                old_value = user.customer_label.value if user.customer_label else None
+                user.customer_label = CustomerLabel(update_data["customer_label"])
+                if old_value != update_data["customer_label"]:
+                    changes.append(("customer_label", old_value, update_data["customer_label"]))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid customer label")
+        
+        db.commit()
+        
+        # Log changes to lead activities
+        for activity_type, old_val, new_val in changes:
+            activity = LeadActivity(
+                user_id=user.id,
+                activity_type=f"{activity_type}_change",
+                old_value=old_val,
+                new_value=new_val,
+                reason="Manual update from dashboard",
+                automated=False,
+                timestamp=datetime.now(timezone.utc)
+            )
+            db.add(activity)
+        
+        if changes:
+            db.commit()
+        
+        logger.info(f"Updated user {psid}: {changes}")
+        
+        return {"success": True, "message": "User updated successfully", "changes": len(changes)}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/stats")
+async def get_stats(db: Session = Depends(get_session)):
+    """Get dashboard statistics with message source analytics"""
+    try:
+        # Basic counts
+        total_users = db.query(User).count()
+        total_messages = db.query(Message).count()
+        active_conversations = db.query(Conversation).filter(Conversation.is_active == True).count()
+        
+        # Messages by direction
+        inbound_messages = db.query(Message).filter(Message.direction == MessageDirection.INBOUND).count()
+        outbound_messages = db.query(Message).filter(Message.direction == MessageDirection.OUTBOUND).count()
+        
+        # Recent activity (last 24 hours)
+        yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+        recent_messages = db.query(Message).filter(Message.timestamp >= yesterday).count()
+        recent_users = db.query(User).filter(User.last_message_at >= yesterday).count()
+        
+        # Messages by status
+        sent_messages = db.query(Message).filter(Message.status == MessageStatus.SENT).count()
+        delivered_messages = db.query(Message).filter(Message.status == MessageStatus.DELIVERED).count()
+        read_messages = db.query(Message).filter(Message.status == MessageStatus.READ).count()
+        
+        # Lead analytics
+        lead_analytics = lead_automation.get_lead_analytics()
+        
+        # Message source analytics
+        source_analytics = source_tracker.get_message_source_analytics()
+        
+        return {
+            "total_users": total_users,
+            "total_messages": total_messages,
+            "active_conversations": active_conversations,
+            "inbound_messages": inbound_messages,
+            "outbound_messages": outbound_messages,
+            "recent_messages_24h": recent_messages,
+            "recent_users_24h": recent_users,
+            "sent_messages": sent_messages,
+            "delivered_messages": delivered_messages,
+            "read_messages": read_messages,
+            "lead_analytics": lead_analytics,
+            "source_analytics": source_analytics
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/conversations")
+async def get_conversations(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_session)
+):
+    """Get active conversations"""
+    try:
+        conversations = db.query(Conversation).join(User).filter(
+            Conversation.is_active == True
+        ).order_by(desc(Conversation.last_activity)).offset(skip).limit(limit).all()
+        
+        return {
+            "conversations": [
+                {
+                    "id": conv.id,
+                    "user_id": conv.user_id,
+                    "user_name": f"{conv.user.first_name or ''} {conv.user.last_name or ''}".strip(),
+                    "user_psid": conv.user.psid,
+                    "started_at": conv.started_at.isoformat(),
+                    "last_activity": conv.last_activity.isoformat(),
+                    "message_count": conv.message_count,
+                    "is_active": conv.is_active,
+                    "lead_stage": conv.user.lead_stage.value if conv.user.lead_stage else None,
+                    "customer_type": conv.user.customer_type.value if conv.user.customer_type else None,
+                    "lead_score": conv.user.lead_score
+                }
+                for conv in conversations
+            ],
+            "total": db.query(Conversation).filter(Conversation.is_active == True).count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting conversations: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/leads")
+async def get_leads(
+    skip: int = 0,
+    limit: int = 100,
+    stage: Optional[str] = None,
+    customer_type: Optional[str] = None,
+    db: Session = Depends(get_session)
+):
+    """Get leads with filtering"""
+    try:
+        query = db.query(User)
+        
+        if stage:
+            query = query.filter(User.lead_stage == LeadStage(stage))
+        
+        if customer_type:
+            query = query.filter(User.customer_type == CustomerType(customer_type))
+        
+        leads = query.order_by(desc(User.lead_score)).offset(skip).limit(limit).all()
+        
+        return {
+            "leads": [
+                {
+                    "id": user.id,
+                    "psid": user.psid,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "profile_pic": user.profile_pic,
+                    "governorate": user.governorate.value if user.governorate else None,
+                    "created_at": user.created_at.isoformat(),
+                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                    "is_active": user.is_active,
+                    "lead_stage": user.lead_stage.value if user.lead_stage else None,
+                    "customer_type": user.customer_type.value if user.customer_type else None,
+                    "customer_label": user.customer_label.value if user.customer_label else None,
+                    "lead_score": user.lead_score,
+                    "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
+                }
+                for user in leads
+            ],
+            "total": query.count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting leads: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/posts")
+async def create_post(
+    post_data: dict,
+    db: Session = Depends(get_session)
+):
+    """Create a new post record"""
+    try:
+        facebook_post_id = post_data.get("facebook_post_id")
+        post_type = post_data.get("post_type")
+        content = post_data.get("content")
+        price = post_data.get("price")
+        data = post_data.get("data")
+        
+        post = source_tracker.create_post(
+            facebook_post_id=facebook_post_id,
+            post_type=PostType(post_type),
+            content=content,
+            price=price,
+            data=data
+        )
+        
+        if post:
+            return {
+                "success": True,
+                "post": {
+                    "id": post.id,
+                    "facebook_post_id": post.facebook_post_id,
+                    "post_type": post.post_type.value,
+                    "post_content": post.post_content,
+                    "post_price": post.post_price,
+                    "created_at": post.created_at.isoformat()
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create post")
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid post type: {e}")
+    except Exception as e:
+        logger.error(f"Error creating post: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/ad-campaigns")
+async def create_ad_campaign(
+    ad_data: dict,
+    db: Session = Depends(get_session)
+):
+    """Create a new ad campaign record"""
+    try:
+        facebook_ad_id = ad_data.get("facebook_ad_id")
+        campaign_name = ad_data.get("campaign_name")
+        content = ad_data.get("content")
+        target_audience = ad_data.get("target_audience")
+        budget = ad_data.get("budget")
+        
+        ad = source_tracker.create_ad_campaign(
+            facebook_ad_id=facebook_ad_id,
+            campaign_name=campaign_name,
+            content=content,
+            target_audience=target_audience,
+            budget=budget
+        )
+        
+        if ad:
+            return {
+                "success": True,
+                "ad_campaign": {
+                    "id": ad.id,
+                    "facebook_ad_id": ad.facebook_ad_id,
+                    "campaign_name": ad.campaign_name,
+                    "ad_content": ad.ad_content,
+                    "budget": ad.budget,
+                    "status": ad.status,
+                    "created_at": ad.created_at.isoformat()
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create ad campaign")
+        
+    except Exception as e:
+        logger.error(f"Error creating ad campaign: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/posts")
+async def get_posts(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_session)
+):
+    """Get posts list"""
+    try:
+        posts = db.query(Post).order_by(desc(Post.created_at)).offset(skip).limit(limit).all()
+        
+        return {
+            "posts": [
+                {
+                    "id": post.id,
+                    "facebook_post_id": post.facebook_post_id,
+                    "post_type": post.post_type.value if post.post_type else None,
+                    "post_content": post.post_content,
+                    "post_price": post.post_price,
+                    "post_data": post.post_data,
+                    "created_at": post.created_at.isoformat(),
+                    "is_active": post.is_active
+                }
+                for post in posts
+            ],
+            "total": db.query(Post).count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting posts: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/ad-campaigns")
+async def get_ad_campaigns(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_session)
+):
+    """Get ad campaigns list"""
+    try:
+        campaigns = db.query(AdCampaign).order_by(desc(AdCampaign.created_at)).offset(skip).limit(limit).all()
+        
+        return {
+            "ad_campaigns": [
+                {
+                    "id": campaign.id,
+                    "facebook_ad_id": campaign.facebook_ad_id,
+                    "campaign_name": campaign.campaign_name,
+                    "ad_content": campaign.ad_content,
+                    "target_audience": campaign.target_audience,
+                    "budget": campaign.budget,
+                    "status": campaign.status,
+                    "created_at": campaign.created_at.isoformat()
+                }
+                for campaign in campaigns
+            ],
+            "total": db.query(AdCampaign).count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting ad campaigns: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/ai/respond")
+async def trigger_ai_response(
+    user_psid: str,
+    message_text: str,
+    db: Session = Depends(get_session)
+):
+    """Trigger AI response for a user"""
+    try:
+        logger.info(f"AI Response request for user: {user_psid}, message: {message_text}")
+        
+        # Query user from database
+        user = db.query(User).filter(User.psid == user_psid).first()
+        logger.info(f"User found: {user is not None}")
+        
+        if not user:
+            logger.warning(f"User not found: {user_psid}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Generate AI response
+        logger.info("Initializing AI service...")
+        from app.services.ai.ai_service import AIService
+        ai_service = AIService()
+        
+        logger.info("Generating AI response...")
+        ai_response = await ai_service.generate_response(message_text, user)
+        logger.info(f"AI response generated: {ai_response is not None}")
+        
+        if ai_response:
+            logger.info("Sending message to user...")
+            # Send response to user (only if Facebook credentials are configured)
+            if settings.FB_PAGE_ACCESS_TOKEN and settings.FB_PAGE_ACCESS_TOKEN != "":
+                try:
+                    response = await message_handler.send_message_to_user(user_psid, ai_response)
+                    logger.info(f"Message sent successfully: {response}")
+                except Exception as send_error:
+                    logger.warning(f"Failed to send message via Facebook API: {send_error}")
+                    # Continue without sending - just return the response
+                    response = {"message_id": "local_response"}
+            else:
+                logger.info("Facebook credentials not configured - returning response only")
+                response = {"message_id": "local_response"}
+            
+            return {
+                "success": True,
+                "response": ai_response,
+                "message_id": response.get("message_id"),
+                "note": "Facebook API not configured - response generated locally" if not settings.FB_PAGE_ACCESS_TOKEN else None
+            }
+        else:
+            logger.warning("No AI response generated")
+            return {
+                "success": False,
+                "message": "No AI response generated"
+            }
+        
+    except HTTPException as he:
+        logger.error(f"HTTP Exception in AI response: {he}")
+        raise he
+    except Exception as e:
+        logger.error(f"Error triggering AI response: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@router.get("/ai/status")
+async def ai_status():
+    """Get AI service status"""
+    try:
+        from app.services.ai.ai_service import AIService
+        ai_service = AIService()
+        status = ai_service.get_service_status()
+        
+        return {
+            "status": "success",
+            "ai_services": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting AI status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# BWW Store Enhanced Endpoints
+@router.post("/bww-store/query")
+async def bww_store_query(
+    query: str,
+    language: str = "auto",
+    user_context: Optional[Dict] = None
+):
+    """Enhanced BWW Store customer query handling"""
+    try:
+        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+            raise HTTPException(status_code=503, detail="BWW Store integration not available")
+        
+        result = await bww_store_integration.handle_customer_query(
+            query=query,
+            user_context=user_context,
+            language=language
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error handling BWW Store query: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/bww-store/compare")
+async def bww_store_compare(
+    product_ids: List[str],
+    comparison_type: str = "detailed",
+    language: str = "auto"
+):
+    """Compare BWW Store products"""
+    try:
+        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+            raise HTTPException(status_code=503, detail="BWW Store integration not available")
+        
+        if len(product_ids) < 2:
+            raise HTTPException(status_code=400, detail="At least 2 products required for comparison")
+        
+        if len(product_ids) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 products can be compared")
+        
+        result = await bww_store_integration.compare_products(
+            product_ids=product_ids,
+            comparison_type=comparison_type,
+            language=language
+        )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error comparing products: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/bww-store/suggestions")
+async def bww_store_suggestions(
+    query: str,
+    language: str = "auto"
+):
+    """Get BWW Store search suggestions"""
+    try:
+        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+            raise HTTPException(status_code=503, detail="BWW Store integration not available")
+        
+        suggestions = await bww_store_integration.get_search_suggestions(
+            partial_query=query,
+            language=language
+        )
+        
+        return {
+            "success": True,
+            "suggestions": suggestions,
+            "query": query,
+            "language": language
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting search suggestions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/bww-store/analytics")
+async def bww_store_analytics():
+    """Get BWW Store analytics"""
+    try:
+        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+            raise HTTPException(status_code=503, detail="BWW Store integration not available")
+        
+        analytics = await bww_store_integration.get_analytics()
+        
+        return {
+            "success": True,
+            "analytics": analytics
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/bww-store/status")
+async def bww_store_status():
+    """Get BWW Store integration status"""
+    try:
+        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+            return {
+                "success": False,
+                "status": "BWW Store integration not available",
+                "available": False
+            }
+        
+        status = bww_store_integration.get_service_status()
+        
+        return {
+            "success": True,
+            "status": status,
+            "available": True
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting BWW Store status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Comprehensive BWW Store Integration Endpoints
+@router.post("/bww-store/comprehensive/message")
+async def handle_comprehensive_message(
+    user_message: str,
+    user_id: str,
+    conversation_id: Optional[str] = None,
+    message_source: Optional[str] = None
+):
+    """Handle customer message with comprehensive integration"""
+    try:
+        result = await comprehensive_integration.handle_customer_message(
+            user_message=user_message,
+            user_id=user_id,
+            conversation_id=conversation_id,
+            message_source=message_source
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error handling comprehensive message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/bww-store/comprehensive/ad-response")
+async def handle_ad_response(
+    user_message: str,
+    user_id: str,
+    ad_context: Dict[str, Any]
+):
+    """Handle response to Facebook ad"""
+    try:
+        result = await comprehensive_integration.process_ad_response(
+            user_message=user_message,
+            user_id=user_id,
+            ad_context=ad_context
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error handling ad response: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/bww-store/comprehensive/comment-conversion")
+async def handle_comment_conversion(
+    user_message: str,
+    user_id: str,
+    post_context: Dict[str, Any]
+):
+    """Handle comment converted to message"""
+    try:
+        result = await comprehensive_integration.process_comment_conversion(
+            user_message=user_message,
+            user_id=user_id,
+            post_context=post_context
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error handling comment conversion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/bww-store/comprehensive/analytics")
+async def get_comprehensive_analytics():
+    """Get comprehensive system analytics"""
+    try:
+        analytics = await comprehensive_integration.get_system_analytics()
+        
+        return {
+            "success": True,
+            "analytics": analytics
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting comprehensive analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/bww-store/comprehensive/download-products")
+async def download_products():
+    """Download and analyze products from BWW Store"""
+    try:
+        result = await comprehensive_integration.download_and_analyze_products()
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error downloading products: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/bww-store/comprehensive/collect-conversations")
+async def collect_conversations(days_back: int = 30):
+    """Collect conversation data for training"""
+    try:
+        result = await comprehensive_integration.collect_conversation_data(days_back=days_back)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error collecting conversations: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/bww-store/comprehensive/status")
+async def get_comprehensive_status():
+    """Get comprehensive integration status"""
+    try:
+        status = comprehensive_integration.get_service_status()
+        
+        return {
+            "success": True,
+            "status": status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting comprehensive status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Facebook Lead Center Integration Endpoints
+@router.post("/leads/sync-to-facebook")
+async def sync_leads_to_facebook():
+    """Sync all leads to Facebook Lead Center"""
+    try:
+        results = await lead_automation.sync_all_leads_to_facebook()
+        
+        return {
+            "success": True,
+            "message": "Lead sync completed",
+            "results": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error syncing leads to Facebook: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/leads/analytics")
+async def get_lead_analytics():
+    """Get comprehensive lead analytics"""
+    try:
+        analytics = lead_automation.get_lead_analytics()
+        
+        return {
+            "success": True,
+            "analytics": analytics
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting lead analytics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/leads/{psid}/create-in-facebook")
+async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session)):
+    """Create a specific lead in Facebook Lead Center"""
+    try:
+        user = db.query(User).filter(User.psid == psid).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        success = await lead_automation.create_lead_in_facebook(user)
+        
+        return {
+            "success": success,
+            "message": "Lead creation completed" if success else "Lead creation failed",
+            "user_psid": psid
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating lead in Facebook: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.post("/whatsapp/send-message")
+async def send_whatsapp_message(request: Request):
+    """Send a message via WhatsApp"""
+    try:
+        data = await request.json()
+        phone_number = data.get("phone_number")
+        message = data.get("message")
+        message_type = data.get("message_type", "text")
+        
+        if not phone_number or not message:
+            raise HTTPException(status_code=400, detail="phone_number and message are required")
+        
+        from app.services.messaging.whatsapp_service import WhatsAppService
+        whatsapp_service = WhatsAppService()
+        
+        if message_type == "text":
+            response = whatsapp_service.send_message(phone_number, message)
+        elif message_type == "template":
+            template_name = data.get("template_name")
+            template_params = data.get("template_params", [])
+            response = whatsapp_service.send_template_message(phone_number, template_name, template_params)
+        elif message_type == "interactive":
+            header_text = data.get("header_text", "")
+            body_text = data.get("body_text", "")
+            footer_text = data.get("footer_text")
+            buttons = data.get("buttons", [])
+            response = whatsapp_service.send_interactive_message(phone_number, header_text, body_text, footer_text, buttons)
+        elif message_type == "list":
+            header_text = data.get("header_text", "")
+            body_text = data.get("body_text", "")
+            button_text = data.get("button_text", "اختر")
+            sections = data.get("sections", [])
+            response = whatsapp_service.send_list_message(phone_number, header_text, body_text, button_text, sections)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid message_type")
+        
+        return {
+            "success": True,
+            "response": response
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending WhatsApp message: {e}")
+        
+        # Check if it's a WhatsApp API error
+        if "401" in str(e) and "graph.facebook.com" in str(e):
+            return {
+                "success": False,
+                "error": "WhatsApp API Authentication Error: Invalid access token",
+                "details": "Please check your WhatsApp Business API access token"
+            }
+        elif "400" in str(e) and "graph.facebook.com" in str(e):
+            return {
+                "success": False,
+                "error": "WhatsApp API Error: Invalid phone number or message format",
+                "details": "Please check the phone number format and message content"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/whatsapp/status")
+async def whatsapp_status():
+    """Check WhatsApp service status"""
+    try:
+        from app.services.messaging.whatsapp_service import WhatsAppService
+        whatsapp_service = WhatsAppService()
+        
+        # Check if WhatsApp is configured
+        is_available = bool(whatsapp_service.access_token and whatsapp_service.phone_number_id)
+        
+        return {
+            "success": True,
+            "whatsapp_available": is_available,
+            "phone_number_id": whatsapp_service.phone_number_id if is_available else None,
+            "api_url": whatsapp_service.api_url if is_available else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking WhatsApp status: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# Enhanced Health Check Endpoints
+@router.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed system health check"""
+    try:
+        # Health monitor has been archived - return basic health status
+        return {
+            "status": "ok",
+            "message": "Health monitoring has been archived. Basic health: operational"
+        }
+    except Exception as e:
+        logger.error(f"Error in detailed health check: {e}")
+        return {"error": "Health check failed", "status": "error"}
+
+@router.get("/health/alerts")
+async def health_alerts():
+    """Get system health alerts"""
+    try:
+        # Health monitor has been archived - return empty alerts
+        return {"alerts": [], "count": 0, "message": "Health monitoring has been archived"}
+    except Exception as e:
+        logger.error(f"Error getting health alerts: {e}")
+        return {"error": "Failed to get alerts", "alerts": []}
