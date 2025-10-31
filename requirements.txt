@@ -17,6 +17,9 @@ requests>=2.32.0
 python-multipart>=0.0.9
 aiohttp>=3.9.0
 
+# Templates
+jinja2>=3.1.0
+
 # AI & Machine Learning
 google-generativeai>=0.8.0
 
