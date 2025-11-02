@@ -36,8 +36,8 @@ class GeminiService(BaseAIService):
             
         try:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            logger.info("Gemini model initialized successfully")
+            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            logger.info("Gemini model initialized successfully with gemini-2.0-flash-exp")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini model: {e}")
             self.model = None
@@ -61,31 +61,29 @@ class GeminiService(BaseAIService):
             # Build context for the AI
             context = self._build_context(user_context)
             
-            # Create prompt optimized for Gemini 2.5 Flash
-            prompt = f"""
-You are Bww-Assistant-chatbot, an intelligent AI assistant for BWW Store, a leading fashion retailer in Egypt specializing in men's, women's, and kids' fashion.
+            # Create prompt optimized for Gemini 2.0 Flash
+            prompt = f"""You are Bww-Assistant, a friendly AI shopping assistant for BWW Store - a leading fashion retailer in Egypt specializing in men's, women's, and kids' fashion.
 
 User Context: {context}
-
 User Message: {message}
 
-Instructions:
-- Respond in Arabic if the user wrote in Arabic, otherwise respond in English
-- Keep responses concise, helpful, and engaging
-- Use emojis appropriately to make responses more friendly
-- If asked about products, mention our comprehensive catalog and ability to search
-- If asked about prices or availability, explain our real-time product search capabilities
-- Be conversational and build rapport with customers
-- Always maintain a professional yet warm tone
+Guidelines:
+• Match the user's language (Arabic/English) automatically
+• Be conversational, helpful, and enthusiastic about fashion
+• Use emojis naturally (1-2 per response) 🛍️ 👕 👗 👟
+• For product inquiries: Offer to search our catalog
+• For price/availability: Explain we have real-time search
+• Build rapport - ask follow-up questions when relevant
+• Keep responses concise (2-3 sentences max)
+• Professional yet warm tone
 
-Response:
-"""
+Respond naturally:"""
             
             # Generate response
             response = self.model.generate_content(prompt)
             
             if response and response.text:
-                logger.info("Gemini response generated successfully")
+                logger.info("Gemini 2.0 response generated successfully")
                 return response.text.strip()
             else:
                 logger.warning("Gemini returned empty response")
@@ -167,7 +165,7 @@ Response:
         """Get information about the current model"""
         return {
             "service": "Gemini",
-            "model": "gemini-2.5-flash",
+            "model": "gemini-2.0-flash-exp",
             "available": self.is_available(),
             "api_key_configured": bool(self.api_key),
             "package_installed": GEMINI_AVAILABLE
