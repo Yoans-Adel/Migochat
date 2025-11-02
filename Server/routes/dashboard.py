@@ -143,17 +143,52 @@ async def users_view(request: Request):
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_view(request: Request):
-    """Settings page"""
+    """Settings page with AI model configuration"""
     try:
+        # Import AI service to get model info
+        from app.services.ai.gemini_service import GeminiService
+        
+        gemini_service = GeminiService()
+        model_info = gemini_service.get_model_info()
+        
+        # Get Railway production URL
+        railway_url = "https://migochat-production.up.railway.app"
+        
         settings_info = {
+            # Facebook Settings
             "fb_app_id": settings.FB_APP_ID,
-            "webhook_url": settings.MESSENGER_WEBHOOK_URL,
-            "verify_token": settings.FB_VERIFY_TOKEN,
-            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN,
+            "fb_page_id": settings.FB_PAGE_ID,
+            "fb_verify_token": settings.FB_VERIFY_TOKEN,
+            "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN[:20] + "..." if settings.FB_PAGE_ACCESS_TOKEN else "",
+            
+            # WhatsApp Settings
             "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID,
             "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN,
-            "messenger_webhook_url": settings.MESSENGER_WEBHOOK_URL,
-            "whatsapp_webhook_url": settings.WHATSAPP_WEBHOOK_URL
+            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN[:20] + "..." if settings.WHATSAPP_ACCESS_TOKEN else "",
+            
+            # Webhook URLs (Railway)
+            "messenger_webhook_url": f"{railway_url}/webhook/messenger",
+            "whatsapp_webhook_url": f"{railway_url}/webhook/whatsapp",
+            "leadcenter_webhook_url": f"{railway_url}/webhook/leadcenter",
+            
+            # AI Model Settings
+            "ai_provider": "Gemini",
+            "ai_model": model_info.get("model", "gemini-2.5-flash"),
+            "ai_available": model_info.get("available", False),
+            "gemini_api_key": settings.GEMINI_API_KEY[:20] + "..." if settings.GEMINI_API_KEY else "Not configured",
+            
+            # Available AI Models
+            "available_models": [
+                {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "description": "Best price-performance (Recommended)"},
+                {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "description": "Most powerful, for complex tasks"},
+                {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash-Lite", "description": "Fastest, most cost-efficient"},
+                {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "description": "Previous generation"},
+            ],
+            
+            # System Info
+            "environment": settings.ENVIRONMENT,
+            "debug_mode": settings.DEBUG,
+            "timezone": settings.TIMEZONE
         }
         
         return templates.TemplateResponse("settings.html", {

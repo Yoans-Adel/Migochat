@@ -151,6 +151,41 @@ function showToast(message, type = 'info') {
     });
 }
 
+// Test AI connection
+async function testAIConnection() {
+    try {
+        showToast('Testing AI connection...', 'info');
+        
+        const response = await fetch('/api/ai/test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: 'Hello, this is a test message'
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            showToast('✅ AI connection successful! Model: ' + data.model, 'success');
+        } else {
+            const error = await response.json();
+            showToast('❌ AI test failed: ' + (error.detail || 'Unknown error'), 'error');
+        }
+    } catch (error) {
+        console.error('Error testing AI connection:', error);
+        showToast('❌ Error testing AI connection', 'error');
+    }
+}
+
+// View AI logs
+function viewAILogs() {
+    showToast('Opening AI logs...', 'info');
+    // Open logs in new window or modal
+    window.open('/dashboard/logs?filter=ai', '_blank');
+}
+
 // Initialize tooltips
 document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

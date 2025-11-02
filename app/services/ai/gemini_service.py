@@ -36,8 +36,8 @@ class GeminiService(BaseAIService):
             
         try:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
-            logger.info("Gemini model initialized successfully with gemini-2.0-flash-exp")
+            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            logger.info("Gemini model initialized successfully with gemini-2.5-flash")
         except Exception as e:
             logger.error(f"Failed to initialize Gemini model: {e}")
             self.model = None
@@ -165,7 +165,7 @@ Respond naturally:"""
         """Get information about the current model"""
         return {
             "service": "Gemini",
-            "model": "gemini-2.0-flash-exp",
+            "model": "gemini-2.5-flash",
             "available": self.is_available(),
             "api_key_configured": bool(self.api_key),
             "package_installed": GEMINI_AVAILABLE

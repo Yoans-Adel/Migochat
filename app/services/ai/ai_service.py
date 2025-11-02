@@ -228,7 +228,7 @@ class AIService(BaseAIService):
             "providers": {
                 "gemini": {
                     "available": self._gemini_service.is_available() if self._gemini_service else False,
-                    "model": "gemini-2.0-flash-exp"
+                    "model": "gemini-2.5-flash"
                 }
             },
             "fallback_enabled": self.fallback_enabled

@@ -113,9 +113,32 @@ async def whatsapp_webhook_post(request: Request):
         webhook_data = await request.json()
         logger.info(f"WhatsApp webhook received: {webhook_data}")
         
-        # Process with message handler - call async method directly
-        result = await message_handler._process_message_impl(webhook_data, platform="whatsapp")
-        logger.info(f"WhatsApp message processing result: {result}")
+        # Parse WhatsApp webhook format
+        if webhook_data.get("object") == "whatsapp_business_account":
+            for entry in webhook_data.get("entry", []):
+                for change in entry.get("changes", []):
+                    value = change.get("value", {})
+                    messages = value.get("messages", [])
+                    
+                    for message in messages:
+                        # Extract message details
+                        sender_id = message.get("from")  # Phone number
+                        message_text = message.get("text", {}).get("body", "")
+                        message_id = message.get("id")
+                        message_type = message.get("type", "text")
+                        
+                        if sender_id and message_text:
+                            # Create properly formatted message data
+                            message_data = {
+                                "user_id": sender_id,
+                                "text": message_text,
+                                "message_id": message_id,
+                                "message_type": message_type
+                            }
+                            
+                            # Process the message
+                            result = await message_handler._process_message_impl(message_data, platform="whatsapp")
+                            logger.info(f"WhatsApp message processing result: {result}")
         
         return {"status": "ok"}
         

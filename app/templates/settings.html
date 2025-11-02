@@ -76,16 +76,29 @@
                             <input type="text" class="form-control" value="{{ settings.fb_app_id }}" readonly>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">Page ID</label>
+                            <input type="text" class="form-control" value="{{ settings.fb_page_id }}" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Page Access Token</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="fbPageToken" value="{{ settings.fb_page_access_token }}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('fbPageToken')">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Verify Token</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="verifyToken" value="{{ settings.verify_token }}" readonly>
+                                <input type="password" class="form-control" id="verifyToken" value="{{ settings.fb_verify_token }}" readonly>
                                 <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('verifyToken')">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Facebook Webhook URL</label>
+                            <label class="form-label">Messenger Webhook URL</label>
                             <div class="input-group">
                                 <input type="text" class="form-control" value="{{ settings.messenger_webhook_url }}" readonly>
                                 <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('{{ settings.messenger_webhook_url }}')">
@@ -104,7 +117,7 @@
                                 <li>Select your app (ID: {{ settings.fb_app_id }})</li>
                                 <li>Go to Messenger → Settings</li>
                                 <li>Add the webhook URL above</li>
-                                <li>Set verify token to: <code>{{ settings.verify_token }}</code></li>
+                                <li>Set verify token to: <code>{{ settings.fb_verify_token }}</code></li>
                                 <li>Subscribe to: <code>messages</code>, <code>messaging_postbacks</code>, <code>messaging_optins</code></li>
                             </ol>
                         </div>
@@ -180,24 +193,99 @@
                     </div>
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>Webhook Status</span>
-                            <span class="badge bg-success">Active</span>
+                            <span><i class="fas fa-plug me-2"></i>Webhook Status</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Active
+                            </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>Database</span>
-                            <span class="badge bg-success">Connected</span>
+                            <span><i class="fas fa-database me-2"></i>Database</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Connected
+                            </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>AI Service</span>
-                            <span class="badge bg-warning">Rule-based</span>
+                            <span><i class="fas fa-robot me-2"></i>AI Service ({{ settings.ai_model }})</span>
+                            {% if settings.ai_available %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Active
+                            </span>
+                            {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Not Configured
+                            </span>
+                            {% endif %}
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>WhatsApp Integration</span>
-                            <span class="badge bg-success" id="whatsappSystemStatus">Active</span>
+                            <span><i class="fab fa-whatsapp me-2"></i>WhatsApp Integration</span>
+                            <span class="badge bg-success" id="whatsappSystemStatus">
+                                <i class="fas fa-check-circle me-1"></i>Active
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span><i class="fab fa-facebook-messenger me-2"></i>Messenger Integration</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Active
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span><i class="fas fa-globe me-2"></i>Environment</span>
+                            <span class="badge bg-primary">{{ settings.environment }}</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span>Timezone</span>
-                            <span class="badge bg-secondary">Africa/Cairo</span>
+                            <span><i class="fas fa-clock me-2"></i>Timezone</span>
+                            <span class="badge bg-secondary">{{ settings.timezone }}</span>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="alert alert-success mb-0">
+                            <i class="fas fa-rocket me-2"></i>
+                            <strong>Railway Production:</strong>
+                            <br>
+                            <small class="text-muted">Deployed and running</small>
+                            <br>
+                            <a href="https://migochat-production.up.railway.app" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                <i class="fas fa-external-link-alt me-1"></i>Open App
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lead Center Webhook -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Lead Center Configuration
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Lead Center Webhook URL</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="{{ settings.leadcenter_webhook_url }}" readonly>
+                                <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('{{ settings.leadcenter_webhook_url }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">
+                                Use this URL to receive leads from Facebook Lead Ads
+                            </small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Lead Center Setup:</strong>
+                            <ol class="mb-0 mt-2">
+                                <li>Go to Facebook Business Manager</li>
+                                <li>Navigate to Lead Center</li>
+                                <li>Add webhook with the URL above</li>
+                                <li>Subscribe to lead events</li>
+                                <li>Test the connection</li>
+                            </ol>
                         </div>
                     </div>
                 </div>
@@ -208,48 +296,157 @@
         <div class="row mt-4">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
                             <i class="fas fa-robot me-2"></i>
-                            AI Configuration
+                            AI Model Configuration
                         </h5>
+                        {% if settings.ai_available %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Active
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-times-circle me-1"></i>Not Configured
+                        </span>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
+                                <h6 class="mb-3">
+                                    <i class="fab fa-google me-2"></i>
+                                    Current AI Provider
+                                </h6>
                                 <div class="mb-3">
-                                    <label class="form-label">AI Mode</label>
-                                    <select class="form-select" disabled>
-                                        <option selected>Rule-based Responses</option>
-                                        <option>Local Model (Coming Soon)</option>
-                                        <option>ONNX Model (Coming Soon)</option>
-                                    </select>
+                                    <label class="form-label">Provider</label>
+                                    <input type="text" class="form-control" value="{{ settings.ai_provider }}" readonly>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Response Templates</label>
-                                    <textarea class="form-control" rows="4" placeholder="Custom response templates will be available in future updates..." disabled></textarea>
+                                    <label class="form-label">Current Model</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" value="{{ settings.ai_model }}" readonly>
+                                        <span class="input-group-text">
+                                            <i class="fas fa-sparkles text-warning"></i>
+                                        </span>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Latest Gemini model - Best price-performance ratio
+                                    </small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Gemini API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="geminiApiKey" value="{{ settings.gemini_api_key }}" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('geminiApiKey')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% if settings.ai_available %}
+                                    <small class="form-text text-success">
+                                        <i class="fas fa-check-circle me-1"></i>API key configured and working
+                                    </small>
+                                    {% else %}
+                                    <small class="form-text text-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>API key not configured in environment
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                
+                                <h6 class="mb-3 mt-4">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Available Models
+                                </h6>
+                                {% for model in settings.available_models %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="aiModel" id="model{{ loop.index }}" 
+                                           value="{{ model.id }}" {% if model.id == settings.ai_model %}checked{% endif %} disabled>
+                                    <label class="form-check-label" for="model{{ loop.index }}">
+                                        <strong>{{ model.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ model.description }}</small>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                                
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>
+                                        To change models, update <code>GEMINI_API_KEY</code> in Railway environment variables and restart the service.
+                                    </small>
                                 </div>
                             </div>
+                            
                             <div class="col-md-6">
-                                <div class="alert alert-info">
-                                    <h6><i class="fas fa-info-circle me-2"></i>Current AI Features:</h6>
+                                <h6 class="mb-3">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    AI Features & Capabilities
+                                </h6>
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-check-circle me-2"></i>Active Features:</h6>
                                     <ul class="mb-0">
-                                        <li>Greeting detection and responses</li>
-                                        <li>Help and support responses</li>
-                                        <li>Location-based responses</li>
-                                        <li>Thank you and goodbye responses</li>
-                                        <li>Fallback responses for unknown queries</li>
+                                        <li><strong>Multilingual Support:</strong> Arabic & English</li>
+                                        <li><strong>Product Search:</strong> BWW store integration</li>
+                                        <li><strong>Smart Responses:</strong> Context-aware replies with emojis</li>
+                                        <li><strong>Order Tracking:</strong> Help with orders and shipping</li>
+                                        <li><strong>Customer Support:</strong> 24/7 assistance</li>
+                                        <li><strong>Intelligent Fallbacks:</strong> Smart responses when uncertain</li>
                                     </ul>
                                 </div>
-                                <div class="alert alert-warning">
+                                
+                                <h6 class="mb-3 mt-4">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Model Information
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Provider:</strong></td>
+                                                <td>Google Gemini</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Model Version:</strong></td>
+                                                <td>{{ settings.ai_model }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Generation:</strong></td>
+                                                <td>Gemini 2.5 (Latest)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Max Tokens:</strong></td>
+                                                <td>8,192 (output)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Context Window:</strong></td>
+                                                <td>1M tokens</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Multimodal:</strong></td>
+                                                <td><i class="fas fa-check text-success"></i> Yes</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-warning mt-3">
                                     <h6><i class="fas fa-lightbulb me-2"></i>Coming Soon:</h6>
                                     <ul class="mb-0">
-                                        <li>Local AI model integration</li>
-                                        <li>ONNX quantization support</li>
-                                        <li>Intent detection</li>
-                                        <li>Entity extraction</li>
-                                        <li>Custom model training</li>
+                                        <li><strong>OpenAI Integration:</strong> GPT-4 support</li>
+                                        <li><strong>Anthropic Claude:</strong> Alternative AI provider</li>
+                                        <li><strong>Custom Models:</strong> Fine-tuned models</li>
+                                        <li><strong>A/B Testing:</strong> Compare model performance</li>
+                                        <li><strong>Model Analytics:</strong> Response quality tracking</li>
                                     </ul>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-3">
+                                    <button class="btn btn-outline-primary" onclick="testAIConnection()">
+                                        <i class="fas fa-vial me-2"></i>Test AI Connection
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="viewAILogs()">
+                                        <i class="fas fa-file-alt me-2"></i>View AI Logs
+                                    </button>
                                 </div>
                             </div>
                         </div>

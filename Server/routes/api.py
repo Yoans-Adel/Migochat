@@ -1085,3 +1085,165 @@ async def health_alerts():
     except Exception as e:
         logger.error(f"Error getting health alerts: {e}")
         return {"error": "Failed to get alerts", "alerts": []}
+
+# AI Service Testing Endpoint
+@router.post("/ai/test")
+async def test_ai_connection(request: Request):
+    """Test AI service connection and response"""
+    try:
+        from app.services.ai.gemini_service import GeminiService
+        
+        # Get test message from request
+        data = await request.json()
+        test_message = data.get("message", "مرحبا، هذه رسالة تجريبية")
+        
+        # Initialize Gemini service
+        gemini_service = GeminiService()
+        
+        # Check if service is available
+        model_info = gemini_service.get_model_info()
+        if not model_info.get("available", False):
+            return {
+                "success": False,
+                "error": "AI service not configured",
+                "detail": "Gemini API key not found in environment variables"
+            }
+        
+        # Test AI response
+        response = await gemini_service.generate_response(
+            message=test_message,
+            user_name="Test User"
+        )
+        
+        return {
+            "success": True,
+            "model": model_info.get("model", "unknown"),
+            "test_message": test_message,
+            "ai_response": response,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error testing AI connection: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "detail": "Failed to test AI connection"
+        }
+
+# AI Model Configuration Endpoints
+@router.get("/ai/models")
+async def get_available_models():
+    """Get list of available AI models"""
+    try:
+        models = [
+            {
+                "id": "gemini-2.5-flash",
+                "name": "Gemini 2.5 Flash",
+                "provider": "Google",
+                "description": "Best price-performance ratio (Recommended)",
+                "features": ["Multilingual", "Fast", "Cost-effective"],
+                "max_tokens": 8192,
+                "context_window": "1M tokens"
+            },
+            {
+                "id": "gemini-2.5-pro",
+                "name": "Gemini 2.5 Pro",
+                "provider": "Google",
+                "description": "Most powerful for complex reasoning",
+                "features": ["Advanced reasoning", "Multimodal", "High accuracy"],
+                "max_tokens": 8192,
+                "context_window": "2M tokens"
+            },
+            {
+                "id": "gemini-2.5-flash-lite",
+                "name": "Gemini 2.5 Flash-Lite",
+                "provider": "Google",
+                "description": "Fastest and most cost-efficient",
+                "features": ["Ultra fast", "Lowest cost", "High throughput"],
+                "max_tokens": 8192,
+                "context_window": "1M tokens"
+            },
+            {
+                "id": "gemini-2.0-flash",
+                "name": "Gemini 2.0 Flash",
+                "provider": "Google",
+                "description": "Previous generation (deprecated)",
+                "features": ["Stable", "Proven"],
+                "max_tokens": 8192,
+                "context_window": "32K tokens"
+            }
+        ]
+        
+        return {
+            "success": True,
+            "models": models,
+            "total": len(models)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting available models: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get models")
+
+@router.get("/ai/current")
+async def get_current_model():
+    """Get currently active AI model"""
+    try:
+        from app.services.ai.gemini_service import GeminiService
+        
+        gemini_service = GeminiService()
+        model_info = gemini_service.get_model_info()
+        
+        return {
+            "success": True,
+            "current_model": model_info.get("model", "unknown"),
+            "available": model_info.get("available", False),
+            "provider": "Google Gemini",
+            "api_configured": bool(settings.GEMINI_API_KEY)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting current model: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get current model")
+
+@router.post("/ai/model/change")
+async def change_ai_model(request: Request):
+    """Change AI model (requires environment variable update)"""
+    try:
+        data = await request.json()
+        new_model = data.get("model")
+        
+        if not new_model:
+            raise HTTPException(status_code=400, detail="Model name required")
+        
+        # Validate model name
+        valid_models = [
+            "gemini-2.5-flash",
+            "gemini-2.5-pro", 
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash"
+        ]
+        
+        if new_model not in valid_models:
+            raise HTTPException(status_code=400, detail=f"Invalid model. Choose from: {', '.join(valid_models)}")
+        
+        # Note: This requires updating environment variable and restarting
+        # For now, we return instructions
+        return {
+            "success": False,
+            "message": "Model change requires environment update",
+            "instructions": [
+                f"1. Go to Railway dashboard",
+                f"2. Add environment variable: GEMINI_MODEL={new_model}",
+                f"3. Restart the service",
+                f"4. Model will be updated to: {new_model}"
+            ],
+            "requested_model": new_model,
+            "note": "Dynamic model switching will be available in future updates"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error changing model: {e}")
+        raise HTTPException(status_code=500, detail="Failed to change model")
