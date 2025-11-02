@@ -121,35 +121,43 @@ Response:
         message_lower = message.lower()
         
         # Arabic greetings
-        if any(word in message_lower for word in ['مرحبا', 'هلا', 'السلام', 'أهلا']):
-            return "أهلاً وسهلاً! أنا مساعد BWW Store. كيف يمكنني مساعدتك اليوم؟"
+        if any(word in message_lower for word in ['مرحبا', 'هلا', 'السلام', 'أهلا', 'صباح', 'مساء']):
+            return "أهلاً وسهلاً! 👋 أنا مساعد BWW Store الذكي. يمكنني مساعدتك في:\n\n🛍️ البحث عن المنتجات\n💰 معرفة الأسعار\n📦 الاستفسار عن التوافر\n📍 معلومات المتجر\n\nماذا تريد اليوم؟"
         
         # English greetings
-        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'good morning', 'good afternoon']):
-            return "Hello! I'm BWW Store assistant. How can I help you today?"
+        if any(word in message_lower for word in ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'greetings']):
+            return "Hello! 👋 I'm BWW Store's smart assistant. I can help you with:\n\n🛍️ Product search\n💰 Prices\n📦 Availability\n📍 Store information\n\nWhat can I do for you today?"
         
         # Arabic help requests
-        if any(word in message_lower for word in ['مساعدة', 'ساعد', 'ممكن', 'كيف']):
-            return "بالطبع! يمكنني مساعدتك في العثور على المنتجات، الأسعار، والمعلومات عن متجر BWW. ماذا تبحث عنه؟"
+        if any(word in message_lower for word in ['مساعدة', 'ساعد', 'ممكن', 'عايز', 'محتاج']):
+            return "بالتأكيد! سأساعدك بكل سرور 😊\n\nيمكنني:\n✨ البحث عن أي منتج في متجر BWW\n✨ إعطائك معلومات عن الأسعار والمقاسات\n✨ المساعدة في اختيار المنتج المناسب\n\nماذا تبحث عنه بالضبط؟"
         
-        # English help requests
-        if any(word in message_lower for word in ['help', 'assist', 'support']):
-            return "Of course! I can help you find products, prices, and information about BWW Store. What are you looking for?"
+        # English help requests  
+        if any(word in message_lower for word in ['help', 'assist', 'support', 'need', 'want']):
+            return "Of course! I'd love to help! 😊\n\nI can:\n✨ Search for any product in BWW Store\n✨ Provide info about prices and sizes\n✨ Help you choose the right product\n\nWhat exactly are you looking for?"
         
         # Arabic product requests
-        if any(word in message_lower for word in ['منتج', 'فستان', 'قميص', 'حذاء', 'ملابس']):
-            return "ممتاز! يمكنني البحث عن المنتجات في متجر BWW. أخبرني ما تبحث عنه بالضبط."
+        if any(word in message_lower for word in ['منتج', 'فستان', 'قميص', 'حذاء', 'ملابس', 'بنطلون', 'جاكيت']):
+            return "رائع! 🎉 دعني أساعدك في العثور على ما تبحث عنه.\n\nأخبرني أكثر عن:\n📌 نوع المنتج\n📌 اللون المفضل\n📌 المقاس\n📌 الميزانية\n\nوسأجد لك أفضل الخيارات! 🛍️"
         
         # English product requests
-        if any(word in message_lower for word in ['product', 'dress', 'shirt', 'shoes', 'clothes', 'fashion']):
-            return "Great! I can search for products in BWW Store. Tell me exactly what you're looking for."
+        if any(word in message_lower for word in ['product', 'dress', 'shirt', 'shoes', 'clothes', 'fashion', 'pants', 'jacket']):
+            return "Excellent! 🎉 Let me help you find what you're looking for.\n\nTell me more about:\n📌 Product type\n📌 Preferred color\n📌 Size\n📌 Budget\n\nAnd I'll find you the best options! 🛍️"
+        
+        # Price inquiries
+        if any(word in message_lower for word in ['سعر', 'price', 'كام', 'كم', 'how much', 'cost', 'تكلفة']):
+            return "أسعارنا تنافسية جداً! 💰\n\nأخبرني عن المنتج اللي عايز تعرف سعره، وهديك كل التفاصيل بما فيها:\n• السعر الحالي\n• أي عروض متاحة\n• خيارات التوصيل"
+        
+        # Thanks
+        if any(word in message_lower for word in ['شكرا', 'thank', 'thanks', 'thx']):
+            return "العفو! 🌟 أنا موجود دايماً لمساعدتك. لو احتجت أي حاجة تانية، ابعتلي!"
         
         # Default Arabic response
         if any(ord(char) >= 0x0600 and ord(char) <= 0x06FF for char in message):
-            return "شكراً لك! أنا هنا لمساعدتك. هل تبحث عن منتج معين من متجر BWW؟"
+            return "أنا هنا لمساعدتك! 😊\n\nيمكنك أن تسألني عن:\n🔍 منتجات معينة\n💰 الأسعار\n📦 التوافر\n🚚 التوصيل\n\nاكتب لي اللي محتاجه وأنا هساعدك فوراً!"
         
         # Default English response
-        return "Thank you! I'm here to help. Are you looking for a specific product from BWW Store?"
+        return "I'm here to help! 😊\n\nYou can ask me about:\n🔍 Specific products\n💰 Prices\n📦 Availability\n🚚 Delivery\n\nJust tell me what you need!"
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""
