@@ -7,16 +7,16 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
+from app.database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
 from Server.config import settings
 import os
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Get absolute path to templates directory
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-templates_dir = os.path.join(base_dir, "templates")
+# Get absolute path to templates directory (app/templates)
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+templates_dir = os.path.join(base_dir, "app", "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize services directly to avoid circular imports
@@ -37,37 +37,38 @@ def handle_dashboard_error(error: Exception, view_name: str):
     raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard_home(request: Request, db: Session = Depends(get_session)):
+async def dashboard_home(request: Request):
     """Main dashboard page with lead analytics"""
     try:
-        # Get statistics
-        total_users = db.query(User).count()
-        total_messages = db.query(Message).count()
-        active_conversations = db.query(Conversation).filter(Conversation.is_active == True).count()
-        
-        # Lead analytics with error handling
-        try:
-            lead_analytics = lead_automation.get_lead_analytics()
-        except Exception as e:
-            logger.warning(f"Lead analytics failed: {e}")
-            lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
-        
-        # Recent messages (last 24 hours)
-        yesterday = datetime.utcnow() - timedelta(days=1)
-        recent_messages = db.query(Message).join(User).filter(
-            Message.timestamp >= yesterday
-        ).order_by(desc(Message.timestamp)).limit(10).all()
-        
-        # Active users (messaged in last 7 days)
-        week_ago = datetime.utcnow() - timedelta(days=7)
-        active_users = db.query(User).filter(
-            User.last_message_at >= week_ago
-        ).count()
-        
-        stats = {
-            "total_users": total_users,
-            "total_messages": total_messages,
-            "active_conversations": active_conversations,
+        with get_db_session() as db:
+            # Get statistics
+            total_users = db.query(User).count()
+            total_messages = db.query(Message).count()
+            active_conversations = db.query(Conversation).filter(Conversation.is_active == True).count()
+            
+            # Lead analytics with error handling
+            try:
+                lead_analytics = lead_automation.get_lead_analytics()
+            except Exception as e:
+                logger.warning(f"Lead analytics failed: {e}")
+                lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
+            
+            # Recent messages (last 24 hours)
+            yesterday = datetime.utcnow() - timedelta(days=1)
+            recent_messages = db.query(Message).join(User).filter(
+                Message.timestamp >= yesterday
+            ).order_by(desc(Message.timestamp)).limit(10).all()
+            
+            # Active users (messaged in last 7 days)
+            week_ago = datetime.utcnow() - timedelta(days=7)
+            active_users = db.query(User).filter(
+                User.last_message_at >= week_ago
+            ).count()
+            
+            stats = {
+                "total_users": total_users,
+                "total_messages": total_messages,
+                "active_conversations": active_conversations,
             "active_users": active_users,
             "recent_messages": recent_messages,
             "lead_analytics": lead_analytics
@@ -82,57 +83,60 @@ async def dashboard_home(request: Request, db: Session = Depends(get_session)):
         handle_dashboard_error(e, "dashboard")
 
 @router.get("/leads", response_class=HTMLResponse)
-async def leads_view(request: Request, db: Session = Depends(get_session)):
+async def leads_view(request: Request):
     """Lead management page"""
     try:
         logger.info("Starting leads_view")
         
-        # Get leads with pagination
-        leads = get_users_by_last_message(db, 100)
-        logger.info(f"Found {len(leads)} leads")
-        
-        # Get lead analytics
-        lead_analytics = lead_automation.get_lead_analytics()
-        logger.info(f"Lead analytics: {lead_analytics}")
-        
-        return templates.TemplateResponse("leads.html", {
-            "request": request,
-            "leads": leads,
-            "analytics": lead_analytics
-        })
+        with get_db_session() as db:
+            # Get leads with pagination
+            leads = get_users_by_last_message(db, 100)
+            logger.info(f"Found {len(leads)} leads")
+            
+            # Get lead analytics
+            lead_analytics = lead_automation.get_lead_analytics()
+            logger.info(f"Lead analytics: {lead_analytics}")
+            
+            return templates.TemplateResponse("leads.html", {
+                "request": request,
+                "leads": leads,
+                "analytics": lead_analytics
+            })
         
     except Exception as e:
         logger.error(f"Error in leads_view: {e}", exc_info=True)
         handle_dashboard_error(e, "leads view")
 
 @router.get("/messages", response_class=HTMLResponse)
-async def messages_view(request: Request, db: Session = Depends(get_session)):
+async def messages_view(request: Request):
     """Messages management page"""
     try:
-        # Get conversations with user info
-        conversations = db.query(Conversation).join(User).filter(
-            Conversation.is_active == True
-        ).order_by(desc(Conversation.last_activity)).limit(50).all()
-        
-        return templates.TemplateResponse("messages.html", {
-            "request": request,
-            "conversations": conversations
-        })
+        with get_db_session() as db:
+            # Get conversations with user info
+            conversations = db.query(Conversation).join(User).filter(
+                Conversation.is_active == True
+            ).order_by(desc(Conversation.last_activity)).limit(50).all()
+            
+            return templates.TemplateResponse("messages.html", {
+                "request": request,
+                "conversations": conversations
+            })
         
     except Exception as e:
         handle_dashboard_error(e, "messages view")
 
 @router.get("/users", response_class=HTMLResponse)
-async def users_view(request: Request, db: Session = Depends(get_session)):
+async def users_view(request: Request):
     """Users management page"""
     try:
-        # Get all users with message counts
-        users = get_users_by_last_message(db, 100)
-        
-        return templates.TemplateResponse("users.html", {
-            "request": request,
-            "users": users
-        })
+        with get_db_session() as db:
+            # Get all users with message counts
+            users = get_users_by_last_message(db, 100)
+            
+            return templates.TemplateResponse("users.html", {
+                "request": request,
+                "users": users
+            })
         
     except Exception as e:
         handle_dashboard_error(e, "users view")
