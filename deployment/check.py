@@ -13,9 +13,8 @@ def check_files():
     
     required = {
         "requirements.txt": "Python dependencies",
-        "deployment/Procfile": "Process configuration",
-        "deployment/runtime.txt": "Python version",
-        "deployment/railway.json": "Railway settings",
+        "Procfile": "Process configuration",
+        "runtime.txt": "Python version",
         "Server/main.py": "FastAPI application",
         ".env": "Environment variables"
     }

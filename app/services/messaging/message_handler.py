@@ -96,10 +96,8 @@ class MessageHandler(MessageService):
         """Get existing user or create new one"""
         session = None
         try:
-            # Get a database session - get_session() returns a Session object directly
-            from app.database_manager import get_database_manager
-            db_manager = get_database_manager()
-            session = db_manager.get_session()
+            # Get a database session - get_session() returns a generator
+            session = next(get_session())
             
             # Try to find existing user
             user = session.query(User).filter(User.psid == user_id).first()

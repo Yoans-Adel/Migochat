@@ -1,14 +1,8 @@
 # Railway Deployment# Deployment Folder
 
-
-
 Simple deployment to Railway for permanent HTTPS URL.Simple deployment configs for Railway/Render.
 
-
-
 ## Quick Deploy## Quick Deploy
-
-
 
 ```bashPush to GitHub, then connect Railway or Render.
 
