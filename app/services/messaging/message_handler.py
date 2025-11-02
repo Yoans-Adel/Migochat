@@ -94,43 +94,49 @@ class MessageHandler(MessageService):
     
     async def _get_or_create_user(self, user_id: str, platform: str) -> Optional[User]:
         """Get existing user or create new one"""
-        session = None
         try:
-            # Get a database session - get_session() returns a generator
-            session = next(get_session())
+            # Use the database session generator properly
+            db_gen = get_session()
+            session = next(db_gen)
             
-            # Try to find existing user
-            user = session.query(User).filter(User.psid == user_id).first()
-            
-            if not user:
-                # Create new user
-                user_data = {
-                    "psid": user_id,
-                    "platform": platform,
-                    "created_at": datetime.now(timezone.utc),
-                    "last_message_at": datetime.now(timezone.utc)
-                }
-                user = User(**user_data)
-                session.add(user)
-                session.commit()
-                session.refresh(user)
-                logger.info(f"Created new user: {user_id}")
-            else:
-                # Update last message time
-                user.last_message_at = datetime.now(timezone.utc)
-                session.commit()
-                logger.info(f"Found existing user: {user_id}")
-            
-            return user
+            try:
+                # Try to find existing user
+                user = session.query(User).filter(User.psid == user_id).first()
                 
-        except Exception as e:
-            if session:
+                if not user:
+                    # Create new user
+                    user_data = {
+                        "psid": user_id,
+                        "platform": platform,
+                        "created_at": datetime.now(timezone.utc),
+                        "last_message_at": datetime.now(timezone.utc)
+                    }
+                    user = User(**user_data)
+                    session.add(user)
+                    session.commit()
+                    session.refresh(user)
+                    logger.info(f"Created new user: {user_id}")
+                else:
+                    # Update last message time
+                    user.last_message_at = datetime.now(timezone.utc)
+                    session.commit()
+                    logger.info(f"Found existing user: {user_id}")
+                
+                return user
+            except Exception as e:
                 session.rollback()
-            logger.error(f"Error getting or creating user {user_id}: {e}")
+                logger.error(f"Error getting or creating user {user_id}: {e}")
+                return None
+            finally:
+                # Close the generator properly
+                try:
+                    next(db_gen)
+                except StopIteration:
+                    pass
+                    
+        except Exception as e:
+            logger.error(f"Error initializing database session: {e}")
             return None
-        finally:
-            if session:
-                session.close()
     
     def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status"""
