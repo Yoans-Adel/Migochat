@@ -14,7 +14,7 @@ from app.services.core.base_service import MessageService
 from app.services.ai.ai_service import AIService
 from app.services.messaging.messenger_service import MessengerService
 from app.services.messaging.whatsapp_service import WhatsAppService
-from app.database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, Governorate
+from app.database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, Governorate
 from Server.config import settings
 
 logger = logging.getLogger(__name__)
@@ -95,11 +95,8 @@ class MessageHandler(MessageService):
     async def _get_or_create_user(self, user_id: str, platform: str) -> Optional[User]:
         """Get existing user or create new one"""
         try:
-            # Use the database session generator properly
-            db_gen = get_session()
-            session = next(db_gen)
-            
-            try:
+            # Use the proper context manager for database session
+            with get_db_session() as session:
                 # Try to find existing user
                 user = session.query(User).filter(User.psid == user_id).first()
                 
@@ -123,19 +120,9 @@ class MessageHandler(MessageService):
                     logger.info(f"Found existing user: {user_id}")
                 
                 return user
-            except Exception as e:
-                session.rollback()
-                logger.error(f"Error getting or creating user {user_id}: {e}")
-                return None
-            finally:
-                # Close the generator properly
-                try:
-                    next(db_gen)
-                except StopIteration:
-                    pass
                     
         except Exception as e:
-            logger.error(f"Error initializing database session: {e}")
+            logger.error(f"Error getting or creating user {user_id}: {e}")
             return None
     
     def get_service_status(self) -> Dict[str, Any]:
@@ -158,8 +145,9 @@ class MessageHandler(MessageService):
             # Database health - check if we can get a session
             db_healthy = True
             try:
-                session = next(get_session())
-                session.close()
+                with get_db_session() as session:
+                    # If we can get a session, database is healthy
+                    pass
             except Exception:
                 db_healthy = False
                 
