@@ -148,7 +148,8 @@ class MessageHandler(MessageService):
                 with get_db_session() as session:
                     # If we can get a session, database is healthy
                     pass
-            except Exception:
+            except Exception as e:
+                logger.error(f"Database health check failed: {e}")
                 db_healthy = False
                 
             ai_health = await self.ai_service.health_check()

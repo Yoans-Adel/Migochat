@@ -382,7 +382,8 @@ class BWWStoreSearchEngine:
                             if score > 0.2:  # Slightly higher threshold for main strategies
                                 all_candidates.append((product, score))
                         # Don't break - continue to other strategies to get more results
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Search strategy failed: {e}")
                 continue  # Try next strategy
 
         if not all_candidates:

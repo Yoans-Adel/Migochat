@@ -51,7 +51,7 @@ async def messenger_webhook_get(request: Request):
         handle_webhook_error(e, "verifying Messenger webhook")
 
 @router.post("/messenger")
-async def messenger_webhook_post(request: Request, db: Session = Depends(get_session)):
+async def messenger_webhook_post(request: Request):
     """Facebook Messenger webhook for receiving messages"""
     try:
         # Get webhook data
