@@ -305,6 +305,58 @@ Respond naturally:"""
         
         return "; ".join(context_parts) if context_parts else "New customer"
     
+    def detect_intent(self, message: str) -> Dict[str, Any]:
+        """
+        Detect user intent from message
+        
+        Returns:
+            {
+                'intent': str,  # greeting, product_search, price_inquiry, etc.
+                'confidence': float,  # 0.0 to 1.0
+                'entities': dict  # extracted entities
+            }
+        """
+        message_lower = message.lower()
+        
+        # Greeting intent
+        if any(word in message_lower for word in ['مرحبا', 'هلا', 'السلام', 'أهلا', 'صباح', 'مساء', 'hello', 'hi', 'hey']):
+            return {
+                'intent': 'greeting',
+                'confidence': 0.95,
+                'entities': {}
+            }
+        
+        # Product search intent
+        if any(word in message_lower for word in ['منتج', 'فستان', 'قميص', 'حذاء', 'ملابس', 'product', 'dress', 'shirt', 'shoes']):
+            return {
+                'intent': 'product_search',
+                'confidence': 0.90,
+                'entities': {'product_type': message}
+            }
+        
+        # Price inquiry intent
+        if any(word in message_lower for word in ['سعر', 'price', 'كام', 'كم', 'how much', 'cost']):
+            return {
+                'intent': 'price_inquiry',
+                'confidence': 0.92,
+                'entities': {}
+            }
+        
+        # Help request intent
+        if any(word in message_lower for word in ['مساعدة', 'ساعد', 'help', 'assist', 'support']):
+            return {
+                'intent': 'help_request',
+                'confidence': 0.88,
+                'entities': {}
+            }
+        
+        # Default: general inquiry
+        return {
+            'intent': 'general_inquiry',
+            'confidence': 0.70,
+            'entities': {}
+        }
+    
     def _fallback_response(self, message: str) -> str:
         """Fallback response when Gemini is not available"""
         message_lower = message.lower()
