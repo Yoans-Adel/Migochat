@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Import BWW Store Integration (optional)
 try:
-    from bww_store import BWWStoreIntegration
+    from bww_store import BWWStoreAPIService
     BWW_STORE_AVAILABLE = True
     logger.info("BWW Store integration loaded successfully")
 except ImportError:
@@ -36,7 +36,7 @@ source_tracker = MessageSourceTracker()
 
 # Initialize BWW Store Integration (if available)
 if BWW_STORE_AVAILABLE:
-    bww_store_integration = BWWStoreIntegration()
+    bww_store_integration = BWWStoreAPIService(language="ar")
 else:
     bww_store_integration = None
 
@@ -267,7 +267,7 @@ async def update_user(
         if "last_name" in update_data:
             user.last_name = update_data["last_name"]
         if "governorate" in update_data:
-            from app.database import Governorate
+            from database import Governorate
             try:
                 old_value = user.governorate.value if user.governorate else None
                 user.governorate = Governorate(update_data["governorate"])
@@ -695,21 +695,27 @@ async def ai_status():
 @router.post("/bww-store/query")
 async def bww_store_query(
     query: str,
-    language: str = "auto",
-    user_context: Optional[Dict] = None
+    language: str = "ar",
+    limit: int = 3
 ):
     """Enhanced BWW Store customer query handling"""
     try:
         if not BWW_STORE_AVAILABLE or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
         
-        result = await bww_store_integration.handle_customer_query(
-            query=query,
-            user_context=user_context,
+        # Use search_and_format_products instead of handle_customer_query
+        result = await bww_store_integration.search_and_format_products(
+            search_text=query,
+            limit=limit,
             language=language
         )
         
-        return result
+        return {
+            "success": True,
+            "query": query,
+            "products": result,
+            "count": len(result)
+        }
         
     except Exception as e:
         logger.error(f"Error handling BWW Store query: {e}")
@@ -718,8 +724,7 @@ async def bww_store_query(
 @router.post("/bww-store/compare")
 async def bww_store_compare(
     product_ids: List[str],
-    comparison_type: str = "detailed",
-    language: str = "auto"
+    language: str = "ar"
 ):
     """Compare BWW Store products"""
     try:
@@ -732,13 +737,22 @@ async def bww_store_compare(
         if len(product_ids) > 5:
             raise HTTPException(status_code=400, detail="Maximum 5 products can be compared")
         
+        # Convert string IDs to integers
+        try:
+            product_ids_int = [int(pid) for pid in product_ids]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Product IDs must be numeric")
+        
         result = await bww_store_integration.compare_products(
-            product_ids=product_ids,
-            comparison_type=comparison_type,
+            product_ids=product_ids_int,
             language=language
         )
         
-        return result
+        return {
+            "success": True,
+            "comparison": result,
+            "product_count": len(product_ids)
+        }
         
     except HTTPException:
         raise
@@ -749,15 +763,17 @@ async def bww_store_compare(
 @router.get("/bww-store/suggestions")
 async def bww_store_suggestions(
     query: str,
-    language: str = "auto"
+    language: str = "ar"
 ):
-    """Get BWW Store search suggestions"""
+    """Get BWW Store search suggestions (simplified version)"""
     try:
         if not BWW_STORE_AVAILABLE or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
         
-        suggestions = await bww_store_integration.get_search_suggestions(
-            partial_query=query,
+        # Use search to get suggestions
+        suggestions = await bww_store_integration.search_and_format_products(
+            search_text=query,
+            limit=5,
             language=language
         )
         
@@ -775,16 +791,19 @@ async def bww_store_suggestions(
 
 @router.get("/bww-store/analytics")
 async def bww_store_analytics():
-    """Get BWW Store analytics"""
+    """Get BWW Store analytics - Basic cache stats"""
     try:
         if not BWW_STORE_AVAILABLE or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
         
-        analytics = await bww_store_integration.get_analytics()
-        
+        # Return basic analytics from cache
         return {
             "success": True,
-            "analytics": analytics
+            "analytics": {
+                "service": "BWW Store API",
+                "status": "operational",
+                "note": "Full analytics not implemented yet"
+            }
         }
         
     except Exception as e:

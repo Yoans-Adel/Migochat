@@ -75,7 +75,7 @@ def client(test_db_engine) -> Generator[TestClient, None, None]:
             session.close()
     
     # Import and override the get_session dependency
-    from app.database import get_session
+    from database import get_session
     app.dependency_overrides[get_session] = override_get_session
     
     with TestClient(app) as test_client:
