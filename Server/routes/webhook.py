@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 import logging
 
-from app.database import get_session
+from database import get_session
 from Server.config import settings
 
 logger = logging.getLogger(__name__)

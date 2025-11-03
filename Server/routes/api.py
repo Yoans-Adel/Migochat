@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 import traceback
 
-from app.database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign
+from database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign
 from Server.config import settings
 
 logger = logging.getLogger(__name__)

@@ -14,7 +14,7 @@ from app.services.core.base_service import MessageService
 from app.services.ai.ai_service import AIService
 from app.services.messaging.messenger_service import MessengerService
 from app.services.messaging.whatsapp_service import WhatsAppService
-from app.database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, Governorate
+from database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, Governorate
 from Server.config import settings
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List, Optional
-from app.database import User, Message, MessageSource, PostType, Post, AdCampaign, get_session
+from database import User, Message, MessageSource, PostType, Post, AdCampaign, get_session
 from datetime import datetime
 import json
 
@@ -278,5 +278,5 @@ class MessageSourceTracker:
             return {}
 
 # Import required modules
-from app.database import MessageDirection
+from database import MessageDirection
 from datetime import timedelta

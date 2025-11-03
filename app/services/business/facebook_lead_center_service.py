@@ -3,7 +3,7 @@ import requests
 from typing import Dict, Optional, List, Tuple
 from sqlalchemy import func
 from Server.config import settings
-from app.database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, get_session, Message, MessageDirection
+from database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, get_session, Message, MessageDirection
 from app.services.messaging.messenger_service import MessengerService
 from datetime import datetime, timedelta, timezone
 import re

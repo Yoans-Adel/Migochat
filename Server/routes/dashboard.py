@@ -7,7 +7,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
+from database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
 from Server.config import settings
 import os
 

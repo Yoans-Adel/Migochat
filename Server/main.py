@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 # Import from app (services are still in app/ folder)
 from Server.config import settings
-from app.database import get_session, create_database
+from database import get_session, create_all_tables
 from Server.routes import dashboard, api, webhook
 
 @asynccontextmanager
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         # Create database tables
-        create_database()
+        create_all_tables()
         logger.info("Database initialized successfully")
         
         # Initialize all services using the new modular architecture
