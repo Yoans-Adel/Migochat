@@ -1,6 +1,7 @@
 import logging
 import requests
 from typing import Dict, Optional, List, Tuple
+from sqlalchemy import func
 from Server.config import settings
 from app.database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, get_session, Message, MessageDirection
 from app.services.messaging.messenger_service import MessengerService
@@ -895,7 +896,7 @@ class FacebookLeadCenterService:
                 
                 # Get average lead score
                 avg_score = db.query(User).filter(User.lead_score.isnot(None)).with_entities(
-                    db.func.avg(User.lead_score)
+                    func.avg(User.lead_score)
                 ).scalar() or 0
                 
                 # Get recent activity

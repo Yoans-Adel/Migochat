@@ -145,14 +145,11 @@ async def users_view(request: Request):
 async def settings_view(request: Request):
     """Settings page with AI model configuration"""
     try:
-        # Import AI service to get model info
-        from app.services.ai.gemini_service import GeminiService
-        
-        gemini_service = GeminiService()
-        model_info = gemini_service.get_model_info()
-        
         # Get Railway production URL
         railway_url = "https://migochat-production.up.railway.app"
+        
+        # Check if Gemini API key is configured
+        gemini_available = bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 0)
         
         settings_info = {
             # Facebook Settings
@@ -173,8 +170,8 @@ async def settings_view(request: Request):
             
             # AI Model Settings
             "ai_provider": "Gemini",
-            "ai_model": model_info.get("model", "gemini-2.5-flash"),
-            "ai_available": model_info.get("available", False),
+            "ai_model": settings.GEMINI_MODEL or "gemini-2.5-flash",
+            "ai_available": gemini_available,
             "gemini_api_key": settings.GEMINI_API_KEY[:20] + "..." if settings.GEMINI_API_KEY else "Not configured",
             
             # Available AI Models

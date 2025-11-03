@@ -97,21 +97,31 @@ async def send_message(
         data = await request.json()
         recipient_id = data.get("recipient_id")
         message_text = data.get("message_text")
+        platform = data.get("platform", "facebook")  # facebook or whatsapp
         
         if not recipient_id or not message_text:
             raise HTTPException(status_code=400, detail="recipient_id and message_text are required")
         
-        # Send message via Messenger API
-        response = await message_handler.send_message_to_user(recipient_id, message_text)
+        # Send message via appropriate service
+        success = message_handler.send_message(recipient_id, message_text, platform)
         
-        return {
-            "success": True,
-            "message_id": response.get("message_id"),
-            "response": response
-        }
+        if success:
+            return {
+                "success": True,
+                "message": "Message sent successfully",
+                "recipient_id": recipient_id,
+                "platform": platform
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Failed to send message",
+                "details": "Check server logs for details"
+            }
         
     except Exception as e:
         logger.error(f"Error sending message: {e}")
+        traceback.print_exc()
         
         # Check if it's a Facebook API error
         if "400 Client Error" in str(e) and "graph.facebook.com" in str(e):
@@ -127,7 +137,7 @@ async def send_message(
                 "details": "Please check your Facebook Page Access Token"
             }
         else:
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/users")
 async def get_users(
