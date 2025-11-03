@@ -611,26 +611,66 @@ async def get_ad_campaigns(
 
 @router.post("/ai/respond")
 async def trigger_ai_response(
-    user_psid: str,
-    message_text: str,
+    request: Request,
     db: Session = Depends(get_session)
 ):
-    """Trigger AI response for a user"""
+    """
+    Trigger AI response for a user with multimodal support
+    
+    Body:
+        {
+            "user_psid": "string",
+            "message_text": "string",
+            "media_files": [  // Optional
+                {
+                    "type": "image|audio",
+                    "data": "base64_encoded_data",
+                    "mime_type": "image/jpeg"
+                }
+            ],
+            "use_quality_model": false  // Optional, default false
+        }
+    """
     try:
-        logger.info(f"AI Response request for user: {user_psid}, message: {message_text}")
+        # Parse request body
+        data = await request.json()
+        user_psid = data.get("user_psid")
+        message_text = data.get("message_text")
+        media_files = data.get("media_files", [])
+        use_quality = data.get("use_quality_model", False)
+        
+        # Validate inputs
+        if not user_psid:
+            raise HTTPException(status_code=400, detail="user_psid is required")
+        
+        if not message_text:
+            raise HTTPException(status_code=400, detail="message_text is required")
+        
+        logger.info(f"AI Response request for user: {user_psid}, message: {message_text}, media: {len(media_files)}")
         
         # Query user from database
         user = db.query(User).filter(User.psid == user_psid).first()
-        logger.info(f"User found: {user is not None}")
         
         if not user:
             logger.warning(f"User not found: {user_psid}")
             raise HTTPException(status_code=404, detail="User not found")
         
+        logger.info(f"User found: {user.first_name} {user.last_name}")
+        
         # Generate AI response
         logger.info("Initializing AI service...")
         from app.services.ai.ai_service import AIService
         ai_service = AIService()
+        
+        # Prepare context with media files
+        context = {
+            "user_id": user.id,
+            "user_name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
+            "lead_stage": user.lead_stage.value if user.lead_stage else None,
+            "customer_type": user.customer_type.value if user.customer_type else None,
+            "media_files": media_files if media_files else None,
+            "use_quality_model": use_quality
+        }
         
         logger.info("Generating AI response...")
         ai_response = await ai_service.generate_response(message_text, user)

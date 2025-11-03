@@ -1,11 +1,14 @@
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Union
 import json
+import mimetypes
+from pathlib import Path
 from Server.config import settings
 from app.services.core.base_service import AIService as BaseAIService
 
 try:
     import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -14,54 +17,139 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 class GeminiService(BaseAIService):
-    """Gemini AI service for generating responses"""
+    """
+    Advanced Gemini AI service with multimodal support
+    Supports: Text, Images, Audio → Text responses
+    """
     
     def __init__(self):
         super().__init__()
         self.api_key = settings.GEMINI_API_KEY
-        self.model = None
-        self._initialize_model()
+        
+        # Model configurations for different use cases
+        self.models = {
+            'multimodal': None,      # For images + audio + text
+            'text_fast': None,       # For text-only (Gemma)
+            'text_quality': None,    # For high-quality text
+        }
+        
+        self._initialize_models()
         # Initialize the service
         self.initialize()
     
-    def _initialize_model(self):
-        """Initialize the Gemini model"""
+    def _initialize_models(self):
+        """Initialize multiple models for different use cases"""
         if not GEMINI_AVAILABLE:
             # Suppress warning on first initialization only
             if not hasattr(self, '_warning_shown'):
                 logger.info("Gemini AI service not available - using fallback responses")
                 self._warning_shown = True
-            self.model = None
             return
             
         try:
             genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-            logger.info("Gemini model initialized successfully with gemini-2.5-flash")
+            
+            # Multimodal model (images + audio + text)
+            try:
+                self.models['multimodal'] = genai.GenerativeModel('gemini-2.5-flash')
+                logger.info("✅ Multimodal model initialized: gemini-2.5-flash")
+            except Exception as e:
+                logger.warning(f"Failed to initialize multimodal model: {e}")
+            
+            # Fast text-only model (Gemma - أسرع وأرخص للنصوص)
+            try:
+                self.models['text_fast'] = genai.GenerativeModel('gemma-3-27b-it')
+                logger.info("✅ Fast text model initialized: gemma-3-27b-it")
+            except Exception as e:
+                logger.warning(f"Gemma not available, using gemini-2.5-flash-lite as fallback")
+                try:
+                    self.models['text_fast'] = genai.GenerativeModel('gemini-2.5-flash-lite')
+                    logger.info("✅ Fast text fallback: gemini-2.5-flash-lite")
+                except:
+                    pass
+            
+            # High-quality text model
+            try:
+                self.models['text_quality'] = genai.GenerativeModel('gemini-2.5-pro')
+                logger.info("✅ Quality text model initialized: gemini-2.5-pro")
+            except Exception as e:
+                # Fallback to flash if pro not available
+                self.models['text_quality'] = self.models['multimodal']
+                
         except Exception as e:
-            logger.error(f"Failed to initialize Gemini model: {e}")
-            self.model = None
+            logger.error(f"Failed to initialize Gemini models: {e}")
+            self.models = {'multimodal': None, 'text_fast': None, 'text_quality': None}
     
-    def generate_response(self, message: str, user_context: Optional[Dict[str, Any]] = None) -> str:
+    def generate_response(
+        self, 
+        message: str, 
+        user_context: Optional[Dict[str, Any]] = None,
+        media_files: Optional[List[Dict[str, Any]]] = None,
+        use_quality_model: bool = False
+    ) -> str:
         """
-        Generate AI response using Gemini
+        Generate AI response using Gemini (supports multimodal inputs)
         
         Args:
-            message: User message
+            message: User message text
             user_context: Additional context about the user
+            media_files: List of media files [{'type': 'image|audio', 'data': bytes|path, 'mime_type': str}]
+            use_quality_model: Use high-quality model for complex queries
             
         Returns:
-            Generated response
+            Generated text response
         """
-        if not GEMINI_AVAILABLE or not self.model:
+        if not GEMINI_AVAILABLE:
             logger.warning("Gemini not available, using fallback response")
             return self._fallback_response(message)
         
         try:
+            # Determine which model to use
+            if media_files and len(media_files) > 0:
+                # Has images/audio → use multimodal model
+                model = self.models['multimodal']
+                model_name = "gemini-2.5-flash (multimodal)"
+                
+                if not model:
+                    logger.error("Multimodal model not available")
+                    return self._fallback_response(message)
+                    
+                return self._generate_multimodal_response(message, user_context, media_files, model)
+            
+            else:
+                # Text-only → use fast Gemma model or quality model
+                if use_quality_model and self.models['text_quality']:
+                    model = self.models['text_quality']
+                    model_name = "gemini-2.5-pro (quality)"
+                elif self.models['text_fast']:
+                    model = self.models['text_fast']
+                    model_name = "gemma-3-27b-it (fast)"
+                else:
+                    model = self.models['multimodal']
+                    model_name = "gemini-2.5-flash (fallback)"
+                
+                if not model:
+                    return self._fallback_response(message)
+                
+                return self._generate_text_response(message, user_context, model, model_name)
+                
+        except Exception as e:
+            logger.error(f"Error generating Gemini response: {e}")
+            return self._fallback_response(message)
+    
+    def _generate_text_response(
+        self, 
+        message: str, 
+        user_context: Optional[Dict[str, Any]], 
+        model,
+        model_name: str
+    ) -> str:
+        """Generate text-only response"""
+        try:
             # Build context for the AI
             context = self._build_context(user_context)
             
-            # Create prompt optimized for Gemini 2.0 Flash
+            # Create prompt optimized for fashion retail
             prompt = f"""You are Bww-Assistant, a friendly AI shopping assistant for BWW Store - a leading fashion retailer in Egypt specializing in men's, women's, and kids' fashion.
 
 User Context: {context}
@@ -80,18 +168,121 @@ Guidelines:
 Respond naturally:"""
             
             # Generate response
-            response = self.model.generate_content(prompt)
+            response = model.generate_content(
+                prompt,
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+            )
             
             if response and response.text:
-                logger.info("Gemini 2.0 response generated successfully")
+                logger.info(f"✅ Response generated using: {model_name}")
                 return response.text.strip()
             else:
-                logger.warning("Gemini returned empty response")
+                logger.warning(f"Empty response from {model_name}")
                 return self._fallback_response(message)
                 
         except Exception as e:
-            logger.error(f"Error generating Gemini response: {e}")
+            logger.error(f"Error in text generation: {e}")
             return self._fallback_response(message)
+    
+    def _generate_multimodal_response(
+        self, 
+        message: str, 
+        user_context: Optional[Dict[str, Any]],
+        media_files: List[Dict[str, Any]],
+        model
+    ) -> str:
+        """Generate response with images/audio input"""
+        try:
+            # Build context
+            context = self._build_context(user_context)
+            
+            # Prepare content parts
+            content_parts = []
+            
+            # Add media files
+            for media in media_files:
+                media_type = media.get('type', 'unknown')
+                mime_type = media.get('mime_type', 'application/octet-stream')
+                
+                if media_type == 'image':
+                    # Image input
+                    if 'data' in media:
+                        # Raw bytes
+                        content_parts.append({
+                            'mime_type': mime_type,
+                            'data': media['data']
+                        })
+                    elif 'path' in media:
+                        # File path
+                        with open(media['path'], 'rb') as f:
+                            content_parts.append({
+                                'mime_type': mime_type,
+                                'data': f.read()
+                            })
+                    
+                    logger.info(f"📷 Added image input ({mime_type})")
+                
+                elif media_type == 'audio':
+                    # Audio input
+                    if 'data' in media:
+                        content_parts.append({
+                            'mime_type': mime_type,
+                            'data': media['data']
+                        })
+                    elif 'path' in media:
+                        with open(media['path'], 'rb') as f:
+                            content_parts.append({
+                                'mime_type': mime_type,
+                                'data': f.read()
+                            })
+                    
+                    logger.info(f"🎤 Added audio input ({mime_type})")
+            
+            # Add text prompt
+            prompt = f"""You are Bww-Assistant analyzing media from a customer.
+
+User Context: {context}
+User Message: {message}
+
+Instructions:
+• Analyze any images or audio provided
+• For images: Describe the fashion items you see (style, color, type)
+• For audio: Transcribe and respond to the spoken message
+• Match the user's language (Arabic/English)
+• Be helpful and conversational
+• Use emojis naturally 🛍️ 👕 📷 🎤
+• Keep responses concise (2-3 sentences)
+
+Respond naturally:"""
+            
+            content_parts.append(prompt)
+            
+            # Generate response
+            response = model.generate_content(
+                content_parts,
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+            )
+            
+            if response and response.text:
+                logger.info(f"✅ Multimodal response generated ({len(media_files)} media files)")
+                return response.text.strip()
+            else:
+                logger.warning("Empty multimodal response")
+                return "عذراً، لم أتمكن من معالجة الوسائط المرسلة. يرجى المحاولة مرة أخرى."
+                
+        except Exception as e:
+            logger.error(f"Error in multimodal generation: {e}")
+            return f"عذراً، حدث خطأ في معالجة الصورة/الصوت: {str(e)}"
     
     def _build_context(self, user_context: Optional[Dict[str, Any]] = None) -> str:
         """Build context string for the AI"""
@@ -159,30 +350,71 @@ Respond naturally:"""
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""
-        return GEMINI_AVAILABLE and self.model is not None
+        return GEMINI_AVAILABLE and any(model is not None for model in self.models.values())
     
     def get_model_info(self) -> Dict[str, Any]:
-        """Get information about the current model"""
+        """Get information about available models"""
         return {
-            "service": "Gemini",
-            "model": "gemini-2.5-flash",
-            "available": self.is_available(),
+            "service": "Gemini Multi-Model",
+            "models": {
+                "multimodal": {
+                    "name": "gemini-2.5-flash",
+                    "available": self.models['multimodal'] is not None,
+                    "supports": ["text", "images", "audio"],
+                    "use_case": "Images + Audio + Text → Text"
+                },
+                "text_fast": {
+                    "name": "gemma-3-27b-it",
+                    "available": self.models['text_fast'] is not None,
+                    "supports": ["text"],
+                    "use_case": "Fast text-only responses (أسرع وأرخص)"
+                },
+                "text_quality": {
+                    "name": "gemini-2.5-pro",
+                    "available": self.models['text_quality'] is not None,
+                    "supports": ["text"],
+                    "use_case": "High-quality text responses"
+                }
+            },
             "api_key_configured": bool(self.api_key),
-            "package_installed": GEMINI_AVAILABLE
+            "package_installed": GEMINI_AVAILABLE,
+            "strategy": "Smart routing: text-only → Gemma (fast), multimodal → Gemini Flash"
         }
     
     def _do_initialize(self):
         """Initialize Gemini service"""
-        self._initialize_model()
+        self._initialize_models()
     
     def _generate_response_impl(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """AI-specific response generation"""
         try:
-            response = self.generate_response(query)
+            # Extract media files if present in context
+            media_files = context.get('media_files') if context else None
+            use_quality = context.get('use_quality_model', False) if context else False
+            
+            response = self.generate_response(
+                message=query,
+                user_context=context,
+                media_files=media_files,
+                use_quality_model=use_quality
+            )
+            
+            # Determine which model was used
+            model_used = "fallback"
+            if media_files:
+                model_used = "gemini-2.5-flash (multimodal)"
+            elif use_quality and self.models['text_quality']:
+                model_used = "gemini-2.5-pro"
+            elif self.models['text_fast']:
+                model_used = "gemma-3-27b-it"
+            else:
+                model_used = "gemini-2.5-flash"
+            
             return {
                 "response": response,
                 "success": True,
-                "model_used": "gemini" if self.is_available() else "fallback"
+                "model_used": model_used,
+                "multimodal": bool(media_files)
             }
         except Exception as e:
             self.logger.error(f"Error generating Gemini response: {e}")
