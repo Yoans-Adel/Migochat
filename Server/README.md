@@ -32,7 +32,7 @@ pip install -r requirements.txt
 python database/cli.py rebuild
 
 # 4. Start server
-python Server/run.py
+python run.py
 ```
 
 **Server runs at**: <http://localhost:8000>
@@ -160,7 +160,7 @@ taskkill /PID <PID> /F
 ```bash
 # Ensure in project root
 cd /path/to/Migochat
-python Server/run.py
+python run.py
 ```
 
 ### Database Issues

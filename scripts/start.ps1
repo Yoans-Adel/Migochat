@@ -16,7 +16,7 @@ Write-Host ""
 
 try {
     # تشغيل المشروع
-    python scripts/run.py
+    python run.py
 } catch {
     Write-Host "❌ خطأ في تشغيل التطبيق: $($_.Exception.Message)" -ForegroundColor Red
 }

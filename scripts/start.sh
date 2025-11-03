@@ -15,7 +15,7 @@ echo "اضغط Ctrl+C للإيقاف"
 echo ""
 
 # تشغيل المشروع
-python3 scripts/run.py
+python3 run.py
 
 echo ""
 echo "👋 تم إيقاف التطبيق"

@@ -45,7 +45,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 
 4. **Start Application**
    ```bash
-   python scripts/run.py
+   python run.py
    ```
 
 ## ✨ Features

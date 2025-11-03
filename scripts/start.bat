@@ -16,7 +16,7 @@ echo اضغط Ctrl+C للإيقاف
 echo.
 
 REM تشغيل المشروع
-python scripts/run.py
+python run.py
 
 echo.
 echo 👋 تم إيقاف التطبيق
