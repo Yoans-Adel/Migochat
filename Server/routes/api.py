@@ -1126,3 +1126,223 @@ async def change_ai_model(request: Request):
     except Exception as e:
         logger.error(f"Error changing model: {e}")
         raise HTTPException(status_code=500, detail="Failed to change model")
+
+
+# ============================================================
+# Admin Settings Management
+# ============================================================
+
+@router.get("/settings")
+async def get_settings(category: Optional[str] = None):
+    """
+    Get all settings, optionally filtered by category
+    
+    Query params:
+        category: Filter by category (facebook, whatsapp, ai, system)
+    """
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        settings_manager = get_settings_manager()
+        settings = settings_manager.get_all_settings(category=category)
+        
+        return {
+            "success": True,
+            "settings": settings,
+            "count": len(settings)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve settings")
+
+
+@router.get("/settings/{key}")
+async def get_setting(key: str):
+    """Get a specific setting by key"""
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        settings_manager = get_settings_manager()
+        value = settings_manager.get_setting(key)
+        
+        if not value:
+            raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
+        
+        return {
+            "success": True,
+            "key": key,
+            "value": value
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting setting {key}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve setting")
+
+
+@router.put("/settings/{key}")
+async def update_setting(key: str, request: Request):
+    """
+    Update a setting
+    
+    Body:
+        {
+            "value": "new_value",
+            "category": "ai",  # Optional
+            "is_sensitive": true,  # Optional
+            "description": "Setting description"  # Optional
+        }
+    """
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        data = await request.json()
+        value = data.get("value", "")
+        category = data.get("category", "system")
+        is_sensitive = data.get("is_sensitive", False)
+        description = data.get("description", "")
+        
+        if not value:
+            raise HTTPException(status_code=400, detail="Value is required")
+        
+        settings_manager = get_settings_manager()
+        success = settings_manager.set_setting(
+            key=key,
+            value=value,
+            category=category,
+            is_sensitive=is_sensitive,
+            description=description,
+            updated_by="admin"
+        )
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update setting")
+        
+        return {
+            "success": True,
+            "message": f"Setting '{key}' updated successfully",
+            "key": key
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating setting {key}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update setting")
+
+
+@router.post("/settings/bulk")
+async def bulk_update_settings(request: Request):
+    """
+    Update multiple settings at once
+    
+    Body:
+        {
+            "settings": [
+                {
+                    "key": "GEMINI_API_KEY",
+                    "value": "AIzaSy...",
+                    "category": "ai",
+                    "is_sensitive": true,
+                    "description": "Google Gemini API Key"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        data = await request.json()
+        settings_list = data.get("settings", [])
+        
+        if not settings_list:
+            raise HTTPException(status_code=400, detail="No settings provided")
+        
+        settings_manager = get_settings_manager()
+        success_count = 0
+        failed_settings = []
+        
+        for setting in settings_list:
+            key = setting.get("key")
+            value = setting.get("value", "")
+            category = setting.get("category", "system")
+            is_sensitive = setting.get("is_sensitive", False)
+            description = setting.get("description", "")
+            
+            if not key or not value:
+                failed_settings.append({"key": key, "reason": "Missing key or value"})
+                continue
+            
+            success = settings_manager.set_setting(
+                key=key,
+                value=value,
+                category=category,
+                is_sensitive=is_sensitive,
+                description=description,
+                updated_by="admin"
+            )
+            
+            if success:
+                success_count += 1
+            else:
+                failed_settings.append({"key": key, "reason": "Database error"})
+        
+        return {
+            "success": True,
+            "message": f"Updated {success_count} out of {len(settings_list)} settings",
+            "updated_count": success_count,
+            "total_count": len(settings_list),
+            "failed": failed_settings
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error bulk updating settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update settings")
+
+
+@router.delete("/settings/{key}")
+async def delete_setting(key: str):
+    """Delete a setting"""
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        settings_manager = get_settings_manager()
+        success = settings_manager.delete_setting(key)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
+        
+        return {
+            "success": True,
+            "message": f"Setting '{key}' deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting setting {key}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete setting")
+
+
+@router.post("/settings/initialize")
+async def initialize_settings():
+    """Initialize default settings from environment variables"""
+    try:
+        from app.services.infrastructure.settings_manager import get_settings_manager
+        
+        settings_manager = get_settings_manager()
+        settings_manager.initialize_default_settings()
+        
+        return {
+            "success": True,
+            "message": "Default settings initialized from environment"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error initializing settings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to initialize settings")

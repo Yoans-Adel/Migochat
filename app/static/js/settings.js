@@ -192,4 +192,218 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    
+    // Load current settings when page loads
+    loadCurrentSettings();
 });
+
+
+// ============================================================
+// Admin Settings Manager Functions
+// ============================================================
+
+// Load current settings from database
+async function loadCurrentSettings() {
+    try {
+        showToast('Loading settings...', 'info');
+        
+        const response = await fetch('/api/settings');
+        if (!response.ok) {
+            throw new Error('Failed to load settings');
+        }
+        
+        const data = await response.json();
+        
+        // Populate form fields
+        data.settings.forEach(setting => {
+            const input = document.getElementById(setting.key.toLowerCase());
+            if (input) {
+                input.value = setting.value_full || '';
+            }
+        });
+        
+        showToast('✅ Settings loaded successfully', 'success');
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showToast('❌ Failed to load settings', 'error');
+    }
+}
+
+// Save all settings
+async function saveAllSettings() {
+    try {
+        showToast('Saving settings...', 'info');
+        
+        // Collect all settings from form
+        const settings = [
+            // Facebook
+            {
+                key: 'FB_PAGE_ACCESS_TOKEN',
+                value: document.getElementById('fb_page_access_token').value,
+                category: 'facebook',
+                is_sensitive: true,
+                description: 'Facebook Page Access Token'
+            },
+            {
+                key: 'FB_APP_ID',
+                value: document.getElementById('fb_app_id').value,
+                category: 'facebook',
+                is_sensitive: false,
+                description: 'Facebook App ID'
+            },
+            {
+                key: 'FB_PAGE_ID',
+                value: document.getElementById('fb_page_id').value,
+                category: 'facebook',
+                is_sensitive: false,
+                description: 'Facebook Page ID'
+            },
+            {
+                key: 'FB_VERIFY_TOKEN',
+                value: document.getElementById('fb_verify_token').value,
+                category: 'facebook',
+                is_sensitive: true,
+                description: 'Facebook Webhook Verify Token'
+            },
+            
+            // WhatsApp
+            {
+                key: 'WHATSAPP_ACCESS_TOKEN',
+                value: document.getElementById('whatsapp_access_token').value,
+                category: 'whatsapp',
+                is_sensitive: true,
+                description: 'WhatsApp Business API Access Token'
+            },
+            {
+                key: 'WHATSAPP_PHONE_NUMBER_ID',
+                value: document.getElementById('whatsapp_phone_number_id').value,
+                category: 'whatsapp',
+                is_sensitive: false,
+                description: 'WhatsApp Phone Number ID'
+            },
+            {
+                key: 'WHATSAPP_VERIFY_TOKEN',
+                value: document.getElementById('whatsapp_verify_token').value,
+                category: 'whatsapp',
+                is_sensitive: true,
+                description: 'WhatsApp Webhook Verify Token'
+            },
+            
+            // AI
+            {
+                key: 'GEMINI_API_KEY',
+                value: document.getElementById('gemini_api_key').value,
+                category: 'ai',
+                is_sensitive: true,
+                description: 'Google Gemini API Key'
+            }
+        ];
+        
+        // Filter out empty values
+        const validSettings = settings.filter(s => s.value && s.value.trim() !== '');
+        
+        if (validSettings.length === 0) {
+            showToast('⚠️ No settings to save', 'warning');
+            return;
+        }
+        
+        // Send to API
+        const response = await fetch('/api/settings/bulk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ settings: validSettings })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save settings');
+        }
+        
+        const result = await response.json();
+        
+        showToast(`✅ Saved ${result.updated_count} settings successfully!`, 'success');
+        
+        // Show confirmation dialog
+        if (confirm('Settings saved! Reload page to see changes?')) {
+            location.reload();
+        }
+        
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showToast('❌ Failed to save settings', 'error');
+    }
+}
+
+// Initialize default settings from environment
+async function initializeDefaultSettings() {
+    try {
+        if (!confirm('This will initialize settings from environment variables. Continue?')) {
+            return;
+        }
+        
+        showToast('Initializing settings...', 'info');
+        
+        const response = await fetch('/api/settings/initialize', {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to initialize settings');
+        }
+        
+        showToast('✅ Settings initialized from environment', 'success');
+        
+        // Reload settings
+        setTimeout(() => loadCurrentSettings(), 1000);
+        
+    } catch (error) {
+        console.error('Error initializing settings:', error);
+        showToast('❌ Failed to initialize settings', 'error');
+    }
+}
+
+// Toggle password visibility for editable fields
+function togglePasswordFieldEdit(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) {
+        console.error(`Input with ID ${inputId} not found`);
+        return;
+    }
+    
+    const button = input.parentElement.querySelector('button');
+    const icon = button ? button.querySelector('i') : null;
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        input.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+}
+
+// Test WhatsApp connection
+async function testWhatsAppConnection() {
+    try {
+        showToast('Testing WhatsApp connection...', 'info');
+        
+        const response = await fetch('/api/whatsapp/status');
+        const data = await response.json();
+        
+        if (data.whatsapp_available) {
+            showToast('✅ WhatsApp connection successful!', 'success');
+        } else {
+            showToast('❌ WhatsApp not available: ' + (data.error || 'Check access token'), 'error');
+        }
+    } catch (error) {
+        console.error('Error testing WhatsApp:', error);
+        showToast('❌ Failed to test WhatsApp connection', 'error');
+    }
+}
