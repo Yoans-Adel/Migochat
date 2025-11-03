@@ -22,7 +22,8 @@ from database.models import (
     Conversation,
     LeadActivity,
     Post,
-    AdCampaign
+    AdCampaign,
+    AppSettings
 )
 
 from database.engine import (
@@ -67,6 +68,7 @@ __all__ = [
     "LeadActivity",
     "Post",
     "AdCampaign",
+    "AppSettings",
     # Engine
     "get_engine",
     "get_session",

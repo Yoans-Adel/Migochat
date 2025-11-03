@@ -143,3 +143,18 @@ class AdCampaign(Base):
     
     # Relationships
     messages = relationship("Message", foreign_keys="Message.ad_id", back_populates="ad_campaign")
+
+
+class AppSettings(Base):
+    """Application settings model - stores editable configuration (Admin only)"""
+    __tablename__ = "app_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(Text)
+    category = Column(String(50))  # facebook, whatsapp, ai, system
+    is_sensitive = Column(Boolean, default=False)  # For API keys, tokens
+    description = Column(Text)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_by = Column(String(100), default="admin")
+

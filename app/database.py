@@ -24,6 +24,7 @@ from database import (
     LeadActivity,
     Post,
     AdCampaign,
+    AppSettings,
     
     # Engine functions
     get_engine,
