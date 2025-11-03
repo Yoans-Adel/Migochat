@@ -641,8 +641,10 @@ async def trigger_ai_response(
             # Send response to user (only if Facebook credentials are configured)
             if settings.FB_PAGE_ACCESS_TOKEN and settings.FB_PAGE_ACCESS_TOKEN != "":
                 try:
-                    response = await message_handler.send_message_to_user(user_psid, ai_response)
-                    logger.info(f"Message sent successfully: {response}")
+                    # Use correct method name: send_message instead of send_message_to_user
+                    success = message_handler.send_message(user_psid, ai_response, platform="facebook")
+                    logger.info(f"Message sent successfully: {success}")
+                    response = {"message_id": "sent" if success else "failed"}
                 except Exception as send_error:
                     logger.warning(f"Failed to send message via Facebook API: {send_error}")
                     # Continue without sending - just return the response
