@@ -4,6 +4,7 @@ from sqlalchemy import desc, func
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import logging
+import traceback
 
 from app.database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign
 from Server.config import settings
@@ -13,8 +14,8 @@ logger = logging.getLogger(__name__)
 # Import BWW Store Integration (optional)
 try:
     from bww_store import BWWStoreIntegration
-    from bww_store.comprehensive_integration import ComprehensiveBWWStoreIntegration
     BWW_STORE_AVAILABLE = True
+    logger.info("BWW Store integration loaded successfully")
 except ImportError:
     BWW_STORE_AVAILABLE = False
     logger.warning("BWW Store integration not available")
@@ -33,14 +34,11 @@ message_handler = MessageHandler()
 lead_automation = FacebookLeadCenterService()
 source_tracker = MessageSourceTracker()
 
-# Initialize BWW Store Integration
-# Initialize BWW Store services (if available)
+# Initialize BWW Store Integration (if available)
 if BWW_STORE_AVAILABLE:
     bww_store_integration = BWWStoreIntegration()
-    comprehensive_integration = ComprehensiveBWWStoreIntegration()
 else:
     bww_store_integration = None
-    comprehensive_integration = None
 
 @router.get("/messages")
 async def get_messages(
@@ -322,7 +320,6 @@ async def update_user(
         raise
     except Exception as e:
         logger.error(f"Error updating user: {e}")
-        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -662,7 +659,6 @@ async def trigger_ai_response(
         raise he
     except Exception as e:
         logger.error(f"Error triggering AI response: {e}")
-        import traceback
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
@@ -804,123 +800,6 @@ async def bww_store_status():
         
     except Exception as e:
         logger.error(f"Error getting BWW Store status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# Comprehensive BWW Store Integration Endpoints
-@router.post("/bww-store/comprehensive/message")
-async def handle_comprehensive_message(
-    user_message: str,
-    user_id: str,
-    conversation_id: Optional[str] = None,
-    message_source: Optional[str] = None
-):
-    """Handle customer message with comprehensive integration"""
-    try:
-        result = await comprehensive_integration.handle_customer_message(
-            user_message=user_message,
-            user_id=user_id,
-            conversation_id=conversation_id,
-            message_source=message_source
-        )
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error handling comprehensive message: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/bww-store/comprehensive/ad-response")
-async def handle_ad_response(
-    user_message: str,
-    user_id: str,
-    ad_context: Dict[str, Any]
-):
-    """Handle response to Facebook ad"""
-    try:
-        result = await comprehensive_integration.process_ad_response(
-            user_message=user_message,
-            user_id=user_id,
-            ad_context=ad_context
-        )
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error handling ad response: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/bww-store/comprehensive/comment-conversion")
-async def handle_comment_conversion(
-    user_message: str,
-    user_id: str,
-    post_context: Dict[str, Any]
-):
-    """Handle comment converted to message"""
-    try:
-        result = await comprehensive_integration.process_comment_conversion(
-            user_message=user_message,
-            user_id=user_id,
-            post_context=post_context
-        )
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error handling comment conversion: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/bww-store/comprehensive/analytics")
-async def get_comprehensive_analytics():
-    """Get comprehensive system analytics"""
-    try:
-        analytics = await comprehensive_integration.get_system_analytics()
-        
-        return {
-            "success": True,
-            "analytics": analytics
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting comprehensive analytics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/bww-store/comprehensive/download-products")
-async def download_products():
-    """Download and analyze products from BWW Store"""
-    try:
-        result = await comprehensive_integration.download_and_analyze_products()
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error downloading products: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/bww-store/comprehensive/collect-conversations")
-async def collect_conversations(days_back: int = 30):
-    """Collect conversation data for training"""
-    try:
-        result = await comprehensive_integration.collect_conversation_data(days_back=days_back)
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error collecting conversations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/bww-store/comprehensive/status")
-async def get_comprehensive_status():
-    """Get comprehensive integration status"""
-    try:
-        status = comprehensive_integration.get_service_status()
-        
-        return {
-            "success": True,
-            "status": status
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting comprehensive status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
