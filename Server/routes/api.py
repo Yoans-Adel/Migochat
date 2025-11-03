@@ -982,37 +982,45 @@ async def health_alerts():
 async def test_ai_connection(request: Request):
     """Test AI service connection and response"""
     try:
-        from app.services.ai.gemini_service import GeminiService
-        
         # Get test message from request
         data = await request.json()
         test_message = data.get("message", "مرحبا، هذه رسالة تجريبية")
         
-        # Initialize Gemini service
-        gemini_service = GeminiService()
-        
-        # Check if service is available
-        model_info = gemini_service.get_model_info()
-        if not model_info.get("available", False):
+        # Check if Gemini API key is configured
+        if not settings.GEMINI_API_KEY or len(settings.GEMINI_API_KEY) == 0:
             return {
                 "success": False,
                 "error": "AI service not configured",
-                "detail": "Gemini API key not found in environment variables"
+                "detail": "Gemini API key not found in environment variables",
+                "instruction": "Add GEMINI_API_KEY to your environment or update from /dashboard/settings"
             }
         
-        # Test AI response
-        response = await gemini_service.generate_response(
-            message=test_message,
-            user_name="Test User"
-        )
-        
-        return {
-            "success": True,
-            "model": model_info.get("model", "unknown"),
-            "test_message": test_message,
-            "ai_response": response,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+        # Try to initialize and test Gemini service
+        try:
+            from app.services.ai.gemini_service import GeminiService
+            gemini_service = GeminiService()
+            
+            # Test AI response
+            response = await gemini_service.generate_response(
+                message=test_message,
+                user_name="Test User"
+            )
+            
+            return {
+                "success": True,
+                "model": settings.GEMINI_MODEL or "gemini-2.5-flash",
+                "test_message": test_message,
+                "ai_response": response,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+        except Exception as gemini_error:
+            logger.error(f"Gemini service error: {gemini_error}")
+            return {
+                "success": False,
+                "error": "AI service initialization failed",
+                "detail": str(gemini_error),
+                "instruction": "Check if GEMINI_API_KEY is valid"
+            }
         
     except Exception as e:
         logger.error(f"Error testing AI connection: {e}")
@@ -1080,17 +1088,16 @@ async def get_available_models():
 async def get_current_model():
     """Get currently active AI model"""
     try:
-        from app.services.ai.gemini_service import GeminiService
-        
-        gemini_service = GeminiService()
-        model_info = gemini_service.get_model_info()
+        # Check configuration directly from settings
+        api_configured = bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 0)
         
         return {
             "success": True,
-            "current_model": model_info.get("model", "unknown"),
-            "available": model_info.get("available", False),
+            "current_model": settings.GEMINI_MODEL or "gemini-2.5-flash",
+            "available": api_configured,
             "provider": "Google Gemini",
-            "api_configured": bool(settings.GEMINI_API_KEY)
+            "api_configured": api_configured,
+            "note": "Configure API key from /dashboard/settings" if not api_configured else None
         }
         
     except Exception as e:
