@@ -72,6 +72,8 @@ test_*.json
 # Documentation (keep only essential)
 *.md
 !README.md
+!CRITICAL_FIXES_REPORT.md
+!ENDPOINTS_AUDIT_REPORT.md
 !docs/Guide/README.md
 !docs/Guide/COMPLETE_SETUP_GUIDE.md
 !docs/Guide/TROUBLESHOOTING_GUIDE.md
