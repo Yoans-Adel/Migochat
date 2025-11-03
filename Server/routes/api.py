@@ -340,7 +340,7 @@ async def get_stats(db: Session = Depends(get_session)):
         # Basic counts
         total_users = db.query(User).count()
         total_messages = db.query(Message).count()
-        active_conversations = db.query(Conversation).filter(Conversation.is_active == True).count()
+        active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
         
         # Messages by direction
         inbound_messages = db.query(Message).filter(Message.direction == MessageDirection.INBOUND).count()
@@ -410,7 +410,7 @@ async def get_conversations(
                 }
                 for conv in conversations
             ],
-            "total": db.query(Conversation).filter(Conversation.is_active == True).count()
+            "total": db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
         }
         
     except Exception as e:

@@ -4,6 +4,7 @@ from typing import Dict, Optional, List, Tuple
 from sqlalchemy import func
 from Server.config import settings
 from database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, get_session, Message, MessageDirection
+from database.context import get_db_session
 from app.services.messaging.messenger_service import MessengerService
 from datetime import datetime, timedelta, timezone
 import re
@@ -94,9 +95,7 @@ class FacebookLeadCenterService:
         """Analyze user behavior patterns to determine customer type"""
         try:
             # Get user's message history
-            db = get_session()
-            
-            try:
+            with get_db_session() as db:
                 messages = db.query(Message).filter(
                     Message.user_id == user.id,
                     Message.direction == MessageDirection.INBOUND
@@ -126,9 +125,6 @@ class FacebookLeadCenterService:
                 
                 # Default to emotional buyer for new users
                 return CustomerType.EMOTIONAL_BUYER
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error analyzing behavior patterns: {e}")
@@ -276,8 +272,7 @@ class FacebookLeadCenterService:
                          new_value: str, reason: str, automated: bool = True):
         """Log lead activity changes"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 activity = LeadActivity(
                     user_id=user.id,
                     activity_type=activity_type,
@@ -292,9 +287,6 @@ class FacebookLeadCenterService:
                 db.commit()
                 
                 logger.info(f"Logged lead activity: {activity_type} for user {user.psid}")
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error logging lead activity: {e}")
@@ -428,8 +420,7 @@ class FacebookLeadCenterService:
                 return {"error": "No valid lead information found"}
             
             # Find or create user
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 # Try to find existing user by PSID, phone, or email
                 user = None
                 
@@ -489,9 +480,6 @@ class FacebookLeadCenterService:
                     "user_id": user.id,
                     "psid": user.psid
                 }
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error processing Facebook lead: {e}")
@@ -656,9 +644,7 @@ class FacebookLeadCenterService:
     def sync_all_leads_to_facebook(self) -> Dict:
         """Sync all local leads to Facebook Lead Center - نعتمد على Facebook Lead Center الموجود"""
         try:
-            db = get_session()
-            
-            try:
+            with get_db_session() as db:
                 users = db.query(User).all()
                 results = {
                     "total_users": len(users),
@@ -676,9 +662,6 @@ class FacebookLeadCenterService:
                         results["errors"].append(f"Failed to sync user {user.psid}")
                 
                 return results
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error syncing all leads to Facebook: {e}")
@@ -852,13 +835,10 @@ class FacebookLeadCenterService:
                     automation_results["activities_logged"].append("facebook_sync")
             
             # Commit changes to database
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 db.add(user)
                 db.commit()
                 logger.info(f"Lead automation completed for user {user.psid}: {automation_results}")
-            finally:
-                db.close()
             
             return automation_results
             
@@ -869,9 +849,7 @@ class FacebookLeadCenterService:
     def get_lead_analytics(self) -> Dict:
         """Get comprehensive lead analytics"""
         try:
-            db = get_session()
-            
-            try:
+            with get_db_session() as db:
                 # Get total counts
                 total_users = db.query(User).count()
                 total_messages = db.query(Message).count()
@@ -928,9 +906,6 @@ class FacebookLeadCenterService:
                 }
                 
                 return analytics
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error getting lead analytics: {e}")
@@ -1158,15 +1133,12 @@ class FacebookLeadCenterService:
             
             # Check database connection
             try:
-                db = get_session()
-                try:
+                with get_db_session() as db:
                     user_count = db.query(User).count()
                     health_status["services"]["database"] = {
                         "status": "healthy",
                         "user_count": user_count
                     }
-                finally:
-                    db.close()
             except Exception as e:
                 health_status["services"]["database"] = {
                     "status": "error",

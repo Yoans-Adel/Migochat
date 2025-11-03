@@ -93,33 +93,58 @@ class MessageHandler(MessageService):
             return False
     
     async def _get_or_create_user(self, user_id: str, platform: str) -> Optional[User]:
-        """Get existing user or create new one"""
+        """Get existing user or create new one - Thread-safe implementation"""
         try:
-            # Use the proper context manager for database session
+            from database.context import get_db_session_with_commit
+            from sqlalchemy.exc import IntegrityError
+            
+            # First, try to get existing user (read-only)
             with get_db_session() as session:
-                # Try to find existing user
                 user = session.query(User).filter(User.psid == user_id).first()
                 
-                if not user:
-                    # Create new user
-                    user_data = {
-                        "psid": user_id,
-                        "platform": platform,
-                        "created_at": datetime.now(timezone.utc),
-                        "last_message_at": datetime.now(timezone.utc)
-                    }
-                    user = User(**user_data)
-                    session.add(user)
-                    session.commit()
-                    session.refresh(user)
-                    logger.info(f"Created new user: {user_id}")
-                else:
-                    # Update last message time
-                    user.last_message_at = datetime.now(timezone.utc)
-                    session.commit()
-                    logger.info(f"Found existing user: {user_id}")
-                
-                return user
+                if user:
+                    # User exists, update last message time
+                    user_id_pk = user.id
+                    
+            # If user doesn't exist, create it with proper transaction
+            if not user:
+                try:
+                    with get_db_session_with_commit() as session:
+                        # Double-check user doesn't exist (race condition protection)
+                        user = session.query(User).filter(User.psid == user_id).first()
+                        
+                        if not user:
+                            user_data = {
+                                "psid": user_id,
+                                "platform": platform,
+                                "created_at": datetime.now(timezone.utc),
+                                "last_message_at": datetime.now(timezone.utc)
+                            }
+                            user = User(**user_data)
+                            session.add(user)
+                            session.flush()  # Get ID before commit
+                            user_id_pk = user.id
+                            logger.info(f"Created new user: {user_id}")
+                        else:
+                            user_id_pk = user.id
+                            logger.info(f"User already exists (race condition avoided): {user_id}")
+                            
+                except IntegrityError as ie:
+                    # Handle race condition: another thread created the user
+                    logger.warning(f"Race condition detected for user {user_id}: {ie}")
+                    with get_db_session() as session:
+                        user = session.query(User).filter(User.psid == user_id).first()
+                        user_id_pk = user.id if user else None
+            
+            # Update last message time in separate transaction
+            if user_id_pk:
+                with get_db_session_with_commit() as session:
+                    user = session.query(User).filter(User.id == user_id_pk).first()
+                    if user:
+                        user.last_message_at = datetime.now(timezone.utc)
+                        return user
+            
+            return None
                     
         except Exception as e:
             logger.error(f"Error getting or creating user {user_id}: {e}")

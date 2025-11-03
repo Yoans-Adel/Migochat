@@ -149,21 +149,22 @@ class DatabaseManager:
             dict: Database statistics
         """
         try:
-            session = get_session()
+            # Use context manager for safe session handling
+            from database.context import get_db_session
             
-            stats = {
-                "total_users": session.query(User).count(),
-                "total_messages": session.query(Message).count(),
-                "total_conversations": session.query(Conversation).count(),
-                "total_lead_activities": session.query(LeadActivity).count(),
-                "total_posts": session.query(Post).count(),
-                "total_ad_campaigns": session.query(AdCampaign).count(),
-                "active_users": session.query(User).filter(User.is_active == True).count(),
-                "active_conversations": session.query(Conversation).filter(Conversation.is_active == True).count(),
-            }
-            
-            session.close()
-            return stats
+            with get_db_session() as session:
+                stats = {
+                    "total_users": session.query(User).count(),
+                    "total_messages": session.query(Message).count(),
+                    "total_conversations": session.query(Conversation).count(),
+                    "total_lead_activities": session.query(LeadActivity).count(),
+                    "total_posts": session.query(Post).count(),
+                    "total_ad_campaigns": session.query(AdCampaign).count(),
+                    "active_users": session.query(User).filter(User.is_active.is_(True)).count(),
+                    "active_conversations": session.query(Conversation).filter(Conversation.is_active.is_(True)).count(),
+                }
+                
+                return stats
             
         except Exception as e:
             self.logger.error(f"Error getting database stats: {e}", exc_info=True)

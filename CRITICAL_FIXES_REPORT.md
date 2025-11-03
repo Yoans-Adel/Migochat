@@ -1,4 +1,5 @@
 # 🚨 تقرير الأخطاء الحرجة - Critical Fixes Report
+
 ## التاريخ: 2025-11-03
 
 ---
@@ -7,7 +8,8 @@
 
 ### 1. ❌ Imports من ملف محذوف - Broken Imports
 
-#### المشكلة:
+#### المشكلة
+
 بعد حذف `app/database.py`، لا يزال هناك **ملفان يستوردان منه**!
 
 ```python
@@ -18,11 +20,13 @@ from app.database import get_session
 from app.database import Governorate
 ```
 
-#### التأثير:
+#### التأثير
+
 - ❌ **Tests لن تعمل** - import error
 - ❌ **Update user endpoint سيفشل** - import error عند تحديث governorate
 
-#### الحل:
+#### الحل
+
 ```python
 # ✅ tests/conftest.py
 from database import get_session
@@ -38,6 +42,7 @@ from database import Governorate
 ### 2. ❌ BWW Store Integration معطلة تماماً - Completely Broken
 
 #### المشكلة الأولى: Class غير موجود
+
 ```python
 # ❌ في Server/routes/api.py (سطر 16)
 from bww_store import BWWStoreIntegration  # هذا Class غير موجود!
@@ -47,6 +52,7 @@ from bww_store import BWWStoreAPIService
 ```
 
 #### المشكلة الثانية: Initialization خاطئ
+
 ```python
 # ❌ الكود القديم
 bww_store_integration = BWWStoreIntegration()
@@ -55,7 +61,8 @@ bww_store_integration = BWWStoreIntegration()
 bww_store_integration = BWWStoreAPIService(language="ar")
 ```
 
-#### التأثير:
+#### التأثير
+
 - ❌ **BWW Store لن يعمل أبداً** - Class غير موجود
 - ❌ **ImportError عند تشغيل السيرفر**
 - ❌ **جميع الـ 5 endpoints الخاصة بـ BWW معطلة**
@@ -66,7 +73,7 @@ bww_store_integration = BWWStoreAPIService(language="ar")
 
 ### 3. ❌ BWW Store Endpoints تستدعي دوال غير موجودة - Non-existent Methods
 
-#### الدوال المفقودة:
+#### الدوال المفقودة
 
 | Endpoint | الدالة المستخدمة | الحالة |
 |----------|------------------|--------|
@@ -75,9 +82,10 @@ bww_store_integration = BWWStoreAPIService(language="ar")
 | `/bww-store/analytics` | `get_analytics()` | ❌ غير موجودة |
 | `/bww-store/compare` | `compare_products()` | ⚠️ موجودة لكن بـ params خاطئة |
 
-#### الإصلاحات:
+#### الإصلاحات
 
 **1. `/bww-store/query` - تم الإصلاح:**
+
 ```python
 # ❌ قبل
 result = await bww_store_integration.handle_customer_query(
@@ -95,6 +103,7 @@ result = await bww_store_integration.search_and_format_products(
 ```
 
 **2. `/bww-store/compare` - تم الإصلاح:**
+
 ```python
 # ❌ قبل (product_ids كـ strings)
 result = await bww_store_integration.compare_products(
@@ -112,6 +121,7 @@ result = await bww_store_integration.compare_products(
 ```
 
 **3. `/bww-store/suggestions` - تم الإصلاح:**
+
 ```python
 # ❌ قبل
 suggestions = await bww_store_integration.get_search_suggestions(
@@ -128,6 +138,7 @@ suggestions = await bww_store_integration.search_and_format_products(
 ```
 
 **4. `/bww-store/analytics` - تم التبسيط:**
+
 ```python
 # ❌ قبل
 analytics = await bww_store_integration.get_analytics()
@@ -149,7 +160,8 @@ return {
 
 ### 4. ❌ Duplicate Code في Analytics Endpoint
 
-#### المشكلة:
+#### المشكلة
+
 ```python
 # ❌ كان هناك return مكرر
 return {
@@ -163,7 +175,8 @@ return {
 }
 ```
 
-#### الحل:
+#### الحل
+
 ```python
 # ✅ return واحد فقط
 return {
@@ -189,7 +202,7 @@ return {
 
 ## ✅ الاختبارات - Testing
 
-### تم اختبار كل الـ Imports:
+### تم اختبار كل الـ Imports
 
 ```bash
 # ✅ Database imports
@@ -208,13 +221,15 @@ python -c "from Server.routes import api"
 
 ## 🎯 التأثير - Impact
 
-### قبل الإصلاح:
+### قبل الإصلاح
+
 - ❌ Tests لن تعمل
 - ❌ BWW Store معطل تماماً
 - ❌ 5 endpoints غير قابلة للاستخدام
 - ❌ Update user governorate سيفشل
 
-### بعد الإصلاح:
+### بعد الإصلاح
+
 - ✅ Tests يمكن تشغيلها
 - ✅ BWW Store يعمل بشكل صحيح
 - ✅ جميع الـ endpoints تعمل
@@ -225,6 +240,7 @@ python -c "from Server.routes import api"
 ## 📦 الـ Commits
 
 ### Commit: `bbc69cc`
+
 ```
 🐛 Fix Critical Import & Integration Issues
 
@@ -246,6 +262,7 @@ python -c "from Server.routes import api"
 4. ✅ Duplicate code
 
 **الكود الآن**:
+
 - ✅ **يعمل بشكل صحيح**
 - ✅ **لا توجد imports معطلة**
 - ✅ **BWW Store Integration فعّال**

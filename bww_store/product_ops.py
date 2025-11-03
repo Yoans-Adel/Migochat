@@ -7,7 +7,7 @@ comparison, card generation, and data downloading functionality.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -234,7 +234,7 @@ class BWWStoreProductOperations:
                 with open(all_products_file, 'w', encoding='utf-8') as f:
                     json.dump({
                         "metadata": {
-                            "downloaded_at": datetime.utcnow().isoformat(),
+                            "downloaded_at": datetime.now(timezone.utc).isoformat(),
                             "total_products": len(products),
                             "language": self.client.language,
                             "api_url": self.client.base_url
@@ -258,7 +258,7 @@ class BWWStoreProductOperations:
                             json.dump({
                                 "metadata": {
                                     "category": category_name,
-                                    "downloaded_at": datetime.utcnow().isoformat(),
+                                    "downloaded_at": datetime.now(timezone.utc).isoformat(),
                                     "total_products": len(category_products),
                                     "language": self.client.language
                                 },
@@ -272,7 +272,7 @@ class BWWStoreProductOperations:
                     price_analysis = {
                         "metadata": {
                             "analysis_type": "price_comparison",
-                            "downloaded_at": datetime.utcnow().isoformat(),
+                            "downloaded_at": datetime.now(timezone.utc).isoformat(),
                             "total_products": len(prices)
                         },
                         "price_stats": {

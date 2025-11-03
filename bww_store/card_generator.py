@@ -5,7 +5,7 @@ This module generates detailed product cards with proper BWW Store links.
 """
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from .product_formatter import parse_product_data
@@ -207,7 +207,7 @@ def generate_product_card(product: Dict[str, Any], language: str = "ar") -> Dict
             "metadata": {
                 "product_id": parsed.id,
                 "language": language,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "card_length": len(card),
             },
         }

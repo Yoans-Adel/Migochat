@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 from database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
@@ -44,7 +44,7 @@ async def dashboard_home(request: Request):
             # Get statistics
             total_users = db.query(User).count()
             total_messages = db.query(Message).count()
-            active_conversations = db.query(Conversation).filter(Conversation.is_active == True).count()
+            active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
             
             # Lead analytics with error handling
             try:
@@ -54,13 +54,13 @@ async def dashboard_home(request: Request):
                 lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
             
             # Recent messages (last 24 hours)
-            yesterday = datetime.utcnow() - timedelta(days=1)
+            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
             recent_messages = db.query(Message).join(User).filter(
                 Message.timestamp >= yesterday
             ).order_by(desc(Message.timestamp)).limit(10).all()
             
             # Active users (messaged in last 7 days)
-            week_ago = datetime.utcnow() - timedelta(days=7)
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
             active_users = db.query(User).filter(
                 User.last_message_at >= week_ago
             ).count()

@@ -1,7 +1,8 @@
 import logging
 from typing import Dict, List, Optional
-from database import User, Message, MessageSource, PostType, Post, AdCampaign, get_session
-from datetime import datetime
+from database import User, Message, MessageSource, PostType, Post, AdCampaign, get_session, MessageDirection
+from database.context import get_db_session
+from datetime import datetime, timedelta, timezone
 import json
 
 logger = logging.getLogger(__name__)
@@ -78,8 +79,7 @@ class MessageSourceTracker:
         """Check if user is an existing customer"""
         try:
             # Check if user has previous messages
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 # Query messages directly using user PSID
                 previous_messages = db.query(Message).filter(
                     Message.sender_id == psid,
@@ -88,8 +88,6 @@ class MessageSourceTracker:
                 
                 return previous_messages > 1  # More than just the current message
                 
-            finally:
-                db.close()
         except Exception as e:
             logger.error(f"Error checking existing customer: {e}")
             return False
@@ -131,8 +129,7 @@ class MessageSourceTracker:
     def get_post_info(self, post_id: str) -> Optional[Dict]:
         """Get post information from database"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 post = db.query(Post).filter(Post.facebook_post_id == post_id).first()
                 if post:
                     return {
@@ -145,9 +142,6 @@ class MessageSourceTracker:
                     }
                 return None
                 
-            finally:
-                db.close()
-                
         except Exception as e:
             logger.error(f"Error getting post info: {e}")
             return None
@@ -155,8 +149,7 @@ class MessageSourceTracker:
     def get_ad_info(self, ad_id: str) -> Optional[Dict]:
         """Get ad campaign information from database"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 ad = db.query(AdCampaign).filter(AdCampaign.facebook_ad_id == ad_id).first()
                 if ad:
                     return {
@@ -170,9 +163,6 @@ class MessageSourceTracker:
                     }
                 return None
                 
-            finally:
-                db.close()
-                
         except Exception as e:
             logger.error(f"Error getting ad info: {e}")
             return None
@@ -181,15 +171,14 @@ class MessageSourceTracker:
                    content: str, price: str = None, data: Dict = None) -> Post:
         """Create a new post record"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 post = Post(
                     facebook_post_id=facebook_post_id,
                     post_type=post_type,
                     post_content=content,
                     post_price=price,
                     post_data=json.dumps(data) if data else None,
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 
                 db.add(post)
@@ -198,9 +187,6 @@ class MessageSourceTracker:
                 
                 logger.info(f"Created post record: {facebook_post_id}")
                 return post
-                
-            finally:
-                db.close()
                 
         except Exception as e:
             logger.error(f"Error creating post: {e}")
@@ -211,15 +197,14 @@ class MessageSourceTracker:
                           budget: str = None) -> AdCampaign:
         """Create a new ad campaign record"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 ad = AdCampaign(
                     facebook_ad_id=facebook_ad_id,
                     campaign_name=campaign_name,
                     ad_content=content,
                     target_audience=json.dumps(target_audience) if target_audience else None,
                     budget=budget,
-                    created_at=datetime.utcnow()
+                    created_at=datetime.now(timezone.utc)
                 )
                 
                 db.add(ad)
@@ -229,9 +214,6 @@ class MessageSourceTracker:
                 logger.info(f"Created ad campaign record: {facebook_ad_id}")
                 return ad
                 
-            finally:
-                db.close()
-                
         except Exception as e:
             logger.error(f"Error creating ad campaign: {e}")
             return None
@@ -239,8 +221,7 @@ class MessageSourceTracker:
     def get_message_source_analytics(self) -> Dict:
         """Get analytics for message sources"""
         try:
-            db = get_session()
-            try:
+            with get_db_session() as db:
                 # Count messages by source
                 source_counts = {}
                 for source in MessageSource:
@@ -254,7 +235,7 @@ class MessageSourceTracker:
                     post_type_counts[post_type.value] = count
                 
                 # Recent activity by source (last 24 hours)
-                yesterday = datetime.utcnow() - timedelta(days=1)
+                yesterday = datetime.now(timezone.utc) - timedelta(days=1)
                 recent_by_source = {}
                 for source in MessageSource:
                     count = db.query(Message).filter(
@@ -270,13 +251,6 @@ class MessageSourceTracker:
                     "total_messages": db.query(Message).count()
                 }
                 
-            finally:
-                db.close()
-                
         except Exception as e:
             logger.error(f"Error getting message source analytics: {e}")
             return {}
-
-# Import required modules
-from database import MessageDirection
-from datetime import timedelta

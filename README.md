@@ -108,9 +108,27 @@ python -m pytest tests/test_integration_tests.py -v
 
 ## 🚀 Deployment
 
-For detailed deployment instructions, see [docs/README.md](docs/README.md).
+### Railway (Recommended - Quick & Easy)
 
-**Quick Production Setup:**
+Deploy to Railway in 3 steps:
+
+```bash
+# 1. Validate deployment readiness
+python deployment/check.py
+
+# 2. Push to GitHub
+git push origin main
+
+# 3. Deploy on Railway
+# Go to railway.app → New Project → Deploy from GitHub
+# Add environment variables → Deploy!
+```
+
+For detailed instructions, see [deployment/README.md](deployment/README.md).
+
+### Manual VPS Deployment
+
+For VPS deployment instructions, see [docs/README.md](docs/README.md).
 
 ```bash
 # Install dependencies

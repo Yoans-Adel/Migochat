@@ -17,6 +17,7 @@
 ## 🎯 Endpoints by Category
 
 ### 1️⃣ **Main App Endpoints** (Server/main.py)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/` | Root - Redirect to dashboard | ✅ Active |
@@ -28,12 +29,14 @@
 ### 2️⃣ **API Endpoints** (Server/routes/api.py - Prefix: `/api`)
 
 #### **Messages Management** (5 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/messages` | Get messages with pagination & filtering | ✅ Active |
 | POST | `/api/messages/send` | Send message to user (FB/WhatsApp) | ✅ Active |
 
 #### **Users Management** (3 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/users` | Get users list with filtering | ✅ Active |
@@ -41,12 +44,14 @@
 | PUT | `/api/users/{psid}` | Update user information | ✅ Active |
 
 #### **Statistics & Analytics** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/stats` | Get system statistics | ✅ Active |
 | GET | `/api/conversations` | Get conversations list | ✅ Active |
 
 #### **Leads Management** (4 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/leads` | Get leads list | ✅ Active |
@@ -55,6 +60,7 @@
 | POST | `/api/leads/{psid}/create-in-facebook` | Create specific lead in Facebook | ✅ Active |
 
 #### **Social Media Tracking** (4 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | POST | `/api/posts` | Create post tracking | ✅ Active |
@@ -63,6 +69,7 @@
 | GET | `/api/ad-campaigns` | Get ad campaigns | ✅ Active |
 
 #### **AI Integration** (7 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | POST | `/api/ai/respond` | Generate AI response | ✅ Active |
@@ -73,6 +80,7 @@
 | POST | `/api/ai/model/change` | Change AI model (requires restart) | ✅ Active |
 
 #### **BWW Store Integration** (5 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | POST | `/api/bww-store/query` | Query BWW Store products | ✅ Fixed |
@@ -82,18 +90,21 @@
 | GET | `/api/bww-store/status` | Check BWW Store status | ✅ Active |
 
 #### **WhatsApp Integration** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | POST | `/api/whatsapp/send-message` | Send WhatsApp message | ✅ Active |
 | GET | `/api/whatsapp/status` | Check WhatsApp status | ✅ Active |
 
 #### **Health Monitoring** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/health/detailed` | Detailed health check (archived) | ⚠️ Archived |
 | GET | `/api/health/alerts` | Get health alerts (archived) | ⚠️ Archived |
 
 #### **Settings Management** (6 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/api/settings` | Get all settings (with filtering) | ✅ Active |
@@ -108,30 +119,35 @@
 ### 3️⃣ **Webhook Endpoints** (Server/routes/webhook.py - Prefix: `/webhook`)
 
 #### **Facebook Messenger** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/webhook/messenger` | Messenger webhook verification | ✅ Active |
 | POST | `/webhook/messenger` | Messenger webhook handler | ✅ Active |
 
 #### **WhatsApp** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/webhook/whatsapp` | WhatsApp webhook verification | ✅ Active |
 | POST | `/webhook/whatsapp` | WhatsApp webhook handler | ✅ Active |
 
 #### **Telegram** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/webhook/telegram` | Telegram webhook verification | ✅ Active |
 | POST | `/webhook/telegram` | Telegram webhook handler | ✅ Active |
 
 #### **Instagram** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/webhook/instagram` | Instagram webhook verification | ✅ Active |
 | POST | `/webhook/instagram` | Instagram webhook handler | ✅ Active |
 
 #### **Lead Generation** (2 endpoints)
+
 | Method | Path | Description | Status |
 |--------|------|-------------|--------|
 | GET | `/webhook/leadgen` | Lead gen webhook verification | ✅ Active |
@@ -154,22 +170,26 @@
 ## ✅ Validation Results
 
 ### 1. **No Duplicate Endpoints**
+
 - ✅ All endpoints are unique
 - ✅ No conflicting route definitions
 - ✅ Proper prefixes applied (/api, /webhook, /dashboard)
 
 ### 2. **Endpoint Structure**
+
 - ✅ All endpoints properly defined with decorators
 - ✅ Consistent naming conventions
 - ✅ Proper HTTP methods (GET, POST, PUT, DELETE)
 - ✅ Clear path patterns
 
 ### 3. **Recent Fixes Applied**
+
 - ✅ BWW Store Integration endpoints fixed (commit: bbc69cc)
 - ✅ Import errors resolved
 - ✅ Non-existent methods replaced with working implementations
 
 ### 4. **Archived Features**
+
 - ⚠️ Health monitoring endpoints archived (returning placeholder responses)
 - These endpoints still work but return basic responses
 
@@ -199,12 +219,14 @@
 ## 🎯 Recommendations
 
 ### ✅ Completed Actions
+
 1. ✅ All endpoints validated
 2. ✅ No duplicates found
 3. ✅ Recent critical fixes applied
 4. ✅ All imports working correctly
 
 ### 💡 Future Improvements
+
 1. Consider removing archived health monitoring endpoints if not needed
 2. Add API documentation (Swagger/OpenAPI) - already available at `/docs`
 3. Consider versioning API endpoints (e.g., `/api/v1/...`) for future updates
@@ -214,12 +236,14 @@
 ## 🔍 Technical Details
 
 ### Endpoint Registration
+
 - **Main App:** Direct `@app` decorators in `Server/main.py`
 - **API Routes:** `@router` in `Server/routes/api.py` → included with prefix `/api`
 - **Webhooks:** `@router` in `Server/routes/webhook.py` → included with prefix `/webhook`
 - **Dashboard:** `@router` in `Server/routes/dashboard.py` → included with prefix `/dashboard`
 
 ### Route Inclusion (Server/main.py)
+
 ```python
 app.include_router(webhook.router, prefix="/webhook", tags=["webhook"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
