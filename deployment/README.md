@@ -1,28 +1,18 @@
 # 🚀 Railway Deployment Guide# Railway Deployment# Deployment Folder
 
-
-
 Complete guide for deploying BWW AI Assistant to Railway.app with HTTPS.Simple deployment to Railway for permanent HTTPS URL.Simple deployment configs for Railway/Render.
-
-
 
 ---## Quick Deploy## Quick Deploy
 
-
-
-## 📋 Prerequisites```bashPush to GitHub, then connect Railway or Render.
-
-
+## 📋 Prerequisites```bashPush to GitHub, then connect Railway or Render
 
 - ✅ GitHub account# 1. Validate
 
-- ✅ Railway account (https://railway.app)
+- ✅ Railway account (<https://railway.app>)
 
 - ✅ All environment variables from `.env` filepython deployment/check.pyThat's it!
 
 - ✅ Project passing deployment check
-
-
 
 ---# 2. Push to GitHub
 
@@ -30,11 +20,11 @@ git push
 
 ## 🔍 Step 1: Pre-Deployment Validation
 
-# 3. Deploy on Railway
+---# 3. Deploy on Railway
 
 Run the deployment check script to ensure everything is ready:# - Go to railway.app
 
-# - Connect GitHub
+---# - Connect GitHub
 
 ```bash# - Add environment variables
 
@@ -42,11 +32,9 @@ python deployment/check.py# - Deploy!
 
 ``````
 
-
-
 **Expected Output:**## Files
 
-```
+```deploy
 
 ✅ DEPLOYMENT READY!- `Procfile` - Process command
 
@@ -136,7 +124,7 @@ TIMEZONE=Africa/Cairo
 DATABASE_URL=sqlite:///database/bww_assistant.db
 ```
 
-#### **Optional Variables:**
+## Optional Variables
 
 ```bash
 # BWW Store Integration (if using)
@@ -156,6 +144,7 @@ LEADCENTER_WEBHOOK_URL=https://your-app.railway.app/webhook/leadcenter
 3. Railway will provide your URL: `https://your-app.railway.app`
 
 Railway auto-detects configuration from:
+
 - `railway.json` - Build and deploy settings
 - `Procfile` - Start command: `uvicorn Server.main:app --host 0.0.0.0 --port $PORT`
 - `runtime.txt` - Python 3.13.2
@@ -167,7 +156,8 @@ Railway auto-detects configuration from:
 ### 4.1 Get Your Railway URL
 
 After deployment, Railway provides your app URL:
-```
+
+```railway link
 https://migochat-production-xxxx.up.railway.app
 ```
 
@@ -209,6 +199,7 @@ curl https://your-app.railway.app/
 ```
 
 **Expected Response:**
+
 ```json
 {
   "status": "healthy",
@@ -239,6 +230,7 @@ Send a test message from Messenger or WhatsApp and check Railway logs.
 In Railway dashboard → **Logs** tab
 
 Monitor:
+
 - Incoming webhook events
 - API requests
 - Errors and warnings
@@ -246,6 +238,7 @@ Monitor:
 ### Check Metrics
 
 Monitor in Railway dashboard:
+
 - ✅ CPU usage
 - ✅ Memory usage
 - ✅ Request count
@@ -257,6 +250,7 @@ Monitor in Railway dashboard:
 ### Build Fails
 
 Check `requirements.txt` is in root directory:
+
 ```bash
 ls requirements.txt
 ```
@@ -265,9 +259,17 @@ ls requirements.txt
 
 1. Verify tokens match in Railway and Facebook
 2. Test webhook URL:
+
 ```bash
-curl "https://your-app.railway.app/webhook/messenger?hub.verify_token=YOUR_TOKEN&hub.challenge=test"
-```
+### Webhook Verification Fails
+
+1. Verify tokens match in Railway and Facebook
+2. Test webhook URL:
+
+    ```bash
+    curl "https://your-app.railway.app/webhook/messenger?hub.verify_token=YOUR_TOKEN&hub.challenge=test"
+    ```
+
 3. Check Railway logs
 
 ### Database Not Persisting
@@ -275,6 +277,7 @@ curl "https://your-app.railway.app/webhook/messenger?hub.verify_token=YOUR_TOKEN
 Railway provides ephemeral storage. For persistent database:
 
 **Add Railway PostgreSQL:**
+
 1. Railway dashboard → **New** → **Database** → **PostgreSQL**
 2. Connect to your service
 3. Update `DATABASE_URL` in variables
@@ -333,16 +336,16 @@ Before going live:
 
 ---
 
-## 🎉 Congratulations!
+## 🎉 Congratulations
 
 Your BWW AI Assistant is now live on Railway! 🚀
 
 **Next Steps:**
+
 - Monitor logs for 24 hours
 - Test all features
 - Configure custom domain (optional)
 - Set up monitoring alerts
 
 ---
-
-**Deployed with ❤️ using Railway**
+ Deployed with ❤️ using Railway *

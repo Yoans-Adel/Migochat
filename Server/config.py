@@ -104,6 +104,11 @@ class Settings:
     def GEMINI_API_KEY(self) -> str:
         return self._config.get_config("ai", "gemini_api_key")
     
+    @property
+    def GEMINI_MODEL(self) -> str:
+        """Get Gemini model name, default to gemini-2.5-flash"""
+        return self._config.get_config("ai", "gemini_model", "gemini-2.5-flash")
+    
     # BWW Store Configuration
     @property
     def BWW_STORE_SECRET_KEY(self) -> str:

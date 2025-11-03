@@ -61,7 +61,7 @@ bww_store_integration = BWWStoreIntegration()
 bww_store_integration = BWWStoreAPIService(language="ar")
 ```
 
-#### التأثير
+#### التأثير 2
 
 - ❌ **BWW Store لن يعمل أبداً** - Class غير موجود
 - ❌ **ImportError عند تشغيل السيرفر**
@@ -160,7 +160,7 @@ return {
 
 ### 4. ❌ Duplicate Code في Analytics Endpoint
 
-#### المشكلة
+#### المشكلة duplicate
 
 ```python
 # ❌ كان هناك return مكرر
@@ -175,7 +175,7 @@ return {
 }
 ```
 
-#### الحل
+#### الحل 2
 
 ```python
 # ✅ return واحد فقط
@@ -241,7 +241,7 @@ python -c "from Server.routes import api"
 
 ### Commit: `bbc69cc`
 
-```
+```fix
 🐛 Fix Critical Import & Integration Issues
 
 - Fixed broken imports from deleted app/database.py

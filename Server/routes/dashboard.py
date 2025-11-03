@@ -148,20 +148,31 @@ async def settings_view(request: Request):
         # Get Railway production URL
         railway_url = "https://migochat-production.up.railway.app"
         
-        # Check if Gemini API key is configured
-        gemini_available = bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 0)
+        # Check if Gemini API key is configured (with safe access)
+        try:
+            gemini_key = settings.GEMINI_API_KEY
+            gemini_available = bool(gemini_key and len(gemini_key) > 0)
+        except Exception:
+            gemini_available = False
+            gemini_key = ""
+        
+        # Get model safely
+        try:
+            gemini_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
+        except Exception:
+            gemini_model = "gemini-2.5-flash"
         
         settings_info = {
             # Facebook Settings
-            "fb_app_id": settings.FB_APP_ID,
-            "fb_page_id": settings.FB_PAGE_ID,
-            "fb_verify_token": settings.FB_VERIFY_TOKEN,
-            "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN[:20] + "..." if settings.FB_PAGE_ACCESS_TOKEN else "",
+            "fb_app_id": settings.FB_APP_ID or "",
+            "fb_page_id": settings.FB_PAGE_ID or "",
+            "fb_verify_token": settings.FB_VERIFY_TOKEN or "",
+            "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN[:20] + "..." if settings.FB_PAGE_ACCESS_TOKEN else "Not configured",
             
             # WhatsApp Settings
-            "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID,
-            "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN,
-            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN[:20] + "..." if settings.WHATSAPP_ACCESS_TOKEN else "",
+            "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID or "",
+            "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN or "",
+            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN[:20] + "..." if settings.WHATSAPP_ACCESS_TOKEN else "Not configured",
             
             # Webhook URLs (Railway)
             "messenger_webhook_url": f"{railway_url}/webhook/messenger",
@@ -170,9 +181,9 @@ async def settings_view(request: Request):
             
             # AI Model Settings
             "ai_provider": "Gemini",
-            "ai_model": settings.GEMINI_MODEL or "gemini-2.5-flash",
+            "ai_model": gemini_model,
             "ai_available": gemini_available,
-            "gemini_api_key": settings.GEMINI_API_KEY[:20] + "..." if settings.GEMINI_API_KEY else "Not configured",
+            "gemini_api_key": gemini_key[:20] + "..." if gemini_key else "Not configured",
             
             # Available AI Models
             "available_models": [
@@ -183,9 +194,9 @@ async def settings_view(request: Request):
             ],
             
             # System Info
-            "environment": settings.ENVIRONMENT,
+            "environment": settings.ENVIRONMENT or "production",
             "debug_mode": settings.DEBUG,
-            "timezone": settings.TIMEZONE
+            "timezone": settings.TIMEZONE or "UTC"
         }
         
         return templates.TemplateResponse("settings.html", {
@@ -194,4 +205,6 @@ async def settings_view(request: Request):
         })
         
     except Exception as e:
+        logger.error(f"Error in settings view: {e}")
+        logger.exception("Settings view exception details:")
         handle_dashboard_error(e, "settings view")

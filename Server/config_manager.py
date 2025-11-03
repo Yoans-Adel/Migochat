@@ -70,6 +70,7 @@ class ConfigurationManager:
                 # AI Configuration
                 "ai": {
                     "gemini_api_key": os.getenv("GEMINI_API_KEY", ""),
+                    "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
                 },
                 
                 # BWW Store Configuration
@@ -120,8 +121,17 @@ class ConfigurationManager:
         self._validated = len(missing_fields) == 0
         return missing_fields
     
-    def get_config(self, section: str = None, key: str = None) -> Any:
-        """Get configuration value"""
+    def get_config(self, section: str = None, key: str = None, default: Any = None) -> Any:
+        """Get configuration value with optional default
+        
+        Args:
+            section: Configuration section (e.g., 'facebook', 'whatsapp', 'ai')
+            key: Configuration key within section
+            default: Default value if key not found
+            
+        Returns:
+            Configuration value or default
+        """
         if not self._loaded:
             self.load_configuration()
         
@@ -131,7 +141,13 @@ class ConfigurationManager:
         if key is None:
             return self.config.get(section, {})
         
-        return self.config.get(section, {}).get(key)
+        value = self.config.get(section, {}).get(key)
+        
+        # Return default if value is None or empty string
+        if value is None or (isinstance(value, str) and value == ""):
+            return default
+            
+        return value
     
     def get_facebook_config(self) -> Dict[str, str]:
         """Get Facebook configuration"""
