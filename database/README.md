@@ -254,19 +254,25 @@ To change the database location, modify `DATABASE_FILE` in `database/engine.py`.
    result = execute_db_operation(my_operation, arg1, arg2)
    ```
 
-## 🔄 Migration from Old Structure
+## 🔄 Import Usage
 
-If you have old code importing from `app.database`:
+All imports should be done directly from the `database` package:
 
 ```python
-# Old way (still works for backward compatibility)
-from app.database import User, Message, get_session
-
-# New way (recommended)
+# Correct way to import
 from database import User, Message, get_session
+
+# Import models
+from database import User, Message, Conversation, LeadStage
+
+# Import enums
+from database import MessageDirection, MessageStatus, MessageSource
+
+# Import engine functions
+from database import get_session, create_all_tables
 ```
 
-The old imports are maintained as facades for backward compatibility, but new code should import directly from the `database` package.
+**Note:** The old `app.database` module has been removed. All code now uses direct imports from the `database` package.
 
 ## 📊 CLI Usage Examples
 

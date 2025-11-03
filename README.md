@@ -11,6 +11,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Python 3.12+
 - Facebook Developer Account
 - WhatsApp Business Account
@@ -19,6 +20,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 ### Installation
 
 1. **Clone and Setup**
+
    ```bash
    git clone <repository-url>
    cd Bww-AI-Assistant
@@ -26,6 +28,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
    ```
 
 2. **Install Dependencies**
+
    ```bash
    # Install production dependencies
    pip install -r requirements.txt
@@ -35,6 +38,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
    ```
 
 3. **Configure Environment**
+
    ```bash
    # Edit .env file with your credentials
    FB_APP_ID=your_facebook_app_id
@@ -44,6 +48,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
    ```
 
 4. **Start Application**
+
    ```bash
    python run.py
    ```
@@ -51,6 +56,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 ## ✨ Features
 
 ### Core Functionality
+
 - **Multi-Platform Support**: Facebook Messenger, WhatsApp Business, Lead Center
 - **AI-Powered Responses**: Gemini 2.5 Flash with rule-based fallback
 - **Lead Management**: Automated scoring, staging, and customer classification
@@ -58,12 +64,14 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 - **Multi-language Support**: Egyptian Arabic and English with cultural context
 
 ### Advanced Features
+
 - **Contextual Conversations**: Multi-turn conversation management
 - **Customer Classification**: 7 customer types, 4 labels, scoring system
 - **Marketing Automation**: Dynamic messages and urgency creation
 - **Human Agent Escalation**: Smart handover when needed
 
 ### Technical Features
+
 - **Production-Ready**: Comprehensive error handling and logging
 - **Scalable Architecture**: FastAPI with async support
 - **Database Management**: SQLAlchemy ORM with SQLite/PostgreSQL
@@ -71,7 +79,7 @@ A comprehensive, production-ready chatbot system supporting Facebook Messenger, 
 
 ## 📁 Project Structure
 
-```
+```text
 Bww-AI-Assistant/
 ├── app/                    # Main application code
 │   ├── routes/            # API endpoints and web routes
@@ -103,6 +111,7 @@ python -m pytest tests/test_integration_tests.py -v
 For detailed deployment instructions, see [docs/README.md](docs/README.md).
 
 **Quick Production Setup:**
+
 ```bash
 # Install dependencies
 sudo apt update
@@ -118,13 +127,16 @@ python scripts/start_server.py
 ## 📊 Monitoring
 
 ### Web Dashboard
+
 Access at `http://yourdomain.com/dashboard` to:
+
 - Monitor conversations
 - View lead analytics
 - Manage users
 - Check system status
 
 ### API Endpoints
+
 - **Health Check**: `GET /api/stats`
 - **System Status**: `GET /api/ai/status`
 - **BWW Store Status**: `GET /api/bww-store/status`
@@ -162,6 +174,6 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Built with ❤️ for BWW Store**
+## 💝 Built with ❤️ for BWW Store
 
 For more information, visit our [documentation](docs/) or contact [support@company.com](mailto:support@company.com).

@@ -135,8 +135,8 @@ class ServiceBootstrap:
     
     def _register_core_services(self) -> None:
         """Register core services"""
-        # Note: Database Service has been archived - use app.database module directly
-        # from app.database import get_session, User, Message, etc.
+        # Note: Database Service has been archived - use database module directly
+        # from database import get_session, User, Message, etc.
         
         # Configuration Service
         self._register_service(
@@ -427,10 +427,10 @@ class ServiceBootstrap:
     def _get_database_service_class(self) -> Type[ServiceInterface]:
         """Get database service class - ARCHIVED"""
         # Database service has been archived
-        # Use app.database module directly for database operations
+        # Use database module directly for database operations
         raise NotImplementedError(
             "DatabaseServiceProfessional has been archived. "
-            "Use app.database module directly: from app.database import get_session, User, etc."
+            "Use database module directly: from database import get_session, User, etc."
         )
     
     def _get_configuration_service_class(self) -> Type[ServiceInterface]:
