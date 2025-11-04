@@ -21,7 +21,6 @@ from .product_ops import BWWStoreProductOperations
 from .search import BWWStoreSearchEngine
 from .utils import CompatibilityWrapper
 
-
 class BWWStoreAPIService:
     """Main BWW Store API Service - Unified interface combining all modules.
 

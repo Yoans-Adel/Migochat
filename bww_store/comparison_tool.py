@@ -30,7 +30,6 @@ from typing import Any, Dict, List
 
 from .product_formatter import parse_product_data
 
-
 def format_comparison_ar(products: List[Dict[str, Any]]) -> str:
     header = "📊 **مقارنة المنتجات**\n" + "=" * 50 + "\n\n"
     comparison: List[str] = []
@@ -61,7 +60,6 @@ def format_comparison_ar(products: List[Dict[str, Any]]) -> str:
     footer += f"🏆 **أفضل صفقة**: {best_deal_name} - {best_deal.get('final_price', 0)} جنيه"
     return header + "\n\n".join(comparison) + footer
 
-
 def format_comparison_en(products: List[Dict[str, Any]]) -> str:
     header = "📊 **Product Comparison**\n" + "=" * 50 + "\n\n"
     comparison: List[str] = []
@@ -91,5 +89,4 @@ def format_comparison_en(products: List[Dict[str, Any]]) -> str:
     footer = f"\n{'=' * 50}\n"
     footer += f"🏆 **Best Deal**: {best_deal_name} - {best_deal.get('final_price', 0)} EGP"
     return header + "\n\n".join(comparison) + footer
-
 

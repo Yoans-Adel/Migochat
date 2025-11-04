@@ -9,7 +9,6 @@ and to keep code files smaller.
 
 from typing import Dict, List
 
-
 # Egyptian Arabic language corrections and dialect mappings
 EGYPTIAN_CORRECTIONS: Dict[str, str] = {
     # Egyptian dialect corrections - replace with spaces to remove them
@@ -93,7 +92,6 @@ EGYPTIAN_CORRECTIONS: Dict[str, str] = {
     'شانيل': 'فستان', 'جيفنشي': 'بدلة', 'هوغو بوس': 'بدلة'
 }
 
-
 # Clothing keywords with spelling variations
 CLOTHING_KEYWORDS_AR: Dict[str, List[str]] = {
     # Types
@@ -130,7 +128,6 @@ CLOTHING_KEYWORDS_AR: Dict[str, List[str]] = {
     'رسمي': ['رسمي', 'فورمال', 'أنيق', 'رسمى', 'رسمية', 'فورمالي', 'أنيقة'],
 }
 
-
 # English clothing keywords
 CLOTHING_KEYWORDS_EN: Dict[str, List[str]] = {
     'shirt': ['shirt', 't-shirt', 'blouse', 'top'],
@@ -163,7 +160,6 @@ CLOTHING_KEYWORDS_EN: Dict[str, List[str]] = {
     'formal': ['formal', 'elegant', 'business'],
 }
 
-
 # BWW Store search suggestions mapping
 BWW_SEARCH_SUGGESTIONS_AR: Dict[str, List[str]] = {
     # Unavailable items → Available BWW alternatives
@@ -193,7 +189,6 @@ BWW_SEARCH_SUGGESTIONS_AR: Dict[str, List[str]] = {
     'وردي': ['طقم وردي', 'بيجامة بناتي', 'طقم بناتي وردي'],
 }
 
-
 # English search suggestions
 BWW_SEARCH_SUGGESTIONS_EN: Dict[str, List[str]] = {
     'shirt': ['summer set', 'kids t-shirt', 'cotton pajamas'],
@@ -219,7 +214,6 @@ BWW_SEARCH_SUGGESTIONS_EN: Dict[str, List[str]] = {
     'blue': ['blue set', 'blue pajamas', 'blue womens set'],
     'pink': ['pink set', 'girls set', 'pink girls set'],
 }
-
 
 # BWW priority items for suggestions
 BWW_PRIORITY_ITEMS_AR = ['طقم صيفي', 'طقم شتوي', 'طقم رياضي', 'بيجامة', 'طقم أطفال']

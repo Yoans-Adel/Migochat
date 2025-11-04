@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class MessageHandler(MessageService):
     """Message handler using the new architecture"""
-    
+
     def __init__(self):
         super().__init__()
         self.platform = "multi"
@@ -29,7 +29,7 @@ class MessageHandler(MessageService):
         self.messenger_service = MessengerService()
         self.whatsapp_service = WhatsAppService()
         self._initialized = False
-    
+
     def _do_initialize(self):
         """Initialize all services"""
         try:
@@ -42,7 +42,7 @@ class MessageHandler(MessageService):
         except Exception as e:
             logger.error(f"Failed to initialize Professional Message Handler: {e}")
             raise
-    
+
     async def _process_message_impl(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
         """Process incoming message"""
         try:
@@ -50,20 +50,20 @@ class MessageHandler(MessageService):
             user_id = message_data.get("user_id")
             message_text = message_data.get("text", "")
             message_id = message_data.get("message_id")
-            
+
             logger.info(f"Processing {platform} message from user {user_id}: {message_text}")
-            
+
             # Get or create user
             user = await self._get_or_create_user(user_id, platform)
             if not user:
                 return {"success": False, "error": "Failed to get or create user"}
-            
+
             # Generate AI response (sync method)
             ai_response = self.ai_service.generate_response(message_text, context={"user": user})
-            
+
             # Send response back
             response_sent = await self._send_message_impl(user_id, ai_response, platform)
-            
+
             return {
                 "success": True,
                 "user_id": user_id,
@@ -71,11 +71,11 @@ class MessageHandler(MessageService):
                 "response_sent": response_sent,
                 "platform": platform
             }
-            
+
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return {"success": False, "error": str(e)}
-    
+
     async def _send_message_impl(self, user_id: str, message: str, platform: str) -> bool:
         """Send message to user"""
         try:
@@ -91,28 +91,28 @@ class MessageHandler(MessageService):
         except Exception as e:
             logger.error(f"Error sending message: {e}")
             return False
-    
+
     async def _get_or_create_user(self, user_id: str, platform: str) -> Optional[User]:
         """Get existing user or create new one - Thread-safe implementation"""
         try:
             from database.context import get_db_session_with_commit
             from sqlalchemy.exc import IntegrityError
-            
+
             # First, try to get existing user (read-only)
             with get_db_session() as session:
                 user = session.query(User).filter(User.psid == user_id).first()
-                
+
                 if user:
                     # User exists, update last message time
                     user_id_pk = user.id
-                    
+
             # If user doesn't exist, create it with proper transaction
             if not user:
                 try:
                     with get_db_session_with_commit() as session:
                         # Double-check user doesn't exist (race condition protection)
                         user = session.query(User).filter(User.psid == user_id).first()
-                        
+
                         if not user:
                             user_data = {
                                 "psid": user_id,
@@ -128,14 +128,14 @@ class MessageHandler(MessageService):
                         else:
                             user_id_pk = user.id
                             logger.info(f"User already exists (race condition avoided): {user_id}")
-                            
+
                 except IntegrityError as ie:
                     # Handle race condition: another thread created the user
                     logger.warning(f"Race condition detected for user {user_id}: {ie}")
                     with get_db_session() as session:
                         user = session.query(User).filter(User.psid == user_id).first()
                         user_id_pk = user.id if user else None
-            
+
             # Update last message time in separate transaction
             if user_id_pk:
                 with get_db_session_with_commit() as session:
@@ -143,17 +143,17 @@ class MessageHandler(MessageService):
                     if user:
                         user.last_message_at = datetime.now(timezone.utc)
                         return user
-            
+
             return None
-                    
+
         except Exception as e:
             logger.error(f"Error getting or creating user {user_id}: {e}")
             return None
-    
+
     def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status"""
         base_status = super().get_service_status()
-        
+
         return {
             **base_status,
             "platform": self.platform,
@@ -163,7 +163,7 @@ class MessageHandler(MessageService):
             "whatsapp_service_status": self.whatsapp_service.get_service_status(),
             "initialized": self._initialized
         }
-    
+
     async def health_check(self) -> Dict[str, Any]:
         """Comprehensive health check"""
         try:
@@ -176,15 +176,15 @@ class MessageHandler(MessageService):
             except Exception as e:
                 logger.error(f"Database health check failed: {e}")
                 db_healthy = False
-                
+
             ai_health = await self.ai_service.health_check()
-            
+
             healthy = (
                 db_healthy and
                 ai_health.get("healthy", False) and
                 self._initialized
             )
-            
+
             return {
                 "healthy": healthy,
                 "db_healthy": db_healthy,
@@ -199,7 +199,7 @@ class MessageHandler(MessageService):
                 "error": str(e),
                 "timestamp": datetime.now(timezone.utc).isoformat()
             }
-    
+
     def process_message(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
         """Process incoming message (sync wrapper)"""
         import asyncio
@@ -208,7 +208,7 @@ class MessageHandler(MessageService):
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return {"success": False, "error": str(e)}
-    
+
     def send_message(self, user_id: str, message: str, platform: str = "facebook") -> bool:
         """Send message to user (sync wrapper)"""
         import asyncio
@@ -217,7 +217,7 @@ class MessageHandler(MessageService):
         except Exception as e:
             logger.error(f"Error sending message: {e}")
             return False
-    
+
     def _do_shutdown(self):
         """Shutdown all services"""
         try:

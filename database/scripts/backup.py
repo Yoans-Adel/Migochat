@@ -21,53 +21,52 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def backup_database_cli(backup_dir: str = None):
     """
     Create database backup from command line
-    
+
     Args:
         backup_dir: Optional backup directory path
     """
     logger.info("=" * 60)
     logger.info("💾 BWW Assistant - Database Backup")
     logger.info("=" * 60)
-    
+
     # Check if database exists
     db_path = get_database_path()
     if not database_exists():
         logger.error(f"❌ Database not found at: {db_path}")
         return False
-    
+
     # Setup backup directory
     if backup_dir is None:
         backup_dir = db_path.parent / "backups"
     else:
         backup_dir = Path(backup_dir)
-    
+
     backup_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Create backup filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_filename = f"bww_assistant_backup_{timestamp}.db"
     backup_path = backup_dir / backup_filename
-    
+
     try:
         logger.info(f"\n📁 Source: {db_path}")
         logger.info(f"💾 Backup: {backup_path}")
         logger.info("\n🔄 Creating backup...")
-        
+
         # Copy database file
         shutil.copy2(db_path, backup_path)
-        
+
         # Get file sizes
         source_size = db_path.stat().st_size
         backup_size = backup_path.stat().st_size
-        
+
         logger.info(f"\n✅ Backup created successfully!")
         logger.info(f"📊 Size: {backup_size:,} bytes")
         logger.info(f"📁 Location: {backup_path}")
-        
+
         # List recent backups
         backups = sorted(backup_dir.glob("bww_assistant_backup_*.db"), reverse=True)
         if len(backups) > 1:
@@ -75,13 +74,12 @@ def backup_database_cli(backup_dir: str = None):
             for i, backup in enumerate(backups[:5], 1):
                 size = backup.stat().st_size
                 logger.info(f"   {i}. {backup.name} ({size:,} bytes)")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"\n❌ Backup failed: {e}", exc_info=True)
         return False
-
 
 if __name__ == "__main__":
     success = backup_database_cli()

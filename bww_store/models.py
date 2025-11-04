@@ -26,7 +26,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-
 class CacheStrategy(Enum):
     """Caching strategy enumeration with predefined TTL policies.
 
@@ -43,7 +42,6 @@ class CacheStrategy(Enum):
     SHORT_TERM = "short_term"      # 5 minutes - search results, dynamic content
     MEDIUM_TERM = "medium_term"    # 30 minutes - product listings, categories
     LONG_TERM = "long_term"        # 2 hours - product details, static metadata
-
 
 @dataclass(frozen=True)
 class APIResponse:
@@ -75,7 +73,6 @@ class APIResponse:
     cached: bool = False
     response_time_ms: float = 0.0
     timestamp: datetime = field(default_factory=datetime.utcnow)
-
 
 @dataclass(frozen=True)
 class ProductInfo:
@@ -135,5 +132,4 @@ class ProductInfo:
     sizes: List[str] = field(default_factory=list)
     material: str = ""
     description: str = ""
-
 

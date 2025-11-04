@@ -27,7 +27,7 @@ session_manager = DatabaseSessionManager()
 def get_safe_session(auto_commit: bool = False):
     """
     Get safe database session.
-    
+
     DEPRECATED: Import from database package instead:
         from database import get_db_session, get_db_session_with_commit
     """

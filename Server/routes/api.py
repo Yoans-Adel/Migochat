@@ -53,15 +53,15 @@ async def get_messages(
     """Get messages with pagination and source filtering"""
     try:
         query = db.query(Message)
-        
+
         if user_id:
             query = query.filter(Message.user_id == user_id)
-        
+
         if source:
             query = query.filter(Message.message_source == MessageSource(source))
-        
+
         messages = query.order_by(desc(Message.timestamp)).offset(skip).limit(limit).all()
-        
+
         return {
             "messages": [
                 {
@@ -83,7 +83,7 @@ async def get_messages(
             ],
             "total": query.count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting messages: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -100,13 +100,13 @@ async def send_message(
         recipient_id = data.get("recipient_id")
         message_text = data.get("message_text")
         platform = data.get("platform", "facebook")  # facebook or whatsapp
-        
+
         if not recipient_id or not message_text:
             raise HTTPException(status_code=400, detail="recipient_id and message_text are required")
-        
+
         # Send message via appropriate service
         success = message_handler.send_message(recipient_id, message_text, platform)
-        
+
         if success:
             return {
                 "success": True,
@@ -120,11 +120,11 @@ async def send_message(
                 "error": "Failed to send message",
                 "details": "Check server logs for details"
             }
-        
+
     except Exception as e:
         logger.error(f"Error sending message: {e}")
         traceback.print_exc()
-        
+
         # Check if it's a Facebook API error
         if "400 Client Error" in str(e) and "graph.facebook.com" in str(e):
             return {
@@ -150,7 +150,7 @@ async def get_users(
     """Get users list"""
     try:
         users = db.query(User).order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
-        
+
         return {
             "users": [
                 {
@@ -172,7 +172,7 @@ async def get_users(
             ],
             "total": db.query(User).count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting users: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -182,16 +182,16 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
     """Get user profile and message history"""
     try:
         user = db.query(User).filter(User.psid == psid).first()
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Get user's messages
         messages = db.query(Message).filter(Message.user_id == user.id).order_by(desc(Message.timestamp)).limit(50).all()
-        
+
         # Get lead activities
         activities = db.query(LeadActivity).filter(LeadActivity.user_id == user.id).order_by(desc(LeadActivity.timestamp)).limit(20).all()
-        
+
         return {
             "user": {
                 "id": user.id,
@@ -238,7 +238,7 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
                 for activity in activities
             ]
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -255,15 +255,15 @@ async def update_user(
     try:
         # Get JSON body
         update_data = await request.json()
-        
+
         user = db.query(User).filter(User.psid == psid).first()
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Track changes for lead activity
         changes = []
-        
+
         if "first_name" in update_data:
             user.first_name = update_data["first_name"]
         if "last_name" in update_data:
@@ -277,7 +277,7 @@ async def update_user(
                     changes.append(("governorate", old_value, update_data["governorate"]))
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid governorate")
-        
+
         if "lead_stage" in update_data:
             try:
                 old_value = getattr(user.lead_stage, 'value', None)
@@ -287,7 +287,7 @@ async def update_user(
                     changes.append(("lead_stage", old_value, update_data["lead_stage"]))
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid lead stage")
-        
+
         if "customer_type" in update_data:
             try:
                 old_value = getattr(user.customer_type, 'value', None)
@@ -296,7 +296,7 @@ async def update_user(
                     changes.append(("customer_type", old_value, update_data["customer_type"]))
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid customer type")
-        
+
         if "customer_label" in update_data:
             try:
                 old_value = getattr(user.customer_label, 'value', None)
@@ -305,9 +305,9 @@ async def update_user(
                     changes.append(("customer_label", old_value, update_data["customer_label"]))
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid customer label")
-        
+
         db.commit()
-        
+
         # Log changes to lead activities
         for activity_type, old_val, new_val in changes:
             activity = LeadActivity(
@@ -320,14 +320,14 @@ async def update_user(
                 timestamp=datetime.now(timezone.utc)
             )
             db.add(activity)
-        
+
         if changes:
             db.commit()
-        
+
         logger.info(f"Updated user {psid}: {changes}")
-        
+
         return {"success": True, "message": "User updated successfully", "changes": len(changes)}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -343,27 +343,27 @@ async def get_stats(db: Session = Depends(get_session)):
         total_users = db.query(User).count()
         total_messages = db.query(Message).count()
         active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
-        
+
         # Messages by direction
         inbound_messages = db.query(Message).filter(Message.direction == MessageDirection.INBOUND).count()
         outbound_messages = db.query(Message).filter(Message.direction == MessageDirection.OUTBOUND).count()
-        
+
         # Recent activity (last 24 hours)
         yesterday = datetime.now(timezone.utc) - timedelta(days=1)
         recent_messages = db.query(Message).filter(Message.timestamp >= yesterday).count()
         recent_users = db.query(User).filter(User.last_message_at >= yesterday).count()
-        
+
         # Messages by status
         sent_messages = db.query(Message).filter(Message.status == MessageStatus.SENT).count()
         delivered_messages = db.query(Message).filter(Message.status == MessageStatus.DELIVERED).count()
         read_messages = db.query(Message).filter(Message.status == MessageStatus.READ).count()
-        
+
         # Lead analytics
         lead_analytics = lead_automation.get_lead_analytics()
-        
+
         # Message source analytics
         source_analytics = source_tracker.get_message_source_analytics()
-        
+
         return {
             "total_users": total_users,
             "total_messages": total_messages,
@@ -378,7 +378,7 @@ async def get_stats(db: Session = Depends(get_session)):
             "lead_analytics": lead_analytics,
             "source_analytics": source_analytics
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting stats: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -394,7 +394,7 @@ async def get_conversations(
         conversations = db.query(Conversation).join(User).filter(
             Conversation.is_active.is_(True)
         ).order_by(desc(Conversation.last_activity)).offset(skip).limit(limit).all()
-        
+
         return {
             "conversations": [
                 {
@@ -414,7 +414,7 @@ async def get_conversations(
             ],
             "total": db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting conversations: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -430,15 +430,15 @@ async def get_leads(
     """Get leads with filtering"""
     try:
         query = db.query(User)
-        
+
         if stage:
             query = query.filter(User.lead_stage == LeadStage(stage))
-        
+
         if customer_type:
             query = query.filter(User.customer_type == CustomerType(customer_type))
-        
+
         leads = query.order_by(desc(User.lead_score)).offset(skip).limit(limit).all()
-        
+
         return {
             "leads": [
                 {
@@ -461,7 +461,7 @@ async def get_leads(
             ],
             "total": query.count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting leads: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -478,7 +478,7 @@ async def create_post(
         content = post_data.get("content")
         price = post_data.get("price")
         data = post_data.get("data")
-        
+
         post = source_tracker.create_post(
             facebook_post_id=facebook_post_id,
             post_type=PostType(post_type),
@@ -486,7 +486,7 @@ async def create_post(
             price=price,
             data=data
         )
-        
+
         if post:
             return {
                 "success": True,
@@ -501,7 +501,7 @@ async def create_post(
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to create post")
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid post type: {e}")
     except Exception as e:
@@ -520,7 +520,7 @@ async def create_ad_campaign(
         content = ad_data.get("content")
         target_audience = ad_data.get("target_audience")
         budget = ad_data.get("budget")
-        
+
         ad = source_tracker.create_ad_campaign(
             facebook_ad_id=facebook_ad_id,
             campaign_name=campaign_name,
@@ -528,7 +528,7 @@ async def create_ad_campaign(
             target_audience=target_audience,
             budget=budget
         )
-        
+
         if ad:
             return {
                 "success": True,
@@ -544,7 +544,7 @@ async def create_ad_campaign(
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to create ad campaign")
-        
+
     except Exception as e:
         logger.error(f"Error creating ad campaign: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -558,7 +558,7 @@ async def get_posts(
     """Get posts list"""
     try:
         posts = db.query(Post).order_by(desc(Post.created_at)).offset(skip).limit(limit).all()
-        
+
         return {
             "posts": [
                 {
@@ -575,7 +575,7 @@ async def get_posts(
             ],
             "total": db.query(Post).count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting posts: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -589,7 +589,7 @@ async def get_ad_campaigns(
     """Get ad campaigns list"""
     try:
         campaigns = db.query(AdCampaign).order_by(desc(AdCampaign.created_at)).offset(skip).limit(limit).all()
-        
+
         return {
             "ad_campaigns": [
                 {
@@ -606,7 +606,7 @@ async def get_ad_campaigns(
             ],
             "total": db.query(AdCampaign).count()
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting ad campaigns: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -618,7 +618,7 @@ async def trigger_ai_response(
 ):
     """
     Trigger AI response for a user with multimodal support
-    
+
     Body:
         {
             "user_psid": "string",
@@ -640,30 +640,30 @@ async def trigger_ai_response(
         message_text = data.get("message_text")
         media_files = data.get("media_files", [])
         use_quality = data.get("use_quality_model", False)
-        
+
         # Validate inputs
         if not user_psid:
             raise HTTPException(status_code=400, detail="user_psid is required")
-        
+
         if not message_text:
             raise HTTPException(status_code=400, detail="message_text is required")
-        
+
         logger.info(f"AI Response request for user: {user_psid}, message: {message_text}, media: {len(media_files)}")
-        
+
         # Query user from database
         user = db.query(User).filter(User.psid == user_psid).first()
-        
+
         if not user:
             logger.warning(f"User not found: {user_psid}")
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         logger.info(f"User found: {user.first_name} {user.last_name}")
-        
+
         # Generate AI response
         logger.info("Initializing AI service...")
         from app.services.ai.ai_service import AIService
         ai_service = AIService()
-        
+
         # Prepare context with media files
         context = {
             "user_id": user.id,
@@ -673,11 +673,11 @@ async def trigger_ai_response(
             "media_files": media_files if media_files else None,
             "use_quality_model": use_quality
         }
-        
+
         logger.info("Generating AI response...")
         ai_response = await ai_service.generate_response(message_text, user)
         logger.info(f"AI response generated: {ai_response is not None}")
-        
+
         if ai_response:
             logger.info("Sending message to user...")
             # Send response to user (only if Facebook credentials are configured)
@@ -694,7 +694,7 @@ async def trigger_ai_response(
             else:
                 logger.info("Facebook credentials not configured - returning response only")
                 response = {"message_id": "local_response"}
-            
+
             return {
                 "success": True,
                 "response": ai_response,
@@ -707,7 +707,7 @@ async def trigger_ai_response(
                 "success": False,
                 "message": "No AI response generated"
             }
-        
+
     except HTTPException as he:
         logger.error(f"HTTP Exception in AI response: {he}")
         raise he
@@ -723,12 +723,12 @@ async def ai_status():
         from app.services.ai.ai_service import AIService
         ai_service = AIService()
         status = ai_service.get_service_status()
-        
+
         return {
             "status": "success",
             "ai_services": status
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting AI status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -742,23 +742,23 @@ async def bww_store_query(
 ):
     """Enhanced BWW Store customer query handling"""
     try:
-        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+        if not bww_store_available or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
-        
+
         # Use search_and_format_products instead of handle_customer_query
         result = await bww_store_integration.search_and_format_products(
             search_text=query,
             limit=limit,
             language=language
         )
-        
+
         return {
             "success": True,
             "query": query,
             "products": result,
             "count": len(result)
         }
-        
+
     except Exception as e:
         logger.error(f"Error handling BWW Store query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -770,32 +770,32 @@ async def bww_store_compare(
 ):
     """Compare BWW Store products"""
     try:
-        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+        if not bww_store_available or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
-        
+
         if len(product_ids) < 2:
             raise HTTPException(status_code=400, detail="At least 2 products required for comparison")
-        
+
         if len(product_ids) > 5:
             raise HTTPException(status_code=400, detail="Maximum 5 products can be compared")
-        
+
         # Convert string IDs to integers
         try:
             product_ids_int = [int(pid) for pid in product_ids]
         except ValueError:
             raise HTTPException(status_code=400, detail="Product IDs must be numeric")
-        
+
         result = await bww_store_integration.compare_products(
             product_ids=product_ids_int,
             language=language
         )
-        
+
         return {
             "success": True,
             "comparison": result,
             "product_count": len(product_ids)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -809,35 +809,34 @@ async def bww_store_suggestions(
 ):
     """Get BWW Store search suggestions (simplified version)"""
     try:
-        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+        if not bww_store_available or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
-        
+
         # Use search to get suggestions
         suggestions = await bww_store_integration.search_and_format_products(
             search_text=query,
             limit=5,
             language=language
         )
-        
+
         return {
             "success": True,
             "suggestions": suggestions,
             "query": query,
             "language": language
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting search suggestions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/bww-store/analytics")
 async def bww_store_analytics():
     """Get BWW Store analytics - Basic cache stats"""
     try:
-        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+        if not bww_store_available or not bww_store_integration:
             raise HTTPException(status_code=503, detail="BWW Store integration not available")
-        
+
         # Return basic analytics from cache
         return {
             "success": True,
@@ -847,7 +846,7 @@ async def bww_store_analytics():
                 "note": "Full analytics not implemented yet"
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -856,25 +855,24 @@ async def bww_store_analytics():
 async def bww_store_status():
     """Get BWW Store integration status"""
     try:
-        if not BWW_STORE_AVAILABLE or not bww_store_integration:
+        if not bww_store_available or not bww_store_integration:
             return {
                 "success": False,
                 "status": "BWW Store integration not available",
                 "available": False
             }
-        
+
         status = bww_store_integration.get_service_status()
-        
+
         return {
             "success": True,
             "status": status,
             "available": True
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting BWW Store status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 # Facebook Lead Center Integration Endpoints
 @router.post("/leads/sync-to-facebook")
@@ -882,13 +880,13 @@ async def sync_leads_to_facebook():
     """Sync all leads to Facebook Lead Center"""
     try:
         results = await lead_automation.sync_all_leads_to_facebook()
-        
+
         return {
             "success": True,
             "message": "Lead sync completed",
             "results": results
         }
-        
+
     except Exception as e:
         logger.error(f"Error syncing leads to Facebook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -898,12 +896,12 @@ async def get_lead_analytics():
     """Get comprehensive lead analytics"""
     try:
         analytics = lead_automation.get_lead_analytics()
-        
+
         return {
             "success": True,
             "analytics": analytics
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting lead analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -913,18 +911,18 @@ async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session))
     """Create a specific lead in Facebook Lead Center"""
     try:
         user = db.query(User).filter(User.psid == psid).first()
-        
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         success = await lead_automation.create_lead_in_facebook(user)
-        
+
         return {
             "success": success,
             "message": "Lead creation completed" if success else "Lead creation failed",
             "user_psid": psid
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -939,13 +937,13 @@ async def send_whatsapp_message(request: Request):
         phone_number = data.get("phone_number")
         message = data.get("message")
         message_type = data.get("message_type", "text")
-        
+
         if not phone_number or not message:
             raise HTTPException(status_code=400, detail="phone_number and message are required")
-        
+
         from app.services.messaging.whatsapp_service import WhatsAppService
         whatsapp_service = WhatsAppService()
-        
+
         if message_type == "text":
             response = whatsapp_service.send_message(phone_number, message)
         elif message_type == "template":
@@ -966,17 +964,17 @@ async def send_whatsapp_message(request: Request):
             response = whatsapp_service.send_list_message(phone_number, header_text, body_text, button_text, sections)
         else:
             raise HTTPException(status_code=400, detail="Invalid message_type")
-        
+
         return {
             "success": True,
             "response": response
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error sending WhatsApp message: {e}")
-        
+
         # Check if it's a WhatsApp API error
         if "401" in str(e) and "graph.facebook.com" in str(e):
             return {
@@ -999,17 +997,17 @@ async def whatsapp_status():
     try:
         from app.services.messaging.whatsapp_service import WhatsAppService
         whatsapp_service = WhatsAppService()
-        
+
         # Check if WhatsApp is configured
         is_available = bool(whatsapp_service.access_token and whatsapp_service.phone_number_id)
-        
+
         return {
             "success": True,
             "whatsapp_available": is_available,
             "phone_number_id": whatsapp_service.phone_number_id if is_available else None,
             "api_url": whatsapp_service.api_url if is_available else None
         }
-        
+
     except Exception as e:
         logger.error(f"Error checking WhatsApp status: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -1046,7 +1044,7 @@ async def test_ai_connection(request: Request):
         # Get test message from request
         data = await request.json()
         test_message = data.get("message", "مرحبا، هذه رسالة تجريبية")
-        
+
         # Check if Gemini API key is configured
         if not settings.GEMINI_API_KEY or len(settings.GEMINI_API_KEY) == 0:
             return {
@@ -1055,18 +1053,18 @@ async def test_ai_connection(request: Request):
                 "detail": "Gemini API key not found in environment variables",
                 "instruction": "Add GEMINI_API_KEY to your environment or update from /dashboard/settings"
             }
-        
+
         # Try to initialize and test Gemini service
         try:
             from app.services.ai.gemini_service import GeminiService
             gemini_service = GeminiService()
-            
+
             # Test AI response
             response = await gemini_service.generate_response(
                 message=test_message,
                 user_name="Test User"
             )
-            
+
             return {
                 "success": True,
                 "model": settings.GEMINI_MODEL or "gemini-2.5-flash",
@@ -1082,7 +1080,7 @@ async def test_ai_connection(request: Request):
                 "detail": str(gemini_error),
                 "instruction": "Check if GEMINI_API_KEY is valid"
             }
-        
+
     except Exception as e:
         logger.error(f"Error testing AI connection: {e}")
         return {
@@ -1134,13 +1132,13 @@ async def get_available_models():
                 "context_window": "32K tokens"
             }
         ]
-        
+
         return {
             "success": True,
             "models": models,
             "total": len(models)
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting available models: {e}")
         raise HTTPException(status_code=500, detail="Failed to get models")
@@ -1151,7 +1149,7 @@ async def get_current_model():
     try:
         # Check configuration directly from settings
         api_configured = bool(settings.GEMINI_API_KEY and len(settings.GEMINI_API_KEY) > 0)
-        
+
         return {
             "success": True,
             "current_model": settings.GEMINI_MODEL or "gemini-2.5-flash",
@@ -1160,7 +1158,7 @@ async def get_current_model():
             "api_configured": api_configured,
             "note": "Configure API key from /dashboard/settings" if not api_configured else None
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting current model: {e}")
         raise HTTPException(status_code=500, detail="Failed to get current model")
@@ -1171,21 +1169,21 @@ async def change_ai_model(request: Request):
     try:
         data = await request.json()
         new_model = data.get("model")
-        
+
         if not new_model:
             raise HTTPException(status_code=400, detail="Model name required")
-        
+
         # Validate model name
         valid_models = [
             "gemini-2.5-flash",
-            "gemini-2.5-pro", 
+            "gemini-2.5-pro",
             "gemini-2.5-flash-lite",
             "gemini-2.0-flash"
         ]
-        
+
         if new_model not in valid_models:
             raise HTTPException(status_code=400, detail=f"Invalid model. Choose from: {', '.join(valid_models)}")
-        
+
         # Note: This requires updating environment variable and restarting
         # For now, we return instructions
         return {
@@ -1200,13 +1198,12 @@ async def change_ai_model(request: Request):
             "requested_model": new_model,
             "note": "Dynamic model switching will be available in future updates"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error changing model: {e}")
         raise HTTPException(status_code=500, detail="Failed to change model")
-
 
 # ============================================================
 # Admin Settings Management
@@ -1216,57 +1213,55 @@ async def change_ai_model(request: Request):
 async def get_settings(category: Optional[str] = None):
     """
     Get all settings, optionally filtered by category
-    
+
     Query params:
         category: Filter by category (facebook, whatsapp, ai, system)
     """
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         settings_manager = get_settings_manager()
         settings = settings_manager.get_all_settings(category=category)
-        
+
         return {
             "success": True,
             "settings": settings,
             "count": len(settings)
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve settings")
-
 
 @router.get("/settings/{key}")
 async def get_setting(key: str):
     """Get a specific setting by key"""
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         settings_manager = get_settings_manager()
         value = settings_manager.get_setting(key)
-        
+
         if not value:
             raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
-        
+
         return {
             "success": True,
             "key": key,
             "value": value
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve setting")
 
-
 @router.put("/settings/{key}")
 async def update_setting(key: str, request: Request):
     """
     Update a setting
-    
+
     Body:
         {
             "value": "new_value",
@@ -1277,16 +1272,16 @@ async def update_setting(key: str, request: Request):
     """
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         data = await request.json()
         value = data.get("value", "")
         category = data.get("category", "system")
         is_sensitive = data.get("is_sensitive", False)
         description = data.get("description", "")
-        
+
         if not value:
             raise HTTPException(status_code=400, detail="Value is required")
-        
+
         settings_manager = get_settings_manager()
         success = settings_manager.set_setting(
             key=key,
@@ -1296,28 +1291,27 @@ async def update_setting(key: str, request: Request):
             description=description,
             updated_by="admin"
         )
-        
+
         if not success:
             raise HTTPException(status_code=500, detail="Failed to update setting")
-        
+
         return {
             "success": True,
             "message": f"Setting '{key}' updated successfully",
             "key": key
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error updating setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update setting")
 
-
 @router.post("/settings/bulk")
 async def bulk_update_settings(request: Request):
     """
     Update multiple settings at once
-    
+
     Body:
         {
             "settings": [
@@ -1334,28 +1328,28 @@ async def bulk_update_settings(request: Request):
     """
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         data = await request.json()
         settings_list = data.get("settings", [])
-        
+
         if not settings_list:
             raise HTTPException(status_code=400, detail="No settings provided")
-        
+
         settings_manager = get_settings_manager()
         success_count = 0
         failed_settings = []
-        
+
         for setting in settings_list:
             key = setting.get("key")
             value = setting.get("value", "")
             category = setting.get("category", "system")
             is_sensitive = setting.get("is_sensitive", False)
             description = setting.get("description", "")
-            
+
             if not key or not value:
                 failed_settings.append({"key": key, "reason": "Missing key or value"})
                 continue
-            
+
             success = settings_manager.set_setting(
                 key=key,
                 value=value,
@@ -1364,12 +1358,12 @@ async def bulk_update_settings(request: Request):
                 description=description,
                 updated_by="admin"
             )
-            
+
             if success:
                 success_count += 1
             else:
                 failed_settings.append({"key": key, "reason": "Database error"})
-        
+
         return {
             "success": True,
             "message": f"Updated {success_count} out of {len(settings_list)} settings",
@@ -1377,52 +1371,51 @@ async def bulk_update_settings(request: Request):
             "total_count": len(settings_list),
             "failed": failed_settings
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error bulk updating settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to update settings")
 
-
 @router.delete("/settings/{key}")
 async def delete_setting(key: str):
     """Delete a setting"""
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         settings_manager = get_settings_manager()
         success = settings_manager.delete_setting(key)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail=f"Setting '{key}' not found")
-        
+
         return {
             "success": True,
             "message": f"Setting '{key}' deleted successfully"
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error deleting setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete setting")
 
-
 @router.post("/settings/initialize")
 async def initialize_settings():
     """Initialize default settings from environment variables"""
     try:
         from app.services.infrastructure.settings_manager import get_settings_manager
-        
+
         settings_manager = get_settings_manager()
         settings_manager.initialize_default_settings()
-        
+
         return {
             "success": True,
             "message": "Default settings initialized from environment"
         }
-        
+
     except Exception as e:
         logger.error(f"Error initializing settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to initialize settings")
+

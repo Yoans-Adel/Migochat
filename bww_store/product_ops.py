@@ -18,7 +18,6 @@ from .models import APIResponse, CacheStrategy
 
 logger = logging.getLogger(__name__)
 
-
 class BWWStoreProductOperations:
     """Product operations for BWW Store API."""
 
@@ -29,7 +28,6 @@ class BWWStoreProductOperations:
             client: BWWStoreAPIClient instance
         """
         self.client = client
-
 
     async def get_product_details(self, product_id: int, *, cache_strategy: CacheStrategy = CacheStrategy.LONG_TERM) -> APIResponse:
         """Get detailed information for a specific product.

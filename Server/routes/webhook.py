@@ -34,9 +34,9 @@ async def messenger_webhook_get(request: Request):
         mode = request.query_params.get("hub.mode")
         token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
-        
+
         logger.info(f"Messenger webhook verification attempt: mode={mode}, token={token}")
-        
+
         # Verify the webhook
         if mode == "subscribe" and token == settings.FB_VERIFY_TOKEN:
             logger.info("Messenger webhook verified successfully")
@@ -44,7 +44,7 @@ async def messenger_webhook_get(request: Request):
         else:
             logger.error(f"Messenger webhook verification failed: mode={mode}, token={token}, expected={settings.FB_VERIFY_TOKEN}")
             raise HTTPException(status_code=403, detail="Forbidden")
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -57,7 +57,7 @@ async def messenger_webhook_post(request: Request):
         # Get webhook data
         webhook_data = await request.json()
         logger.info(f"Messenger webhook received: {webhook_data}")
-        
+
         # Parse Facebook webhook format
         if webhook_data.get("object") == "page":
             for entry in webhook_data.get("entry", []):
@@ -67,7 +67,7 @@ async def messenger_webhook_post(request: Request):
                     message = messaging_event.get("message", {})
                     message_text = message.get("text", "")
                     message_id = message.get("mid")
-                    
+
                     if sender_id and message_text:
                         # Create properly formatted message data
                         message_data = {
@@ -75,13 +75,13 @@ async def messenger_webhook_post(request: Request):
                             "text": message_text,
                             "message_id": message_id
                         }
-                        
+
                         # Process the message
                         result = await message_handler._process_message_impl(message_data, platform="facebook")
                         logger.info(f"Message processing result: {result}")
-        
+
         return JSONResponse(content={"status": "ok"})
-        
+
     except Exception as e:
         handle_webhook_error(e, "processing Messenger webhook")
 
@@ -92,15 +92,15 @@ async def whatsapp_webhook_get(request: Request):
     try:
         verify_token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
-        
+
         from app.services.messaging.whatsapp_service import WhatsAppService
         whatsapp_service = WhatsAppService()
-        
+
         if whatsapp_service.verify_webhook(verify_token, challenge):
             return Response(content=challenge, media_type="text/plain")
         else:
             raise HTTPException(status_code=403, detail="Forbidden")
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -112,21 +112,21 @@ async def whatsapp_webhook_post(request: Request):
     try:
         webhook_data = await request.json()
         logger.info(f"WhatsApp webhook received: {webhook_data}")
-        
+
         # Parse WhatsApp webhook format
         if webhook_data.get("object") == "whatsapp_business_account":
             for entry in webhook_data.get("entry", []):
                 for change in entry.get("changes", []):
                     value = change.get("value", {})
                     messages = value.get("messages", [])
-                    
+
                     for message in messages:
                         # Extract message details
                         sender_id = message.get("from")  # Phone number
                         message_text = message.get("text", {}).get("body", "")
                         message_id = message.get("id")
                         message_type = message.get("type", "text")
-                        
+
                         if sender_id and message_text:
                             # Create properly formatted message data
                             message_data = {
@@ -135,13 +135,13 @@ async def whatsapp_webhook_post(request: Request):
                                 "message_id": message_id,
                                 "message_type": message_type
                             }
-                            
+
                             # Process the message
                             result = await message_handler._process_message_impl(message_data, platform="whatsapp")
                             logger.info(f"WhatsApp message processing result: {result}")
-        
+
         return {"status": "ok"}
-        
+
     except Exception as e:
         handle_webhook_error(e, "processing WhatsApp webhook")
 
@@ -192,9 +192,9 @@ async def leadgen_webhook_get(request: Request):
         mode = request.query_params.get("hub.mode")
         token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
-        
+
         logger.info(f"Leadgen webhook verification attempt: mode={mode}, token={token}")
-        
+
         # Verify the webhook
         if mode == "subscribe" and token == settings.FB_LEADCENTER_VERIFY_TOKEN:
             logger.info("Leadgen webhook verified successfully")
@@ -202,7 +202,7 @@ async def leadgen_webhook_get(request: Request):
         else:
             logger.error("Leadgen webhook verification failed")
             raise HTTPException(status_code=403, detail="Forbidden")
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -214,12 +214,12 @@ async def leadgen_webhook_post(request: Request):
     try:
         webhook_data = await request.json()
         logger.info(f"Received leadgen webhook: {webhook_data}")
-        
+
         # Process the leadgen webhook
         results = facebook_lead_center.process_leadgen_webhook(webhook_data)
-        
+
         logger.info(f"Leadgen webhook processed: {results}")
         return {"status": "ok", "results": results}
-        
+
     except Exception as e:
         handle_webhook_error(e, "processing Leadgen webhook")

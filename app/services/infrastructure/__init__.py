@@ -82,7 +82,6 @@ __all__ = [
     "ConfigurationValidator",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name in __all__:
@@ -90,20 +89,20 @@ def __getattr__(name: str):
         if name in ["DependencyInjectionContainer", "ServiceScope", "ServiceRegistration", "get_container"]:
             from .di_container import DependencyInjectionContainer, ServiceScope, ServiceRegistration, get_container
             return locals()[name]
-        
+
         # Service Registry imports
         if name in ["ServiceRegistry", "ServiceFactory", "ServiceLifecycleManager", "ServiceDefinition", "ServicePriority"]:
             from .service_registry import ServiceRegistry, ServiceFactory, ServiceLifecycleManager, ServiceDefinition, ServicePriority
             return locals()[name]
-        
+
         # Error Handler imports
         if name in ["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerConfig", "ErrorMonitor", "RetryConfig", "ErrorHandler", "ErrorSeverity", "ErrorCategory", "ErrorContext", "ErrorRecord"]:
             from .error_handler import CircuitBreaker, CircuitBreakerState, CircuitBreakerConfig, ErrorMonitor, RetryConfig, ErrorHandler, ErrorSeverity, ErrorCategory, ErrorContext, ErrorRecord
             return locals()[name]
-        
+
         # Configuration imports
         if name in ["ConfigurationManager", "ConfigurationLoader", "ConfigurationWatcher", "ServiceConfiguration", "ConfigFormat", "ConfigurationValidator"]:
             from .configuration_manager import ConfigurationManager, ConfigurationLoader, ConfigurationWatcher, ServiceConfiguration, ConfigFormat, ConfigurationValidator
             return locals()[name]
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

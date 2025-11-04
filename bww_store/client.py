@@ -28,7 +28,6 @@ from .models import APIResponse, CacheStrategy
 
 logger = logging.getLogger(__name__)
 
-
 class BWWStoreAPIClient(APIService):
     """Core HTTP client for BWW Store API with enterprise-grade reliability features."""
 

@@ -1,4 +1,4 @@
-# Create empty 
+# Create empty
 """
 Services Package
 ================
@@ -92,7 +92,6 @@ __all__ = [
     "MessageSourceTracker",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for optimal performance."""
     if name in __all__:
@@ -100,22 +99,22 @@ def __getattr__(name: str):
         if name in ["ServiceInterface", "AIServiceInterface", "MessageServiceInterface", "BaseService", "APIService", "MessageService"]:
             from .core import ServiceInterface, AIServiceInterface, MessageServiceInterface, BaseService, APIService, MessageService
             return locals()[name]
-        
+
         # Infrastructure imports
         if name in ["DependencyInjectionContainer", "ServiceRegistry", "get_container"]:
             from .infrastructure import DependencyInjectionContainer, ServiceRegistry, get_container
             return locals()[name]
-        
+
         # Messaging imports
         if name in ["MessengerService", "WhatsAppService", "MessageHandler"]:
             from .messaging import MessengerService, WhatsAppService, MessageHandler
             return locals()[name]
-        
+
         # AI imports
         if name in ["GeminiService", "AIService"]:
             from .ai import GeminiService, AIService
             return locals()[name]
-        
+
         # Business imports
         if name in ["FacebookLeadCenterService", "KeywordManager", "MessageSourceTracker"]:
             from .business import FacebookLeadCenterService, KeywordManager, MessageSourceTracker

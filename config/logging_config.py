@@ -7,18 +7,18 @@ from datetime import datetime
 
 def setup_logging():
     """Setup centralized logging configuration"""
-    
+
     # Create logs directory if it doesn't exist
     logs_dir = Path("logs")
     logs_dir.mkdir(exist_ok=True)
-    
+
     # Get current timestamp for log file naming
     timestamp = datetime.now().strftime("%Y%m%d")
-    
+
     # Define log file paths
     log_files = {
         'app': logs_dir / f"app_{timestamp}.log",
-        'error': logs_dir / f"error_{timestamp}.log", 
+        'error': logs_dir / f"error_{timestamp}.log",
         'debug': logs_dir / f"debug_{timestamp}.log",
         'access': logs_dir / f"access_{timestamp}.log",
         'ai': logs_dir / f"ai_{timestamp}.log",
@@ -27,13 +27,13 @@ def setup_logging():
         'messenger': logs_dir / f"messenger_{timestamp}.log",
         'whatsapp': logs_dir / f"whatsapp_{timestamp}.log"
     }
-    
+
     # Create rotating file handlers for each log type
     handlers = {}
-    
+
     # Main application log handler
     handlers['app'] = logging.handlers.RotatingFileHandler(
-        log_files['app'], 
+        log_files['app'],
         maxBytes=10*1024*1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
@@ -42,7 +42,7 @@ def setup_logging():
     handlers['app'].setFormatter(logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     ))
-    
+
     # Error log handler
     handlers['error'] = logging.handlers.RotatingFileHandler(
         log_files['error'],
@@ -54,7 +54,7 @@ def setup_logging():
     handlers['error'].setFormatter(logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(pathname)s:%(lineno)d'
     ))
-    
+
     # Debug log handler
     handlers['debug'] = logging.handlers.RotatingFileHandler(
         log_files['debug'],
@@ -66,7 +66,7 @@ def setup_logging():
     handlers['debug'].setFormatter(logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(pathname)s:%(lineno)d'
     ))
-    
+
     # Access log handler
     handlers['access'] = logging.handlers.RotatingFileHandler(
         log_files['access'],
@@ -78,7 +78,7 @@ def setup_logging():
     handlers['access'].setFormatter(logging.Formatter(
         '%(asctime)s - %(message)s'
     ))
-    
+
     # AI service log handler
     handlers['ai'] = logging.handlers.RotatingFileHandler(
         log_files['ai'],
@@ -90,7 +90,7 @@ def setup_logging():
     handlers['ai'].setFormatter(logging.Formatter(
         '%(asctime)s - AI_SERVICE - %(levelname)s - %(message)s'
     ))
-    
+
     # Database log handler
     handlers['database'] = logging.handlers.RotatingFileHandler(
         log_files['database'],
@@ -102,7 +102,7 @@ def setup_logging():
     handlers['database'].setFormatter(logging.Formatter(
         '%(asctime)s - DATABASE - %(levelname)s - %(message)s'
     ))
-    
+
     # Webhook log handler
     handlers['webhook'] = logging.handlers.RotatingFileHandler(
         log_files['webhook'],
@@ -114,7 +114,7 @@ def setup_logging():
     handlers['webhook'].setFormatter(logging.Formatter(
         '%(asctime)s - WEBHOOK - %(levelname)s - %(message)s'
     ))
-    
+
     # Messenger log handler
     handlers['messenger'] = logging.handlers.RotatingFileHandler(
         log_files['messenger'],
@@ -126,7 +126,7 @@ def setup_logging():
     handlers['messenger'].setFormatter(logging.Formatter(
         '%(asctime)s - MESSENGER - %(levelname)s - %(message)s'
     ))
-    
+
     # WhatsApp log handler
     handlers['whatsapp'] = logging.handlers.RotatingFileHandler(
         log_files['whatsapp'],
@@ -138,24 +138,24 @@ def setup_logging():
     handlers['whatsapp'].setFormatter(logging.Formatter(
         '%(asctime)s - WHATSAPP - %(levelname)s - %(message)s'
     ))
-    
+
     # Console handler for development
     console_handler = logging.StreamHandler()
     console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     ))
-    
+
     # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
     root_logger.handlers.clear()
-    
+
     # Add all handlers to root logger
     for handler in handlers.values():
         root_logger.addHandler(handler)
     root_logger.addHandler(console_handler)
-    
+
     # Configure specific loggers for different components
     loggers_config = {
         'app.services.ai_service': ['ai'],
@@ -167,7 +167,7 @@ def setup_logging():
         'app.services.message_handler': ['messenger'],
         'app.services.facebook_lead_center_service': ['messenger'],
     }
-    
+
     for logger_name, handler_names in loggers_config.items():
         logger = logging.getLogger(logger_name)
         logger.handlers.clear()
@@ -175,7 +175,7 @@ def setup_logging():
             logger.addHandler(handlers[handler_name])
         logger.addHandler(console_handler)
         logger.propagate = False
-    
+
     # Log the setup completion
     logger = logging.getLogger(__name__)
     logger.info("=" * 60)
@@ -186,18 +186,18 @@ def setup_logging():
     for log_type, log_file in log_files.items():
         logger.info(f"   • {log_type}: {log_file.name}")
     logger.info("=" * 60)
-    
+
     return handlers, log_files
 
 def get_logger(name: str, log_type: str = 'app'):
     """Get a logger with specific configuration"""
     logger = logging.getLogger(name)
-    
+
     # Add specific handler if log_type is specified
     if log_type != 'app':
         # This will be handled by the specific logger configuration above
         pass
-    
+
     return logger
 
 # Initialize logging when this module is imported

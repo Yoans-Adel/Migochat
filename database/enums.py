@@ -4,7 +4,6 @@ All enumeration types used across the database
 """
 import enum
 
-
 class MessageSource(enum.Enum):
     """Message source tracking"""
     AD = "Ad"  # من إعلان
@@ -13,14 +12,12 @@ class MessageSource(enum.Enum):
     DIRECT_MESSAGE = "Direct Message"  # رسالة مباشرة
     REFERRAL = "Referral"  # إحالة
 
-
 class PostType(enum.Enum):
     """Post type classification"""
     PRODUCT_POST = "Product Post"  # بوست منتج
     OFFER_POST = "Offer Post"  # بوست عرض
     PROMOTION_POST = "Promotion Post"  # بوست ترويجي
     GENERAL_POST = "General Post"  # بوست عام
-
 
 class LeadStage(enum.Enum):
     """Lead progression stages"""
@@ -29,14 +26,12 @@ class LeadStage(enum.Enum):
     IN_PROGRESS = "In-Progress"
     CONVERTED = "Converted"
 
-
 class CustomerLabel(enum.Enum):
     """Customer classification labels"""
     JUMLA = "جمله"  # Wholesale
     QITAEI = "قطاعي"  # Retail
     NEW_CUSTOMER = "New Customer"
     AL_MUHAFAZA = "المحافظه"  # Governorate
-
 
 class CustomerType(enum.Enum):
     """Customer behavioral types"""
@@ -47,7 +42,6 @@ class CustomerType(enum.Enum):
     LOGICAL_BUYER = "عميل المنطق"  # The Logical Buyer
     BARGAIN_HUNTER = "عميل التوفير"  # The Bargain Hunter
     HESITANT_BUYER = "عميل التردد"  # The Hesitant Buyer
-
 
 class Governorate(enum.Enum):
     """Egypt governorates"""
@@ -86,12 +80,10 @@ class Governorate(enum.Enum):
     AKHMIM = "Akhmim"
     MATAREYA = "Matareya"
 
-
 class MessageDirection(enum.Enum):
     """Message direction"""
     INBOUND = "inbound"
     OUTBOUND = "outbound"
-
 
 class MessageStatus(enum.Enum):
     """Message delivery status"""

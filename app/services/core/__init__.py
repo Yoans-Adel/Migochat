@@ -77,7 +77,6 @@ __all__ = [
     "ServiceState",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name in __all__:
@@ -101,7 +100,7 @@ def __getattr__(name: str):
                 ServiceLifecycleInterface, ServiceHealth, ServiceStatus, ServiceConfig
             )
             return locals()[name]
-        
+
         # Import from base_service
         if name in [
             "BaseService", "DatabaseService", "APIService", "MessageService",
@@ -112,5 +111,5 @@ def __getattr__(name: str):
                 AIService as BaseAIService, LeadService, ProductService, ServiceState
             )
             return locals()[name]
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

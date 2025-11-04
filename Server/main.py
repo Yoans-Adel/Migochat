@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
         # Create database tables
         create_all_tables()
         logger.info("Database initialized successfully")
-        
+
         # Initialize all services using the new modular architecture
         try:
             from app.services.bootstrap import initialize_services, get_service_bootstrap
@@ -49,14 +49,14 @@ async def lifespan(app: FastAPI):
             logger.error(f"Service bootstrap failed: {e}")
             import traceback
             traceback.print_exc()
-        
+
     except Exception as e:
         logger.error(f"Error during startup: {e}")
         # Don't let startup errors crash the app
         pass
-    
+
     yield
-    
+
     # Shutdown
     try:
         # Shutdown all services using the modular architecture
@@ -118,7 +118,7 @@ async def health_check():
     """Health check endpoint with service status"""
     try:
         health_status = {"status": "healthy", "service": "bww-ai-assistant"}
-        
+
         # Check service bootstrap health if available
         if hasattr(app.state, 'service_bootstrap') and app.state.service_bootstrap:
             try:
@@ -126,7 +126,7 @@ async def health_check():
                 health_status["services"] = service_health
             except Exception as e:
                 health_status["service_error"] = str(e)
-        
+
         return health_status
     except Exception as e:
         logger.error(f"Health check failed: {e}")

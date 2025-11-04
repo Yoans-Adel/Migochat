@@ -25,19 +25,18 @@ __all__ = [
     "MessageSourceTracker",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name == "FacebookLeadCenterService":
         from .facebook_lead_center_service import FacebookLeadCenterService
         return FacebookLeadCenterService
-    
+
     if name == "KeywordManager":
         from .keyword_manager import KeywordManager
         return KeywordManager
-    
+
     if name == "MessageSourceTracker":
         from .message_source_tracker import MessageSourceTracker
         return MessageSourceTracker
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

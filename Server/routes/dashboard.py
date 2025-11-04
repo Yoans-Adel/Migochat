@@ -45,26 +45,26 @@ async def dashboard_home(request: Request):
             total_users = db.query(User).count()
             total_messages = db.query(Message).count()
             active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
-            
+
             # Lead analytics with error handling
             try:
                 lead_analytics = lead_automation.get_lead_analytics()
             except Exception as e:
                 logger.warning(f"Lead analytics failed: {e}")
                 lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
-            
+
             # Recent messages (last 24 hours)
             yesterday = datetime.now(timezone.utc) - timedelta(days=1)
             recent_messages = db.query(Message).join(User).filter(
                 Message.timestamp >= yesterday
             ).order_by(desc(Message.timestamp)).limit(10).all()
-            
+
             # Active users (messaged in last 7 days)
             week_ago = datetime.now(timezone.utc) - timedelta(days=7)
             active_users = db.query(User).filter(
                 User.last_message_at >= week_ago
             ).count()
-            
+
             stats = {
                 "total_users": total_users,
                 "total_messages": total_messages,
@@ -73,12 +73,12 @@ async def dashboard_home(request: Request):
             "recent_messages": recent_messages,
             "lead_analytics": lead_analytics
         }
-        
+
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "stats": stats
         })
-        
+
     except Exception as e:
         handle_dashboard_error(e, "dashboard")
 
@@ -87,22 +87,22 @@ async def leads_view(request: Request):
     """Lead management page"""
     try:
         logger.info("Starting leads_view")
-        
+
         with get_db_session() as db:
             # Get leads with pagination
             leads = get_users_by_last_message(db, 100)
             logger.info(f"Found {len(leads)} leads")
-            
+
             # Get lead analytics
             lead_analytics = lead_automation.get_lead_analytics()
             logger.info(f"Lead analytics: {lead_analytics}")
-            
+
             return templates.TemplateResponse("leads.html", {
                 "request": request,
                 "leads": leads,
                 "analytics": lead_analytics
             })
-        
+
     except Exception as e:
         logger.error(f"Error in leads_view: {e}", exc_info=True)
         handle_dashboard_error(e, "leads view")
@@ -116,12 +116,12 @@ async def messages_view(request: Request):
             conversations = db.query(Conversation).join(User).filter(
                 Conversation.is_active.is_(True)
             ).order_by(desc(Conversation.last_activity)).limit(50).all()
-            
+
             return templates.TemplateResponse("messages.html", {
                 "request": request,
                 "conversations": conversations
             })
-        
+
     except Exception as e:
         handle_dashboard_error(e, "messages view")
 
@@ -132,12 +132,12 @@ async def users_view(request: Request):
         with get_db_session() as db:
             # Get all users with message counts
             users = get_users_by_last_message(db, 100)
-            
+
             return templates.TemplateResponse("users.html", {
                 "request": request,
                 "users": users
             })
-        
+
     except Exception as e:
         handle_dashboard_error(e, "users view")
 
@@ -147,7 +147,7 @@ async def settings_view(request: Request):
     try:
         # Get Railway production URL
         railway_url = "https://migochat-production.up.railway.app"
-        
+
         # Check if Gemini API key is configured (with safe access)
         try:
             gemini_key = settings.GEMINI_API_KEY
@@ -155,36 +155,36 @@ async def settings_view(request: Request):
         except Exception:
             gemini_available = False
             gemini_key = ""
-        
+
         # Get model safely
         try:
             gemini_model = settings.GEMINI_MODEL or "gemini-2.5-flash"
         except Exception:
             gemini_model = "gemini-2.5-flash"
-        
+
         settings_info = {
             # Facebook Settings
             "fb_app_id": settings.FB_APP_ID or "",
             "fb_page_id": settings.FB_PAGE_ID or "",
             "fb_verify_token": settings.FB_VERIFY_TOKEN or "",
             "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN[:20] + "..." if settings.FB_PAGE_ACCESS_TOKEN else "Not configured",
-            
+
             # WhatsApp Settings
             "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID or "",
             "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN or "",
             "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN[:20] + "..." if settings.WHATSAPP_ACCESS_TOKEN else "Not configured",
-            
+
             # Webhook URLs (Railway)
             "messenger_webhook_url": f"{railway_url}/webhook/messenger",
             "whatsapp_webhook_url": f"{railway_url}/webhook/whatsapp",
             "leadcenter_webhook_url": f"{railway_url}/webhook/leadcenter",
-            
+
             # AI Model Settings
             "ai_provider": "Gemini",
             "ai_model": gemini_model,
             "ai_available": gemini_available,
             "gemini_api_key": gemini_key[:20] + "..." if gemini_key else "Not configured",
-            
+
             # Available AI Models
             "available_models": [
                 {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "description": "Best price-performance (Recommended)"},
@@ -192,18 +192,18 @@ async def settings_view(request: Request):
                 {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash-Lite", "description": "Fastest, most cost-efficient"},
                 {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "description": "Previous generation"},
             ],
-            
+
             # System Info
             "environment": settings.ENVIRONMENT or "production",
             "debug_mode": settings.DEBUG,
             "timezone": settings.TIMEZONE or "UTC"
         }
-        
+
         return templates.TemplateResponse("settings.html", {
             "request": request,
             "settings": settings_info
         })
-        
+
     except Exception as e:
         logger.error(f"Error in settings view: {e}")
         logger.exception("Settings view exception details:")

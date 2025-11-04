@@ -9,7 +9,6 @@ from typing import Any, Dict
 
 from .models import APIResponse
 
-
 def format_product_for_messenger(product: Any, language: str = "ar") -> str:
     """Format product information for Messenger display.
 
@@ -24,7 +23,6 @@ def format_product_for_messenger(product: Any, language: str = "ar") -> str:
     """
     from .product_formatter import format_product_for_messenger
     return format_product_for_messenger(product, language)
-
 
 class CompatibilityWrapper:
     """Compatibility wrapper for existing API usage patterns."""
@@ -63,7 +61,6 @@ class CompatibilityWrapper:
         result = loop.run_until_complete(_async_request())
         return result
 
-
 def create_error_response(error: str, status_code: int = 500) -> APIResponse:
     """Create a standardized error response.
 
@@ -76,7 +73,6 @@ def create_error_response(error: str, status_code: int = 500) -> APIResponse:
     """
     return APIResponse(success=False, error=error, status_code=status_code)
 
-
 def validate_product_data(product: Dict[str, Any]) -> bool:
     """Validate basic product data structure.
 
@@ -88,7 +84,6 @@ def validate_product_data(product: Dict[str, Any]) -> bool:
     """
     required_fields = ["id", "name"]
     return all(field in product and product[field] for field in required_fields)
-
 
 def sanitize_search_text(text: str) -> str:
     """Sanitize and normalize search text.
@@ -111,7 +106,6 @@ def sanitize_search_text(text: str) -> str:
 
     return text.strip()
 
-
 def calculate_cache_hit_rate(total_requests: int, cache_hits: int) -> float:
     """Calculate cache hit rate percentage.
 
@@ -126,7 +120,6 @@ def calculate_cache_hit_rate(total_requests: int, cache_hits: int) -> float:
         return 0.0
     return (cache_hits / total_requests) * 100.0
 
-
 def format_price_range(min_price: float, max_price: float, currency: str = "جنيه") -> str:
     """Format price range for display.
 
@@ -139,7 +132,6 @@ def format_price_range(min_price: float, max_price: float, currency: str = "جن
         Formatted price range string
     """
     return f"{min_price}-{max_price} {currency}"
-
 
 def extract_product_ids_from_text(text: str) -> list[int]:
     """Extract product IDs from text using regex.
@@ -154,7 +146,6 @@ def extract_product_ids_from_text(text: str) -> list[int]:
     # Match 3-6 digit numbers (typical product ID range)
     matches = re.findall(r'\b(\d{3,6})\b', text)
     return [int(match) for match in matches if 100 <= int(match) <= 999999]
-
 
 def is_valid_product_url(url: str) -> bool:
     """Check if URL is a valid BWW Store product URL.

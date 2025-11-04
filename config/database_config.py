@@ -108,7 +108,7 @@ class Governorate(enum.Enum):
 # Database Models
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     psid = Column(String(255), unique=True, index=True, nullable=False)
     phone_number = Column(String(20), unique=True, index=True)
@@ -119,19 +119,19 @@ class User(Base):
     timezone = Column(Integer, default=2)
     gender = Column(String(10))
     governorate = Column(Enum(Governorate))
-    
+
     # Lead management fields
     lead_stage = Column(Enum(LeadStage), default=LeadStage.NEW)
     customer_label = Column(Enum(CustomerLabel), default=CustomerLabel.COLD)
     customer_type = Column(Enum(CustomerType), default=CustomerType.INDIVIDUAL)
     lead_score = Column(Integer, default=0)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_message_at = Column(DateTime)
     last_seen_at = Column(DateTime)
-    
+
     # Relationships
     messages = relationship("Message", back_populates="user")
     conversations = relationship("Conversation", back_populates="user")
@@ -139,62 +139,62 @@ class User(Base):
 
 class Message(Base):
     __tablename__ = "messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     facebook_message_id = Column(String(255), unique=True, index=True)
     whatsapp_message_id = Column(String(255), unique=True, index=True)
-    
+
     # Message content
     text = Column(Text)
     message_type = Column(String(50), default="text")
     direction = Column(Enum(MessageDirection), nullable=False)
     status = Column(Enum(MessageStatus), default=MessageStatus.SENT)
-    
+
     # Source tracking
     source = Column(Enum(MessageSource), default=MessageSource.MESSENGER)
     post_id = Column(String(255))
     ad_campaign_id = Column(String(255))
-    
+
     # AI response tracking
     is_ai_response = Column(Boolean, default=False)
     ai_model_used = Column(String(50))
     response_time_ms = Column(Integer)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     sent_at = Column(DateTime)
     delivered_at = Column(DateTime)
     read_at = Column(DateTime)
-    
+
     # Relationships
     user = relationship("User", back_populates="messages")
 
 class Conversation(Base):
     __tablename__ = "conversations"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+
     # Conversation metadata
     is_active = Column(Boolean, default=True)
     message_count = Column(Integer, default=0)
     last_message_text = Column(Text)
     last_message_at = Column(DateTime)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
     user = relationship("User", back_populates="conversations")
 
 class LeadActivity(Base):
     __tablename__ = "lead_activities"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    
+
     # Activity details
     activity_type = Column(String(50), nullable=False)  # message, call, meeting, etc.
     description = Column(Text)
@@ -203,50 +203,50 @@ class LeadActivity(Base):
     label_before = Column(Enum(CustomerLabel))
     label_after = Column(Enum(CustomerLabel))
     score_change = Column(Integer, default=0)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     user = relationship("User", back_populates="lead_activities")
 
 class Post(Base):
     __tablename__ = "posts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     facebook_post_id = Column(String(255), unique=True, index=True)
-    
+
     # Post details
     post_type = Column(Enum(PostType), default=PostType.POST)
     content = Column(Text)
     media_url = Column(String(500))
-    
+
     # Engagement metrics
     likes_count = Column(Integer, default=0)
     comments_count = Column(Integer, default=0)
     shares_count = Column(Integer, default=0)
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     posted_at = Column(DateTime)
 
 class AdCampaign(Base):
     __tablename__ = "ad_campaigns"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     facebook_campaign_id = Column(String(255), unique=True, index=True)
-    
+
     # Campaign details
     name = Column(String(255))
     objective = Column(String(100))
     status = Column(String(50))
-    
+
     # Performance metrics
     impressions = Column(Integer, default=0)
     clicks = Column(Integer, default=0)
     conversions = Column(Integer, default=0)
     spend = Column(Integer, default=0)  # in cents
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime)
@@ -284,13 +284,13 @@ def backup_database():
     try:
         import shutil
         from datetime import datetime
-        
+
         backup_dir = DATABASE_DIR / "backups"
         backup_dir.mkdir(exist_ok=True)
-        
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_file = backup_dir / f"bww_ai_assistant_backup_{timestamp}.db"
-        
+
         shutil.copy2(DATABASE_DIR / "bww_ai_assistant.db", backup_file)
         print(f"✅ Database backup created: {backup_file}")
         return backup_file
@@ -302,7 +302,7 @@ def restore_database(backup_file):
     """Restore database from backup"""
     try:
         import shutil
-        
+
         shutil.copy2(backup_file, DATABASE_DIR / "bww_ai_assistant.db")
         print(f"✅ Database restored from: {backup_file}")
     except Exception as e:
@@ -316,23 +316,23 @@ def check_database_health():
         with engine.connect() as connection:
             result = connection.execute("SELECT 1")
             result.fetchone()
-        
+
         # Check if all tables exist
         inspector = inspect(engine)
         tables = inspector.get_table_names()
         expected_tables = [
-            "users", "messages", "conversations", 
+            "users", "messages", "conversations",
             "lead_activities", "posts", "ad_campaigns"
         ]
-        
+
         missing_tables = [table for table in expected_tables if table not in tables]
-        
+
         if missing_tables:
             return {
                 "status": "unhealthy",
                 "error": f"Missing tables: {missing_tables}"
             }
-        
+
         return {
             "status": "healthy",
             "tables": tables,

@@ -24,7 +24,6 @@ from typing import Any, Dict, Union
 
 from .models import ProductInfo
 
-
 def parse_product_data(product_data: Dict[str, Any]) -> ProductInfo:
     return ProductInfo(
         id=product_data.get("id", 0),
@@ -48,11 +47,9 @@ def parse_product_data(product_data: Dict[str, Any]) -> ProductInfo:
         description=product_data.get("description", ""),
     )
 
-
 def format_product_for_messenger(product: Union[Dict[str, Any], ProductInfo], language: str = "ar") -> str:
     info = parse_product_data(product) if isinstance(product, dict) else product
     return _format_product_english(info) if language == "en" else _format_product_arabic(info)
-
 
 def _format_product_arabic(product: ProductInfo) -> str:
     message = f"🛍️ **{product.name}**\n\n"
@@ -86,7 +83,6 @@ def _format_product_arabic(product: ProductInfo) -> str:
 
     return message
 
-
 def _format_product_english(product: ProductInfo) -> str:
     message = f"🛍️ **{product.name}**\n\n"
 
@@ -118,5 +114,4 @@ def _format_product_english(product: ProductInfo) -> str:
         message += f"\n🖼️ [View Image]({product.main_image})"
 
     return message
-
 

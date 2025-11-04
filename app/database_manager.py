@@ -28,7 +28,7 @@ db_manager = _get_database_manager()
 def get_database_manager() -> DatabaseManager:
     """
     Get the global database manager instance.
-    
+
     DEPRECATED: Import from database package instead:
         from database import get_database_manager
     """
@@ -37,7 +37,7 @@ def get_database_manager() -> DatabaseManager:
 def initialize_database() -> bool:
     """
     Initialize database.
-    
+
     DEPRECATED: Import from database package instead:
         from database import initialize_database
     """
@@ -46,7 +46,7 @@ def initialize_database() -> bool:
 def get_session():
     """
     Get database session.
-    
+
     DEPRECATED: Import from database package instead:
         from database import get_session
     """
@@ -55,7 +55,7 @@ def get_session():
 def get_session_context():
     """
     Get database session with context manager.
-    
+
     DEPRECATED: Import from database package instead:
         from database import get_db_session_with_commit
     """

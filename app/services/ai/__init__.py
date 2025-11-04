@@ -23,15 +23,14 @@ __all__ = [
     "AIService",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name == "GeminiService":
         from .gemini_service import GeminiService
         return GeminiService
-    
+
     if name == "AIService":
         from .ai_service import AIService
         return AIService
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -22,7 +22,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def show_banner():
     """Display application banner"""
     print("=" * 60)
@@ -30,7 +29,6 @@ def show_banner():
     print("   Professional Database CLI Utility")
     print("=" * 60)
     print()
-
 
 def main():
     """Main CLI entry point"""
@@ -45,39 +43,39 @@ Examples:
   %(prog)s stats            Show database statistics
         """
     )
-    
+
     parser.add_argument(
         "command",
         choices=["rebuild", "backup", "health", "stats"],
         help="Command to execute"
     )
-    
+
     parser.add_argument(
         "--backup-dir",
         type=str,
         help="Backup directory path (for backup command)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Show banner
     show_banner()
-    
+
     # Execute command
     success = False
-    
+
     if args.command == "rebuild":
         success = rebuild_database_cli()
-        
+
     elif args.command == "backup":
         success = backup_database_cli(args.backup_dir)
-        
+
     elif args.command == "health":
         success = health_check_cli()
-        
+
     elif args.command == "stats":
         success = health_check_cli()  # Stats are included in health check
-    
+
     # Exit with appropriate code
     print()
     if success:
@@ -86,7 +84,6 @@ Examples:
     else:
         logger.error("❌ Operation failed")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     try:

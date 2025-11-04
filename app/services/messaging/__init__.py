@@ -25,19 +25,18 @@ __all__ = [
     "MessageHandler",
 ]
 
-
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name == "MessengerService":
         from .messenger_service import MessengerService
         return MessengerService
-    
+
     if name == "WhatsAppService":
         from .whatsapp_service import WhatsAppService
         return WhatsAppService
-    
+
     if name == "MessageHandler":
         from .message_handler import MessageHandler
         return MessageHandler
-    
+
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

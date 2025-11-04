@@ -37,13 +37,13 @@ def install_dependencies():
     """تثبيت التبعيات"""
     try:
         logger.info("📦 تثبيت التبعيات...")
-        
+
         # تحديد مسار pip الصحيح حسب نظام التشغيل
         if os.name == 'nt':  # Windows
             pip_path = "venv/Scripts/pip"
         else:  # Unix/Linux/MacOS
             pip_path = "venv/bin/pip"
-        
+
         subprocess.run([pip_path, "install", "-r", "requirements.txt"], check=True)
         logger.info("✅ تم تثبيت التبعيات بنجاح")
         return True
@@ -55,18 +55,18 @@ def create_directories():
     """إنشاء المجلدات المطلوبة"""
     try:
         logger.info("📁 إنشاء المجلدات المطلوبة...")
-        
+
         directories = [
             "logs",
             "data",
             "uploads",
             "temp"
         ]
-        
+
         for directory in directories:
             Path(directory).mkdir(exist_ok=True)
             logger.info(f"✅ تم إنشاء مجلد: {directory}")
-        
+
         return True
     except Exception as e:
         logger.error(f"❌ خطأ في إنشاء المجلدات: {e}")
@@ -76,7 +76,7 @@ def create_env_file():
     """إنشاء ملف .env"""
     try:
         logger.info("⚙️ إنشاء ملف .env...")
-        
+
         env_content = """# Facebook Configuration
 FB_APP_ID=2111286849402188
 FB_APP_SECRET=your_facebook_app_secret
@@ -100,10 +100,10 @@ PORT=8000
 # Gemini AI
 GEMINI_API_KEY=your_gemini_api_key
 """
-        
+
         with open(".env", "w", encoding="utf-8") as f:
             f.write(env_content)
-        
+
         logger.info("✅ تم إنشاء ملف .env")
         return True
     except Exception as e:
@@ -114,27 +114,27 @@ def setup_environment():
     """إعداد البيئة الكاملة"""
     try:
         logger.info("🎯 إعداد بيئة BWW Assistant Chatbot...")
-        
+
         steps = [
             ("إنشاء المجلدات", create_directories),
             ("إنشاء البيئة الافتراضية", create_virtual_environment),
             ("تثبيت التبعيات", install_dependencies),
             ("إنشاء ملف .env", create_env_file)
         ]
-        
+
         for step_name, step_func in steps:
             logger.info(f"الخطوة: {step_name}")
             if not step_func():
                 logger.error(f"فشل في الخطوة: {step_name}")
                 return False
-        
+
         logger.info("✅ تم إعداد البيئة بنجاح!")
         logger.info("الخطوات التالية:")
         logger.info("1. تحرير ملف .env بالمعلومات الصحيحة")
         logger.info("2. تشغيل: python scripts/run.py")
-        
+
         return True
-        
+
     except Exception as e:
         logger.error(f"❌ خطأ في إعداد البيئة: {e}")
         return False
