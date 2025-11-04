@@ -12,12 +12,14 @@ from Server.config import settings
 logger = logging.getLogger(__name__)
 
 # Import BWW Store Integration (optional)
+bww_store_available = False
+BWWStoreAPIService = None
+
 try:
     from bww_store import BWWStoreAPIService
-    BWW_STORE_AVAILABLE = True
+    bww_store_available = True
     logger.info("BWW Store integration loaded successfully")
 except ImportError:
-    BWW_STORE_AVAILABLE = False
     logger.warning("BWW Store integration not available")
 
 router = APIRouter()
@@ -35,7 +37,7 @@ lead_automation = FacebookLeadCenterService()
 source_tracker = MessageSourceTracker()
 
 # Initialize BWW Store Integration (if available)
-if BWW_STORE_AVAILABLE:
+if bww_store_available and BWWStoreAPIService:
     bww_store_integration = BWWStoreAPIService(language="ar")
 else:
     bww_store_integration = None
@@ -71,9 +73,9 @@ async def get_messages(
                     "status": msg.status.value,
                     "timestamp": msg.timestamp.isoformat(),
                     "message_type": msg.message_type,
-                    "message_source": msg.message_source.value if msg.message_source else None,
+                    "message_source": getattr(msg.message_source, 'value', None),
                     "post_id": msg.post_id,
-                    "post_type": msg.post_type.value if msg.post_type else None,
+                    "post_type": getattr(msg.post_type, 'value', None),
                     "ad_id": msg.ad_id,
                     "comment_id": msg.comment_id
                 }
@@ -157,13 +159,13 @@ async def get_users(
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "profile_pic": user.profile_pic,
-                    "governorate": user.governorate.value if user.governorate else None,
+                    "governorate": getattr(user.governorate, 'value', None),
                     "created_at": user.created_at.isoformat(),
                     "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
                     "is_active": user.is_active,
-                    "lead_stage": user.lead_stage.value if user.lead_stage else None,
-                    "customer_type": user.customer_type.value if user.customer_type else None,
-                    "customer_label": user.customer_label.value if user.customer_label else None,
+                    "lead_stage": getattr(user.lead_stage, 'value', None),
+                    "customer_type": getattr(user.customer_type, 'value', None),
+                    "customer_label": getattr(user.customer_label, 'value', None),
                     "lead_score": user.lead_score
                 }
                 for user in users
@@ -197,13 +199,13 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "profile_pic": user.profile_pic,
-                "governorate": user.governorate.value if user.governorate else None,
+                "governorate": getattr(user.governorate, 'value', None),
                 "created_at": user.created_at.isoformat(),
                 "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
                 "is_active": user.is_active,
-                "lead_stage": user.lead_stage.value if user.lead_stage else None,
-                "customer_type": user.customer_type.value if user.customer_type else None,
-                "customer_label": user.customer_label.value if user.customer_label else None,
+                "lead_stage": getattr(user.lead_stage, 'value', None),
+                "customer_type": getattr(user.customer_type, 'value', None),
+                "customer_label": getattr(user.customer_label, 'value', None),
                 "lead_score": user.lead_score,
                 "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
             },
@@ -215,9 +217,9 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
                     "status": msg.status.value,
                     "timestamp": msg.timestamp.isoformat(),
                     "message_type": msg.message_type,
-                    "message_source": msg.message_source.value if msg.message_source else None,
+                    "message_source": getattr(msg.message_source, 'value', None),
                     "post_id": msg.post_id,
-                    "post_type": msg.post_type.value if msg.post_type else None,
+                    "post_type": getattr(msg.post_type, 'value', None),
                     "ad_id": msg.ad_id,
                     "comment_id": msg.comment_id
                 }
@@ -269,8 +271,8 @@ async def update_user(
         if "governorate" in update_data:
             from database import Governorate
             try:
-                old_value = user.governorate.value if user.governorate else None
-                user.governorate = Governorate(update_data["governorate"])
+                old_value = getattr(user.governorate, 'value', None)
+                setattr(user, 'governorate', Governorate(update_data["governorate"]))
                 if old_value != update_data["governorate"]:
                     changes.append(("governorate", old_value, update_data["governorate"]))
             except ValueError:
@@ -278,9 +280,9 @@ async def update_user(
         
         if "lead_stage" in update_data:
             try:
-                old_value = user.lead_stage.value if user.lead_stage else None
-                user.lead_stage = LeadStage(update_data["lead_stage"])
-                user.last_stage_change = datetime.now(timezone.utc)
+                old_value = getattr(user.lead_stage, 'value', None)
+                setattr(user, 'lead_stage', LeadStage(update_data["lead_stage"]))
+                setattr(user, 'last_stage_change', datetime.now(timezone.utc))
                 if old_value != update_data["lead_stage"]:
                     changes.append(("lead_stage", old_value, update_data["lead_stage"]))
             except ValueError:
@@ -288,8 +290,8 @@ async def update_user(
         
         if "customer_type" in update_data:
             try:
-                old_value = user.customer_type.value if user.customer_type else None
-                user.customer_type = CustomerType(update_data["customer_type"])
+                old_value = getattr(user.customer_type, 'value', None)
+                setattr(user, 'customer_type', CustomerType(update_data["customer_type"]))
                 if old_value != update_data["customer_type"]:
                     changes.append(("customer_type", old_value, update_data["customer_type"]))
             except ValueError:
@@ -297,8 +299,8 @@ async def update_user(
         
         if "customer_label" in update_data:
             try:
-                old_value = user.customer_label.value if user.customer_label else None
-                user.customer_label = CustomerLabel(update_data["customer_label"])
+                old_value = getattr(user.customer_label, 'value', None)
+                setattr(user, 'customer_label', CustomerLabel(update_data["customer_label"]))
                 if old_value != update_data["customer_label"]:
                     changes.append(("customer_label", old_value, update_data["customer_label"]))
             except ValueError:
@@ -390,7 +392,7 @@ async def get_conversations(
     """Get active conversations"""
     try:
         conversations = db.query(Conversation).join(User).filter(
-            Conversation.is_active == True
+            Conversation.is_active.is_(True)
         ).order_by(desc(Conversation.last_activity)).offset(skip).limit(limit).all()
         
         return {

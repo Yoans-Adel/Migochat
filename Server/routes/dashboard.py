@@ -114,7 +114,7 @@ async def messages_view(request: Request):
         with get_db_session() as db:
             # Get conversations with user info
             conversations = db.query(Conversation).join(User).filter(
-                Conversation.is_active == True
+                Conversation.is_active.is_(True)
             ).order_by(desc(Conversation.last_activity)).limit(50).all()
             
             return templates.TemplateResponse("messages.html", {

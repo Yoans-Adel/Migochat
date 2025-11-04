@@ -65,8 +65,8 @@ class GeminiService(BaseAIService):
                 try:
                     self.models['text_fast'] = genai.GenerativeModel('gemini-2.5-flash-lite')
                     logger.info("✅ Fast text fallback: gemini-2.5-flash-lite")
-                except:
-                    pass
+                except Exception as fallback_error:
+                    logger.error(f"Failed to initialize fast text fallback: {fallback_error}")
             
             # High-quality text model
             try:
