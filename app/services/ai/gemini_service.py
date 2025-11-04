@@ -6,15 +6,19 @@ from pathlib import Path
 from Server.config import settings
 from app.services.core.base_service import AIService as BaseAIService
 
+logger = logging.getLogger(__name__)
+
+gemini_available = False
+genai = None
+HarmCategory = None
+HarmBlockThreshold = None
+
 try:
     import google.generativeai as genai
     from google.generativeai.types import HarmCategory, HarmBlockThreshold
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-    genai = None
-
-logger = logging.getLogger(__name__)
+    gemini_available = True
+except ImportError as import_error:
+    logger.info(f"Gemini package not available: {import_error}")
 
 class GeminiService(BaseAIService):
     """
@@ -39,7 +43,7 @@ class GeminiService(BaseAIService):
     
     def _initialize_models(self):
         """Initialize multiple models for different use cases"""
-        if not GEMINI_AVAILABLE:
+        if not gemini_available:
             # Suppress warning on first initialization only
             if not hasattr(self, '_warning_shown'):
                 logger.info("Gemini AI service not available - using fallback responses")
@@ -99,7 +103,7 @@ class GeminiService(BaseAIService):
         Returns:
             Generated text response
         """
-        if not GEMINI_AVAILABLE:
+        if not gemini_available:
             logger.warning("Gemini not available, using fallback response")
             return self._fallback_response(message)
         
@@ -357,6 +361,10 @@ Respond naturally:"""
             'entities': {}
         }
     
+    def generate_fallback_response(self, message: str) -> str:
+        """Public method for generating fallback responses"""
+        return self._fallback_response(message)
+    
     def _fallback_response(self, message: str) -> str:
         """Fallback response when Gemini is not available"""
         message_lower = message.lower()
@@ -402,7 +410,7 @@ Respond naturally:"""
     
     def is_available(self) -> bool:
         """Check if Gemini service is available"""
-        return GEMINI_AVAILABLE and any(model is not None for model in self.models.values())
+        return gemini_available and any(model is not None for model in self.models.values())
     
     def get_model_info(self) -> Dict[str, Any]:
         """Get information about available models"""
@@ -429,7 +437,7 @@ Respond naturally:"""
                 }
             },
             "api_key_configured": bool(self.api_key),
-            "package_installed": GEMINI_AVAILABLE,
+            "package_installed": gemini_available,
             "strategy": "Smart routing: text-only → Gemma (fast), multimodal → Gemini Flash"
         }
     
@@ -476,3 +484,4 @@ Respond naturally:"""
                 "error": str(e),
                 "model_used": "fallback"
             }
+

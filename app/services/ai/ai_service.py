@@ -5,7 +5,6 @@ AI service with multiple providers support and fallback mechanisms
 
 import logging
 from typing import Optional, Dict, Any
-from datetime import datetime
 
 from app.services.core.base_service import AIService as BaseAIService
 from app.services.core.interfaces import ServiceConfig
@@ -58,7 +57,7 @@ class AIService(BaseAIService):
             self.model_loaded = False
             return False
     
-    def generate_response(self, message: str, context: Optional[Dict] = None) -> str:
+    def generate_response(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """
         Generate AI response with automatic provider selection
         
@@ -148,7 +147,7 @@ class AIService(BaseAIService):
         Returns:
             Dictionary of extracted entities
         """
-        entities = {
+        entities: Dict[str, list[str]] = {
             "products": [],
             "colors": [],
             "sizes": [],
@@ -181,10 +180,10 @@ class AIService(BaseAIService):
         """Helper to extract product-related entities"""
         return self.extract_entities(message)
     
-    def _generate_fallback_response(self, message: str, context: Optional[Dict] = None) -> str:
+    def _generate_fallback_response(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Generate fallback response when AI providers are unavailable"""
         if self._gemini_service:
-            return self._gemini_service._fallback_response(message)
+            return self._gemini_service.generate_fallback_response(message)
         
         # Ultimate fallback
         return "شكراً لرسالتك. أنا مساعد BWW Store وأنا هنا لمساعدتك!"
@@ -249,10 +248,10 @@ def get_ai_service() -> AIService:
     """Get AI service instance"""
     from app.services.infrastructure.di_container import get_service
     service = get_service("ai_service")
-    if service:
+    if service and isinstance(service, AIService):
         return service
     
     # Create new instance if not registered
-    service = AIService()
-    service.initialize()
-    return service
+    new_service = AIService()
+    new_service.initialize()
+    return new_service
