@@ -5,7 +5,7 @@ Professional dependency injection implementation
 
 import logging
 import threading
-from typing import Dict, Any, Optional, Type, TypeVar, Callable, List
+from typing import Dict, Any, Optional, Type, TypeVar, Callable, List, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -122,7 +122,11 @@ class DependencyInjectionContainer:
         with self._lock:
             for name, registration in self._services.items():
                 if registration.service_type == service_type:
-                    return self.get_service(name)
+                    service = self.get_service(name)
+                    if service is None:
+                        return None
+                    # Type assertion: we know the service matches service_type
+                    return service  # type: ignore[return-value]
             return None
 
     def _create_service_instance(self, registration: ServiceRegistration) -> Optional[ServiceInterface]:
@@ -130,10 +134,13 @@ class DependencyInjectionContainer:
         try:
             if registration.factory:
                 instance = registration.factory()
-            else:
+            elif registration.implementation:
                 # Resolve dependencies
                 dependencies = self._resolve_dependencies(registration)
                 instance = registration.implementation(**dependencies)
+            else:
+                self._logger.error("No factory or implementation provided")
+                return None
 
             # Initialize service if it has initialize method
             if hasattr(instance, 'initialize'):
@@ -149,14 +156,14 @@ class DependencyInjectionContainer:
 
     def _resolve_dependencies(self, registration: ServiceRegistration) -> Dict[str, Any]:
         """Resolve service dependencies"""
-        dependencies = {}
+        dependencies: Dict[str, Any] = {}
 
         # Add configuration if available
         if registration.config:
             dependencies['config'] = registration.config
 
         # Resolve other dependencies based on constructor parameters
-        if hasattr(registration.implementation, '__init__'):
+        if registration.implementation and hasattr(registration.implementation, '__init__'):
             import inspect
             sig = inspect.signature(registration.implementation.__init__)
 
@@ -200,7 +207,7 @@ class DependencyInjectionContainer:
     def get_all_services(self) -> Dict[str, ServiceInterface]:
         """Get all service instances"""
         with self._lock:
-            services = {}
+            services: Dict[str, ServiceInterface] = {}
             for name in self._services:
                 service = self.get_service(name)
                 if service:
@@ -234,10 +241,10 @@ class DependencyInjectionContainer:
             registration = self._services[name]
             instance = self._instances.get(name)
 
-            info = {
+            info: Dict[str, Any] = {
                 "name": name,
                 "service_type": registration.service_type.__name__,
-                "implementation": registration.implementation.__name__,
+                "implementation": registration.implementation.__name__ if registration.implementation else "None",
                 "scope": registration.scope.value,
                 "has_instance": name in self._instances,
                 "has_config": registration.config is not None,
@@ -252,12 +259,18 @@ class DependencyInjectionContainer:
     def get_all_services_info(self) -> Dict[str, Dict[str, Any]]:
         """Get information about all services"""
         with self._lock:
-            return {name: self.get_service_info(name) for name in self._services.keys()}
+            result: Dict[str, Dict[str, Any]] = {}
+            for name in self._services.keys():
+                info = self.get_service_info(name)
+                if info is not None:
+                    result[name] = info
+            return result
 
     @contextmanager
-    def scoped_context(self):
+    def scoped_context(self) -> Generator[Dict[str, ServiceInterface], None, None]:
         """Create scoped context for scoped services"""
-        scoped_instances = {}
+        scoped_instances: Dict[str, ServiceInterface] = {}
+        original_instances: Dict[str, ServiceInterface] = {}
 
         try:
             # Create scoped instances
@@ -268,7 +281,6 @@ class DependencyInjectionContainer:
                         scoped_instances[name] = instance
 
             # Temporarily replace singleton instances with scoped ones
-            original_instances = {}
             for name, instance in scoped_instances.items():
                 if name in self._instances:
                     original_instances[name] = self._instances[name]

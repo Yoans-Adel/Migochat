@@ -5,7 +5,7 @@ Professional service management and factory pattern implementation
 
 import logging
 import threading
-from typing import Dict, Any, Optional, Type, List, Callable
+from typing import Dict, Any, Optional, Type, List, Callable, Set
 from dataclasses import dataclass
 from enum import Enum
 
@@ -36,7 +36,7 @@ class ServiceDefinition:
     scope: ServiceScope = ServiceScope.SINGLETON
     priority: ServicePriority = ServicePriority.NORMAL
     config: Optional[ServiceConfig] = None
-    dependencies: List[str] = None
+    dependencies: Optional[List[str]] = None
     auto_start: bool = True
     health_check_interval: int = 30
     retry_count: int = 3
@@ -188,7 +188,7 @@ class ServiceRegistry(ServiceRegistryInterface):
             definition = self._services[name]
             instance = self._instances.get(name)
 
-            info = {
+            info: Dict[str, Any] = {
                 "name": name,
                 "service_type": definition.service_type.__name__,
                 "implementation": definition.implementation.__name__ if definition.implementation else None,
@@ -214,12 +214,17 @@ class ServiceRegistry(ServiceRegistryInterface):
     def get_all_services_info(self) -> Dict[str, Dict[str, Any]]:
         """Get information about all services"""
         with self._lock:
-            return {name: self.get_service_info(name) for name in self._services.keys()}
+            result: Dict[str, Dict[str, Any]] = {}
+            for name in self._services.keys():
+                info = self.get_service_info(name)
+                if info is not None:
+                    result[name] = info
+            return result
 
     def _update_service_order(self) -> None:
         """Update startup and shutdown order based on dependencies and priority"""
         # Create dependency graph
-        graph = {}
+        graph: Dict[str, List[str]] = {}
         for name, definition in self._services.items():
             graph[name] = definition.dependencies or []
 
@@ -231,9 +236,9 @@ class ServiceRegistry(ServiceRegistryInterface):
 
     def _topological_sort(self, graph: Dict[str, List[str]]) -> List[str]:
         """Topological sort of service dependencies"""
-        visited = set()
-        temp_visited = set()
-        result = []
+        visited: Set[str] = set()
+        temp_visited: Set[str] = set()
+        result: List[str] = []
 
         def visit(node: str) -> None:
             if node in temp_visited:
@@ -305,7 +310,7 @@ class ServiceLifecycleManager(ServiceLifecycleInterface):
     def __init__(self, registry: ServiceRegistry):
         self._registry = registry
         self._logger = logging.getLogger(__name__)
-        self._running_services: set = set()
+        self._running_services: Set[str] = set()
         self._lock = threading.RLock()
 
     def start_service(self, name: str) -> bool:
@@ -385,21 +390,23 @@ class ServiceLifecycleManager(ServiceLifecycleInterface):
                 health = service.health_check()
                 return health.status
             elif hasattr(service, 'is_healthy'):
-                return ServiceStatus.HEALTHY if service.is_healthy() else ServiceStatus.UNHEALTHY
+                # Use cast for dynamic attribute check
+                is_healthy_result = getattr(service, 'is_healthy')()
+                return ServiceStatus.HEALTHY if is_healthy_result else ServiceStatus.UNHEALTHY
             else:
                 return ServiceStatus.UNKNOWN
 
     def get_all_services_status(self) -> Dict[str, ServiceStatus]:
         """Get all services status"""
         with self._lock:
-            statuses = {}
+            statuses: Dict[str, ServiceStatus] = {}
             for name in self._registry.list_services():
                 statuses[name] = self.get_service_status(name)
             return statuses
 
     def start_all_services(self) -> Dict[str, bool]:
         """Start all services in dependency order"""
-        results = {}
+        results: Dict[str, bool] = {}
         startup_order = self._registry.get_startup_order()
 
         self._logger.info("Starting all services...")
@@ -412,7 +419,7 @@ class ServiceLifecycleManager(ServiceLifecycleInterface):
 
     def stop_all_services(self) -> Dict[str, bool]:
         """Stop all services in reverse dependency order"""
-        results = {}
+        results: Dict[str, bool] = {}
         shutdown_order = self._registry.get_shutdown_order()
 
         self._logger.info("Stopping all services...")

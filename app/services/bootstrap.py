@@ -261,7 +261,7 @@ class ServiceBootstrap:
                           implementation: Optional[Type[ServiceInterface]] = None,
                           scope: ServiceScope = ServiceScope.SINGLETON,
                           priority: ServicePriority = ServicePriority.NORMAL,
-                          dependencies: List[str] = None) -> None:
+                          dependencies: Optional[List[str]] = None) -> None:
         """Register a service definition"""
         definition = ServiceDefinition(
             name=name,
@@ -282,6 +282,9 @@ class ServiceBootstrap:
             logger.info("Initializing services...")
 
             # Get startup order from registry
+            if self._service_registry is None:
+                logger.error("Service registry not initialized")
+                return False
             startup_order = self._service_registry.get_startup_order()
 
             for service_name in startup_order:
@@ -293,6 +296,9 @@ class ServiceBootstrap:
                     logger.info(f"Initializing service: {service_name}")
 
                     # Get service from DI container
+                    if self._di_container is None:
+                        logger.error("DI container not initialized")
+                        continue
                     service = self._di_container.get_service(service_name)
                     if not service:
                         logger.error(f"Failed to get service from container: {service_name}")

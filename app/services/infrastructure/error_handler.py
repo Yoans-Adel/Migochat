@@ -52,7 +52,7 @@ class ErrorContext:
     user_id: Optional[str] = None
     request_id: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=lambda: {})
 
 
 @dataclass
@@ -291,7 +291,7 @@ class ErrorMonitor:
                 if error["timestamp"] >= cutoff_time
             ]
 
-            stats = {
+            stats: Dict[str, Any] = {
                 "total_errors": len(recent_errors),
                 "error_types": defaultdict(int),
                 "severity_counts": defaultdict(int),
@@ -485,7 +485,7 @@ def get_error_handler() -> ErrorHandler:
     return _error_handler
 
 
-def create_circuit_breaker(name: str, config: CircuitBreakerConfig = None) -> CircuitBreaker:
+def create_circuit_breaker(name: str, config: Optional[CircuitBreakerConfig] = None) -> CircuitBreaker:
     """Create circuit breaker in global error handler"""
     if config is None:
         config = CircuitBreakerConfig()
