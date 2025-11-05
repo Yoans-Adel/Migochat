@@ -22,7 +22,7 @@ Example:
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -74,7 +74,7 @@ class APIResponse:
     status_code: int = 200
     cached: bool = False
     response_time_ms: float = 0.0
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass(frozen=True)
@@ -131,7 +131,7 @@ class ProductInfo:
     is_new_arrival: bool = False
     is_free_delivery: bool = False
     is_refundable: bool = False
-    colors: List[str] = field(default_factory=list)
-    sizes: List[str] = field(default_factory=list)
+    colors: List[str] = field(default_factory=lambda: [])
+    sizes: List[str] = field(default_factory=lambda: [])
     material: str = ""
     description: str = ""

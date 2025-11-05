@@ -45,13 +45,13 @@ class BWWStoreProductOperations:
             APIResponse with product details or error
         """
         # Try the newer product-details endpoint first
-        result = await self.client._request("GET", f"/product-details/{product_id}", cache_strategy=cache_strategy)
+        result = await self.client._request("GET", f"/product-details/{product_id}", cache_strategy=cache_strategy)  # type: ignore[attr-defined]
         if result.success:
             return result
 
         # Fallback to the older product endpoint
         logger.debug(f"Product-details endpoint failed for {product_id}, trying fallback endpoint")
-        return await self.client._request("GET", f"/product/{product_id}", cache_strategy=cache_strategy)
+        return await self.client._request("GET", f"/product/{product_id}", cache_strategy=cache_strategy)  # type: ignore[attr-defined]
 
     async def search_products_by_text(self, search_text: str, *, page: int = 1, page_size: int = 10) -> APIResponse:
         """Search products by text query.
@@ -113,7 +113,7 @@ class BWWStoreProductOperations:
         all_products = result.data.get("data", {}).get("products", [])
 
         # Filter products by price range locally
-        filtered_products = []
+        filtered_products: List[Dict[str, Any]] = []
         for product in all_products:
             price = product.get("final_price", 0)
             if min_price <= price <= max_price:
@@ -122,10 +122,10 @@ class BWWStoreProductOperations:
         # Apply pagination to filtered results
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
-        paginated_products = filtered_products[start_idx:end_idx]
+        paginated_products: List[Dict[str, Any]] = filtered_products[start_idx:end_idx]
 
         # Return filtered results in the same API format
-        filtered_response = {
+        filtered_response: Dict[str, Any] = {
             "data": {
                 "products": paginated_products,
                 "total": len(filtered_products),
@@ -224,7 +224,7 @@ class BWWStoreProductOperations:
             # Limit the products
             products = products[:limit]
 
-            saved_files = []
+            saved_files: List[str] = []
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
             if save_to_temp:
@@ -243,7 +243,7 @@ class BWWStoreProductOperations:
                 saved_files.append(str(all_products_file))
 
                 # Save products by category
-                categories = {}
+                categories: Dict[str, List[Dict[str, Any]]] = {}
                 for product in products:
                     category_name = str(product.get("category", {}).get("name", "unknown")).lower().replace(" ", "_")
                     if category_name not in categories:
@@ -266,9 +266,9 @@ class BWWStoreProductOperations:
                         saved_files.append(str(category_file))
 
                 # Save price analysis data
-                prices = [p.get("final_price", 0) for p in products if p.get("final_price", 0) > 0]
+                prices: List[float] = [p.get("final_price", 0) for p in products if p.get("final_price", 0) > 0]
                 if prices:
-                    price_analysis = {
+                    price_analysis: Dict[str, Any] = {
                         "metadata": {
                             "analysis_type": "price_comparison",
                             "downloaded_at": datetime.now(timezone.utc).isoformat(),

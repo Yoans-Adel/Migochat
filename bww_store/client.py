@@ -5,7 +5,6 @@ This module contains the core HTTP client functionality with caching,
 rate limiting, circuit breaking, and basic API operations.
 """
 
-import asyncio
 import hashlib
 import json
 import logging
@@ -58,6 +57,7 @@ class BWWStoreAPIClient(APIService):
         # Rate Limiting
         self._request_times: List[float] = []
         self._max_requests_per_minute = 60
+        self._total_requests = 0
 
         # Circuit Breaker State
         self._failures = 0
@@ -154,6 +154,8 @@ class BWWStoreAPIClient(APIService):
     async def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None,
                        cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
         """Make HTTP request with caching and error handling."""
+        self._total_requests += 1
+        
         if not self._within_rate_limit():
             return APIResponse(success=False, error="Rate limit exceeded", status_code=429)
 
@@ -220,11 +222,11 @@ class BWWStoreAPIClient(APIService):
     def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status including cache metrics."""
         total_accesses = sum(v[2] for v in self._cache.values()) if self._cache else 0
-        cache_hit_rate = 0.0
+        cache_hit_rate: float = 0.0
 
         # Calculate approximate cache hit rate (simplified)
-        if hasattr(self, '_total_requests'):
-            cache_hit_rate = (total_accesses / self._total_requests) * 100 if self._total_requests > 0 else 0
+        if self._total_requests > 0:
+            cache_hit_rate = (total_accesses / self._total_requests) * 100
 
         return {
             "name": self.__class__.__name__,

@@ -6,7 +6,7 @@ This module generates detailed product cards with proper BWW Store links.
 
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from .product_formatter import parse_product_data
 
@@ -65,7 +65,7 @@ def _create_size_guide(product: Dict[str, Any], language: str) -> str:
 
 def _create_features(product: Dict[str, Any], language: str) -> str:
     """Create features list from product data."""
-    features = []
+    features: List[str] = []
     material = product.get("material", "")
 
     if material:
