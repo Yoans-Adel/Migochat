@@ -6,7 +6,7 @@ Professional service base classes with comprehensive functionality
 import logging
 import asyncio
 import time
-from typing import Dict, Any, Optional, List, TypeVar
+from typing import Dict, Any, Optional, List, TypeVar, Callable
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -83,9 +83,9 @@ class BaseService(ABC):
         self._initialized = False
         self._metrics = ServiceMetrics()
         self._dependencies: Dict[str, ServiceInterface] = {}
-        self._health_checks: List[callable] = []
-        self._startup_tasks: List[callable] = []
-        self._shutdown_tasks: List[callable] = []
+        self._health_checks: List[Callable[[], Any]] = []
+        self._startup_tasks: List[Callable[[], Any]] = []
+        self._shutdown_tasks: List[Callable[[], Any]] = []
 
         # Performance monitoring
         self._performance_thresholds = {
@@ -151,15 +151,15 @@ class BaseService(ABC):
         """Get dependency by name"""
         return self._dependencies.get(name)
 
-    def add_startup_task(self, task: callable) -> None:
+    def add_startup_task(self, task: Callable[[], Any]) -> None:
         """Add startup task"""
         self._startup_tasks.append(task)
 
-    def add_shutdown_task(self, task: callable) -> None:
+    def add_shutdown_task(self, task: Callable[[], Any]) -> None:
         """Add shutdown task"""
         self._shutdown_tasks.append(task)
 
-    def add_health_check(self, check_func: callable) -> None:
+    def add_health_check(self, check_func: Callable[[], Any]) -> None:
         """Add health check function"""
         self._health_checks.append(check_func)
 
@@ -234,8 +234,8 @@ class BaseService(ABC):
         """Perform comprehensive health check"""
         try:
             status = ServiceStatus.HEALTHY
-            messages = []
-            metrics = {}
+            messages: List[str] = []
+            metrics: Dict[str, Any] = {}
 
             # Check service state
             if self._state == ServiceState.ERROR:
@@ -285,11 +285,11 @@ class BaseService(ABC):
                 messages.append(f"Slow response time: {self._metrics.average_response_time:.2f}s")
 
             metrics = {
-                "uptime_seconds": self._metrics.uptime_seconds,
-                "request_count": self._metrics.request_count,
-                "error_rate": error_rate,
-                "success_rate": success_rate,
-                "average_response_time": self._metrics.average_response_time
+                "uptime_seconds": float(self._metrics.uptime_seconds),
+                "request_count": int(self._metrics.request_count),
+                "error_rate": float(error_rate),
+                "success_rate": float(success_rate),
+                "average_response_time": float(self._metrics.average_response_time)
             }
 
             return ServiceHealth(
@@ -405,7 +405,7 @@ class APIService(BaseService):
             return False
 
     @abstractmethod
-    def make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make API request"""
         pass
 
@@ -437,12 +437,12 @@ class MessageService(BaseService):
             return False
 
     @abstractmethod
-    def send_message(self, recipient_id: str, message: str, **kwargs) -> Dict[str, Any]:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """Send message to recipient"""
         pass
 
     @abstractmethod
-    def process_message(self, message_data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_message(self, message_data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """Process incoming message"""
         pass
 
@@ -474,7 +474,7 @@ class AIService(BaseService):
             return False
 
     @abstractmethod
-    def generate_response(self, message: str, context: Optional[Dict] = None) -> str:
+    def generate_response(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Generate AI response"""
         pass
 
@@ -553,7 +553,7 @@ class ProductService(BaseService):
             return False
 
     @abstractmethod
-    def search_products(self, query: str, filters: Optional[Dict] = None) -> Dict[str, Any]:
+    def search_products(self, query: str, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Search products"""
         pass
 

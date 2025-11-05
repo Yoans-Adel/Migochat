@@ -8,7 +8,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
 
-from app.services.core.base_service import MessageService
+from app.services.core.base_service import MessageService, ServiceHealth
+from app.services.core.interfaces import ServiceStatus
 from app.services.ai.ai_service import AIService
 from app.services.messaging.messenger_service import MessengerService
 from app.services.messaging.whatsapp_service import WhatsAppService
@@ -28,7 +29,7 @@ class MessageHandler(MessageService):
         self.whatsapp_service = WhatsAppService()
         self._initialized = False
 
-    def _do_initialize(self) -> None:
+    def _do_initialize(self) -> bool:
         """Initialize all services"""
         try:
             # Database accessed directly via app.database module
@@ -37,9 +38,10 @@ class MessageHandler(MessageService):
             self.whatsapp_service.initialize()
             self._initialized = True
             logger.info("Professional Message Handler initialized successfully")
+            return True
         except Exception as e:
             logger.error(f"Failed to initialize Professional Message Handler: {e}")
-            raise
+            return False
 
     async def _process_message_impl(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
         """Process incoming message"""
@@ -48,10 +50,15 @@ class MessageHandler(MessageService):
             user_id = message_data.get("user_id")
             message_text = message_data.get("text", "")
 
+            # Validate user_id
+            if not user_id:
+                logger.error("Missing user_id in message_data")
+                return {"success": False, "error": "Missing user_id"}
+
             logger.info(f"Processing {platform} message from user {user_id}: {message_text}")
 
             # Get or create user
-            user = await self._get_or_create_user(user_id, platform)
+            user = await self._get_or_create_user(str(user_id), platform)
             if not user:
                 return {"success": False, "error": "Failed to get or create user"}
 
@@ -59,7 +66,7 @@ class MessageHandler(MessageService):
             ai_response = self.ai_service.generate_response(message_text, context={"user": user})
 
             # Send response back
-            response_sent = await self._send_message_impl(user_id, ai_response, platform)
+            response_sent = await self._send_message_impl(str(user_id), ai_response, platform)
 
             return {
                 "success": True,
@@ -78,10 +85,10 @@ class MessageHandler(MessageService):
         try:
             if platform == "facebook":
                 response = self.messenger_service.send_message(user_id, message)
-                return response is not None
+                return bool(response)
             elif platform == "whatsapp":
                 response = self.whatsapp_service.send_message(user_id, message)
-                return response is not None
+                return bool(response)
             else:
                 logger.warning(f"Unknown platform: {platform}")
                 return False
@@ -94,6 +101,8 @@ class MessageHandler(MessageService):
         try:
             from database.context import get_db_session_with_commit
             from sqlalchemy.exc import IntegrityError
+
+            user_id_pk: Optional[int] = None
 
             # First, try to get existing user (read-only)
             with get_db_session() as session:
@@ -111,7 +120,7 @@ class MessageHandler(MessageService):
                         user = session.query(User).filter(User.psid == user_id).first()
 
                         if not user:
-                            user_data = {
+                            user_data: Dict[str, Any] = {
                                 "psid": user_id,
                                 "platform": platform,
                                 "created_at": datetime.now(timezone.utc),
@@ -161,7 +170,7 @@ class MessageHandler(MessageService):
             "initialized": self._initialized
         }
 
-    async def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> ServiceHealth:
         """Comprehensive health check"""
         try:
             # Database health - check if we can get a session
@@ -174,44 +183,67 @@ class MessageHandler(MessageService):
                 logger.error(f"Database health check failed: {e}")
                 db_healthy = False
 
-            ai_health = await self.ai_service.health_check()
+            ai_health = self.ai_service.health_check()
 
-            healthy = (
-                db_healthy and
-                ai_health.get("healthy", False) and
-                self._initialized
+            # Determine overall health status
+            if db_healthy and ai_health.status == ServiceStatus.HEALTHY and self._initialized:
+                status = ServiceStatus.HEALTHY
+                message = "All services healthy"
+            elif db_healthy or ai_health.status != ServiceStatus.UNHEALTHY:
+                status = ServiceStatus.DEGRADED
+                message = "Some services degraded"
+            else:
+                status = ServiceStatus.UNHEALTHY
+                message = "Services unhealthy"
+
+            return ServiceHealth(
+                status=status,
+                message=message,
+                timestamp=datetime.now(timezone.utc),
+                metrics={
+                    "db_healthy": db_healthy,
+                    "ai_status": ai_health.status,
+                    "initialized": self._initialized
+                },
+                dependencies=["database", "ai_service", "messenger_service", "whatsapp_service"]
             )
-
-            return {
-                "healthy": healthy,
-                "db_healthy": db_healthy,
-                "ai_healthy": ai_health.get("healthy", False),
-                "initialized": self._initialized,
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
         except Exception as e:
             logger.error(f"Health check failed: {e}")
-            return {
-                "healthy": False,
-                "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
-            }
+            return ServiceHealth(
+                status=ServiceStatus.UNKNOWN,
+                message=f"Health check error: {str(e)}",
+                timestamp=datetime.now(timezone.utc),
+                metrics={},
+                dependencies=[]
+            )
 
-    def process_message(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
+    def process_message(self, message_data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """Process incoming message (sync wrapper)"""
         try:
+            # Extract platform from kwargs or message_data
+            platform = kwargs.get('platform') or message_data.get('platform', 'facebook')
             return asyncio.run(self._process_message_impl(message_data, platform))
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             return {"success": False, "error": str(e)}
 
-    def send_message(self, user_id: str, message: str, platform: str = "facebook") -> bool:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """Send message to user (sync wrapper)"""
         try:
-            return asyncio.run(self._send_message_impl(user_id, message, platform))
+            # Extract platform from kwargs, default to facebook
+            platform = kwargs.get('platform', 'facebook')
+            success = asyncio.run(self._send_message_impl(recipient_id, message, platform))
+            return {
+                "success": success,
+                "recipient_id": recipient_id,
+                "platform": platform
+            }
         except Exception as e:
             logger.error(f"Error sending message: {e}")
-            return False
+            return {
+                "success": False,
+                "error": str(e)
+            }
 
     def _do_shutdown(self) -> None:
         """Shutdown all services"""

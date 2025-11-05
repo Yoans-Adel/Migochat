@@ -4,7 +4,7 @@ Eliminates code duplication and provides common functionality
 """
 import logging
 import requests
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, cast
 from abc import abstractmethod
 from app.services.core.base_service import APIService
 
@@ -37,16 +37,16 @@ class PlatformMessagingService(APIService):
     def make_request(
         self, 
         method: str, 
-        url: str, 
+        endpoint: str, 
         log_errors: bool = True,
-        **kwargs
+        **kwargs: Any
     ) -> Dict[str, Any]:
         """
         Make HTTP request with consistent error handling
         
         Args:
             method: HTTP method (GET, POST, etc.)
-            url: Target URL
+            endpoint: Target endpoint/URL
             log_errors: Whether to log errors
             **kwargs: Additional arguments for requests.request()
             
@@ -57,34 +57,18 @@ class PlatformMessagingService(APIService):
             requests.exceptions.RequestException: On HTTP errors
         """
         try:
-            response = requests.request(method, url, **kwargs)
+            response = requests.request(method, endpoint, **kwargs)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             if log_errors:
                 error_detail = ""
-                if hasattr(e, 'response') and e.response is not None:
-                    error_detail = f" - Status: {e.response.status_code}, Response: {e.response.text}"
+                if hasattr(e, 'response'):
+                    resp = cast(Any, e).response
+                    if resp is not None:
+                        error_detail = f" - Status: {resp.status_code}, Response: {resp.text}"
                 logger.error(f"{self.__class__.__name__} request failed: {e}{error_detail}")
             raise
-    
-    def verify_webhook(self, verify_token: str, challenge: str, expected_token: str) -> Optional[str]:
-        """
-        Verify webhook subscription with platform
-        
-        Args:
-            verify_token: Token received from platform
-            challenge: Challenge string from platform
-            expected_token: Our configured verify token
-            
-        Returns:
-            Challenge string if verification succeeds, None otherwise
-        """
-        if verify_token == expected_token:
-            logger.info(f"{self.__class__.__name__} webhook verified successfully")
-            return challenge
-        logger.warning(f"{self.__class__.__name__} webhook verification failed")
-        return None
     
     def _log_request(self, recipient_id: str, action: str, payload: Optional[Dict[str, Any]] = None) -> None:
         """
@@ -121,19 +105,21 @@ class PlatformMessagingService(APIService):
             error: Exception that occurred
         """
         error_detail = ""
-        if hasattr(error, 'response') and error.response is not None:
-            error_detail = f" - Status: {error.response.status_code}, Response: {error.response.text}"
+        if hasattr(error, 'response'):
+            resp = cast(Any, error).response
+            if resp is not None:
+                error_detail = f" - Status: {resp.status_code}, Response: {resp.text}"
         logger.error(f"{self.__class__.__name__} error {action}: {error}{error_detail}")
     
     @abstractmethod
-    def send_message(self, recipient_id: str, message: str, message_type: str = "text") -> Dict[str, Any]:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Send a text message
         
         Args:
-            recipient_id: Target user ID or phone number
+            recipient_id: Target user ID or phone number (can be 'to' for WhatsApp)
             message: Message text
-            message_type: Type of message (default: "text")
+            **kwargs: Additional platform-specific parameters
             
         Returns:
             API response as dict
@@ -141,17 +127,41 @@ class PlatformMessagingService(APIService):
         pass
     
     @abstractmethod
-    def mark_message_as_read(self, identifier: str) -> Dict[str, Any]:
+    def mark_message_as_read(self, identifier: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Mark message as read
         
         Args:
-            identifier: Message ID or recipient ID (platform-specific)
+            identifier: Message ID, recipient ID, or other identifier (platform-specific)
+            **kwargs: Additional platform-specific parameters
             
         Returns:
             API response as dict
         """
         pass
+    
+    def verify_webhook(self, verify_token: str, challenge: str, expected_token: str = "") -> Optional[str]:
+        """
+        Verify webhook subscription with platform
+        
+        Args:
+            verify_token: Token received from platform
+            challenge: Challenge string from platform
+            expected_token: Our configured verify token (default: empty string for backward compatibility)
+            
+        Returns:
+            Challenge string if verification succeeds, None otherwise
+        """
+        # Allow subclasses to override with different signatures
+        if not expected_token:
+            # Backward compatibility: use instance attribute if available
+            expected_token = getattr(self, 'verify_token', '')
+        
+        if verify_token == expected_token:
+            logger.info(f"{self.__class__.__name__} webhook verified successfully")
+            return challenge
+        logger.warning(f"{self.__class__.__name__} webhook verification failed")
+        return None
     
     def _do_shutdown(self) -> None:
         """Common shutdown logic"""

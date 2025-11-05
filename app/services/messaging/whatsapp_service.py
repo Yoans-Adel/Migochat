@@ -21,14 +21,18 @@ class WhatsAppService(PlatformMessagingService):
         # Initialize the service
         self.initialize()
 
-    def send_message(self, to: str, message: str, message_type: str = "text") -> Dict[str, Any]:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """Send a text message via WhatsApp Business API"""
+        # Accept both 'to' and 'recipient_id' for compatibility
+        to = kwargs.get('to', recipient_id)
+        message_type = kwargs.get('message_type', 'text')
+        
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
         # Format phone number (remove + and ensure it's numeric)
         formatted_to = to.replace("+", "").replace("-", "").replace(" ", "")
 
-        payload = {
+        payload: Dict[str, Any] = {
             "messaging_product": "whatsapp",
             "to": formatted_to,
             "type": message_type,
@@ -48,14 +52,14 @@ class WhatsAppService(PlatformMessagingService):
             logger.error(f"Error sending WhatsApp message: {e}")
             raise
 
-    def send_template_message(self, to: str, template_name: str, template_params: List[str] = None) -> Dict[str, Any]:
+    def send_template_message(self, to: str, template_name: str, template_params: Optional[List[str]] = None) -> Dict[str, Any]:
         """Send a template message via WhatsApp Business API"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
         # Format phone number
         formatted_to = to.replace("+", "").replace("-", "").replace(" ", "")
 
-        payload = {
+        payload: Dict[str, Any] = {
             "messaging_product": "whatsapp",
             "to": formatted_to,
             "type": "template",
@@ -91,7 +95,7 @@ class WhatsAppService(PlatformMessagingService):
         """Send an interactive message with buttons"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
-        interactive_data = {
+        interactive_data: Dict[str, Any] = {
             "type": "interactive",
             "interactive": {
                 "type": "button",
@@ -104,7 +108,7 @@ class WhatsAppService(PlatformMessagingService):
         if footer_text:
             interactive_data["interactive"]["footer"] = {"text": footer_text}
 
-        payload = {
+        payload: Dict[str, Any] = {
             "messaging_product": "whatsapp",
             "to": to,
             **interactive_data
@@ -128,7 +132,7 @@ class WhatsAppService(PlatformMessagingService):
         """Send a list message"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "messaging_product": "whatsapp",
             "to": to,
             "type": "interactive",
@@ -156,11 +160,14 @@ class WhatsAppService(PlatformMessagingService):
             logger.error(f"Error sending WhatsApp list message: {e}")
             raise
 
-    def mark_message_as_read(self, message_id: str) -> Dict[str, Any]:
+    def mark_message_as_read(self, identifier: str, **kwargs: Any) -> Dict[str, Any]:
         """Mark a message as read"""
+        # Accept both 'message_id' and 'identifier' for compatibility
+        message_id = kwargs.get('message_id', identifier)
+        
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "messaging_product": "whatsapp",
             "status": "read",
             "message_id": message_id
@@ -210,6 +217,9 @@ class WhatsAppService(PlatformMessagingService):
             logger.error(f"Error downloading WhatsApp media: {e}")
             return None
 
-    def verify_webhook(self, verify_token: str, challenge: str) -> Optional[str]:
+    def verify_webhook(self, verify_token: str, challenge: str, expected_token: str = "") -> Optional[str]:
         """Verify WhatsApp webhook subscription"""
-        return super().verify_webhook(verify_token, challenge, self.verify_token)
+        # Use self.verify_token if expected_token not provided
+        token_to_check = expected_token or self.verify_token
+        return super().verify_webhook(verify_token, challenge, token_to_check)
+

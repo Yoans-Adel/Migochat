@@ -23,11 +23,11 @@ class MessengerService(PlatformMessagingService):
     @api_error_handler
     @retry_on_error(RetryConfig(max_retries=3, delay=1.0))
     @circuit_breaker("messenger_service", CircuitBreakerConfig(failure_threshold=5))
-    def send_message(self, recipient_id: str, message: str, message_type: str = "text") -> Dict[str, Any]:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """Send a text message to a user"""
         url = f"{self.api_url}/me/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "recipient": {"id": recipient_id},
             "message": {"text": message}
         }
@@ -52,7 +52,7 @@ class MessengerService(PlatformMessagingService):
         """Send a message with quick reply buttons"""
         url = f"{self.api_url}/me/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "recipient": {"id": recipient_id},
             "message": {
                 "text": text,
@@ -74,7 +74,7 @@ class MessengerService(PlatformMessagingService):
         """Send typing indicator"""
         url = f"{self.api_url}/me/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "recipient": {"id": recipient_id},
             "sender_action": "typing_on"
         }
@@ -110,7 +110,7 @@ class MessengerService(PlatformMessagingService):
         """Send media message (image, file, etc.)"""
         url = f"{self.api_url}/me/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "recipient": {"id": recipient_id},
             "message": {
                 "attachment": {
@@ -132,11 +132,14 @@ class MessengerService(PlatformMessagingService):
             logger.error(f"Error sending media: {e}")
             raise
 
-    def mark_message_as_read(self, recipient_id: str) -> Dict[str, Any]:
+    def mark_message_as_read(self, identifier: str, **kwargs: Any) -> Dict[str, Any]:
         """Mark messages as read"""
+        # Accept both 'recipient_id' and 'identifier' for compatibility
+        recipient_id = kwargs.get('recipient_id', identifier)
+        
         url = f"{self.api_url}/me/messages"
 
-        payload = {
+        payload: Dict[str, Any] = {
             "recipient": {"id": recipient_id},
             "sender_action": "mark_seen"
         }
@@ -151,11 +154,13 @@ class MessengerService(PlatformMessagingService):
             logger.error(f"Error marking message as read: {e}")
             raise
 
-    def verify_webhook(self, verify_token: str, challenge: str) -> Optional[str]:
+    def verify_webhook(self, verify_token: str, challenge: str, expected_token: str = "") -> Optional[str]:
         """Verify webhook subscription"""
-        return super().verify_webhook(verify_token, challenge, settings.FB_VERIFY_TOKEN)
+        # Use settings.FB_VERIFY_TOKEN if expected_token not provided
+        token_to_check = expected_token or settings.FB_VERIFY_TOKEN
+        return super().verify_webhook(verify_token, challenge, token_to_check)
 
-    def _do_initialize(self) -> None:
+    def _do_initialize(self) -> bool:
         """Initialize Messenger service"""
         # Test API connection
         try:
@@ -165,7 +170,9 @@ class MessengerService(PlatformMessagingService):
             response = requests.get(test_url, params=params, timeout=10)
             response.raise_for_status()
             logger.info("Messenger API connection verified")
+            return True
         except Exception as e:
             logger.warning(f"Messenger API connection test failed: {e}")
             # Don't raise exception, service can still work with limited functionality
+            return False
 

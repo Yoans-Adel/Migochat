@@ -65,7 +65,7 @@ class ServiceInterface(Protocol):
 class AIServiceInterface(ServiceInterface, Protocol):
     """AI service interface"""
 
-    def generate_response(self, message: str, context: Optional[Dict] = None) -> str:
+    def generate_response(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """Generate AI response"""
         ...
 
@@ -81,11 +81,11 @@ class AIServiceInterface(ServiceInterface, Protocol):
 class MessageServiceInterface(ServiceInterface, Protocol):
     """Message service interface"""
 
-    def send_message(self, recipient_id: str, message: str, **kwargs) -> Dict[str, Any]:
+    def send_message(self, recipient_id: str, message: str, **kwargs: Any) -> Dict[str, Any]:
         """Send message to recipient"""
         ...
 
-    def process_message(self, message_data: Dict[str, Any]) -> Dict[str, Any]:
+    def process_message(self, message_data: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
         """Process incoming message"""
         ...
 
@@ -93,7 +93,7 @@ class MessageServiceInterface(ServiceInterface, Protocol):
 class APIServiceInterface(ServiceInterface, Protocol):
     """API service interface"""
 
-    def make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make API request"""
         ...
 
@@ -121,7 +121,7 @@ class LeadServiceInterface(ServiceInterface, Protocol):
 class ProductServiceInterface(ServiceInterface, Protocol):
     """Product service interface"""
 
-    def search_products(self, query: str, filters: Optional[Dict] = None) -> Dict[str, Any]:
+    def search_products(self, query: str, filters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Search products"""
         ...
 
@@ -137,7 +137,7 @@ class ProductServiceInterface(ServiceInterface, Protocol):
 class NotificationServiceInterface(ServiceInterface, Protocol):
     """Notification service interface"""
 
-    def send_notification(self, recipient: str, message: str, **kwargs) -> bool:
+    def send_notification(self, recipient: str, message: str, **kwargs: Any) -> bool:
         """Send notification"""
         ...
 
@@ -213,19 +213,19 @@ class ConfigurationServiceInterface(ServiceInterface, Protocol):
 class LoggingServiceInterface(ServiceInterface, Protocol):
     """Logging service interface"""
 
-    def log_info(self, message: str, **kwargs) -> None:
+    def log_info(self, message: str, **kwargs: Any) -> None:
         """Log info message"""
         ...
 
-    def log_error(self, message: str, error: Exception = None, **kwargs) -> None:
+    def log_error(self, message: str, error: Optional[Exception] = None, **kwargs: Any) -> None:
         """Log error message"""
         ...
 
-    def log_warning(self, message: str, **kwargs) -> None:
+    def log_warning(self, message: str, **kwargs: Any) -> None:
         """Log warning message"""
         ...
 
-    def log_debug(self, message: str, **kwargs) -> None:
+    def log_debug(self, message: str, **kwargs: Any) -> None:
         """Log debug message"""
         ...
 
