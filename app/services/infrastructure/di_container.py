@@ -33,7 +33,7 @@ class ServiceRegistration:
     instance: Optional[ServiceInterface] = None
     scope: ServiceScope = ServiceScope.SINGLETON
     config: Optional[ServiceConfig] = None
-    dependencies: List[str] = None
+    dependencies: Optional[List[str]] = None
 
 
 class DependencyInjectionContainer:
