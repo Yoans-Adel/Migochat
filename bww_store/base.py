@@ -8,7 +8,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, Optional, TypeVar, Union
+from typing import Any, Awaitable, Callable, Optional, TypeVar
 
 from .models import APIResponse
 
@@ -23,7 +23,7 @@ class APIService:
         self._initialized: bool = True
 
     # Concrete clients must implement this
-    def make_request(self, method: str, endpoint: str, **kwargs) -> Any:  # pragma: no cover - interface
+    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Any:  # pragma: no cover - interface
         raise NotImplementedError
 
 

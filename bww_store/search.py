@@ -6,7 +6,7 @@ fuzzy matching, and smart product ranking for the BWW Store API.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set, Tuple, cast
 
 from rapidfuzz import fuzz, process
 
@@ -54,7 +54,7 @@ def spelling_suggestions(search_term: str, dictionary: List[str], limit: int = 3
         List of suggested corrections, ordered by similarity score
     """
     results = process.extract(search_term, dictionary, limit=limit, score_cutoff=50)
-    return [word for word, score, _ in results]
+    return [word for word, _score, _index in results]
 
 
 def calculate_product_score(product: Dict[str, Any], search_term: str) -> float:
@@ -120,7 +120,7 @@ class BWWStoreSearchEngine:
         # Use appropriate keywords dictionary
         keywords_dict = CLOTHING_KEYWORDS_AR if language == "ar" else CLOTHING_KEYWORDS_EN
 
-        found_keywords = []
+        found_keywords: List[str] = []
 
         # Check each keyword group
         for main_keyword, variations in keywords_dict.items():
@@ -146,7 +146,7 @@ class BWWStoreSearchEngine:
         suggestion_map = BWW_SEARCH_SUGGESTIONS_AR if language == "ar" else BWW_SEARCH_SUGGESTIONS_EN
         priority_items = BWW_PRIORITY_ITEMS_AR if language == "ar" else BWW_PRIORITY_ITEMS_EN
 
-        suggestions = []
+        suggestions: List[str] = []
         for keyword in keywords:
             if keyword in suggestion_map:
                 suggestions.extend(suggestion_map[keyword])
@@ -159,7 +159,7 @@ class BWWStoreSearchEngine:
             suggestions = priority_items[:5]
 
         # Prioritize BWW's actual products
-        bww_priority = []
+        bww_priority: List[str] = []
         for item in priority_items:
             if item in suggestions:
                 bww_priority.append(item)
@@ -251,7 +251,7 @@ class BWWStoreSearchEngine:
             return APIResponse(success=False, error="No keywords")
 
         # Priority: type > color > gender > other
-        priority_keywords = []
+        priority_keywords: List[str] = []
 
         # Clothing types get highest priority
         clothing_types = ['قميص', 'بنطال', 'جاكيت', 'فستان', 'حذاء', 'هودي', 'بدلة', 'shirt', 'pants', 'jacket', 'dress', 'shoes', 'hoodie', 'suit']
@@ -290,20 +290,22 @@ class BWWStoreSearchEngine:
             return APIResponse(success=False, error="No popular products found")
 
         # Filter by keywords with enhanced matching
-        filtered_products = []
+        filtered_products: List[Tuple[Dict[str, Any], float]] = []
         keyword_text = ' '.join(keywords).lower()
 
         for item in products:
             # Handle both tuple (product, score) and dict formats
+            base_score: float = 0
             if isinstance(item, tuple):
-                product, existing_score = item
-                base_score = existing_score
+                product_data: Tuple[Dict[str, Any], Any] = cast(Tuple[Dict[str, Any], Any], item)
+                product: Dict[str, Any] = product_data[0]
+                base_score = float(product_data[1])
             else:
-                product = item
-                base_score = 0
+                product = cast(Dict[str, Any], item)
+                base_score = 0.0
 
-            name = product.get("name", "").lower()
-            score = base_score
+            name: str = str(product.get("name", "")).lower()
+            score: float = base_score
 
             # Direct keyword matches get highest score
             for keyword in keywords:
@@ -331,7 +333,7 @@ class BWWStoreSearchEngine:
 
         if filtered_products:
             # Return in API format
-            fake_response = {
+            fake_response: Dict[str, Dict[str, List[Tuple[Dict[str, Any], float]]]] = {
                 "data": {
                     "products": filtered_products[:20]  # Limit to 20
                 }
@@ -368,7 +370,7 @@ class BWWStoreSearchEngine:
             lambda: self._search_clean_sentence(search_text, language),
         ]
 
-        all_candidates = []
+        all_candidates: List[Tuple[Dict[str, Any], float]] = []
 
         for strategy in search_strategies:
             try:
@@ -377,7 +379,8 @@ class BWWStoreSearchEngine:
                     products = result.data.get("data", {}).get("products", [])
                     if products:
                         # Score each product
-                        for product in products:
+                        for product_item in products:
+                            product = cast(Dict[str, Any], product_item)
                             score = calculate_product_score(product, search_text)
                             if score > 0.2:  # Slightly higher threshold for main strategies
                                 all_candidates.append((product, score))
@@ -392,17 +395,19 @@ class BWWStoreSearchEngine:
             if fuzzy_result.success and fuzzy_result.data.get("data", {}).get("products"):
                 products = fuzzy_result.data["data"]["products"]
                 # Score with lower threshold
-                scored_products = []
-                for product in products:
+                scored_products: List[Tuple[Dict[str, Any], float]] = []
+                for product_item in products:
+                    product = cast(Dict[str, Any], product_item)
                     score = calculate_product_score(product, search_text)
                     if score > 0.1:  # Much lower threshold for fuzzy matches
                         scored_products.append((product, score))
 
                 if scored_products:
-                    scored_products.sort(key=lambda x: x[1], reverse=True)
-                    unique_products = []
-                    seen_ids = set()
-                    for product, score in scored_products[:limit]:
+                    scored_products.sort(key=lambda x: float(x[1]), reverse=True)
+                    unique_products: List[Dict[str, Any]] = []
+                    seen_ids: Set[Any] = set()
+                    for product_tuple in scored_products[:limit]:
+                        product = cast(Dict[str, Any], product_tuple[0])
                         product_id = product.get('id')
                         if product_id and product_id not in seen_ids:
                             seen_ids.add(product_id)
@@ -422,12 +427,13 @@ class BWWStoreSearchEngine:
                 return [no_results_msg]
 
         # Sort by score and remove duplicates
-        all_candidates.sort(key=lambda x: x[1], reverse=True)
+        all_candidates.sort(key=lambda x: float(x[1]), reverse=True)
 
         # Remove duplicates based on product ID
-        seen_ids = set()
-        unique_products = []
-        for product, score in all_candidates:
+        seen_ids: Set[Any] = set()
+        unique_products: List[Dict[str, Any]] = []
+        for product_tuple in all_candidates:
+            product = cast(Dict[str, Any], product_tuple[0])
             product_id = product.get('id')
             if product_id and product_id not in seen_ids:
                 seen_ids.add(product_id)
