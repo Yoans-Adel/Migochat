@@ -72,6 +72,9 @@ test_*.json
 # Documentation (keep only essential)
 *.md
 !README.md
+!CONTRIBUTING.md
+!CHANGELOG.md
+!PROJECT_STATUS.md
 !CRITICAL_FIXES_REPORT.md
 !ENDPOINTS_AUDIT_REPORT.md
 !CODE_QUALITY_REPORT.md
