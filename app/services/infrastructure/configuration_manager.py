@@ -6,7 +6,7 @@ Professional configuration system with validation and hot-reloading
 import logging
 import json
 import yaml
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
@@ -16,15 +16,18 @@ import threading
 try:
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
-    WATCHDOG_AVAILABLE = True
+    watchdog_available = True
 except ImportError:
     Observer = None
     FileSystemEventHandler = None
-    WATCHDOG_AVAILABLE = False
+    watchdog_available = False
 
 from app.services.core.interfaces import ServiceConfig, ConfigurationServiceInterface
 
 logger = logging.getLogger(__name__)
+
+# Module-level constant
+WATCHDOG_AVAILABLE = watchdog_available
 
 
 class ConfigFormat(Enum):
@@ -42,8 +45,8 @@ class ServiceConfiguration:
     enabled: bool = True
     timeout: int = 30
     retry_count: int = 3
-    dependencies: List[str] = field(default_factory=list)
-    config: Dict[str, Any] = field(default_factory=dict)
+    dependencies: List[str] = field(default_factory=lambda: [])
+    config: Dict[str, Any] = field(default_factory=lambda: {})
     environment: str = "development"
     version: str = "1.0.0"
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -51,7 +54,7 @@ class ServiceConfiguration:
 
     def validate(self) -> List[str]:
         """Validate configuration"""
-        errors = []
+        errors: List[str] = []
 
         if not self.name:
             errors.append("Service name is required")
@@ -80,17 +83,17 @@ class ConfigurationValidator:
     """Configuration validation system"""
 
     def __init__(self):
-        self._validators: Dict[str, callable] = {}
+        self._validators: Dict[str, Callable[[Dict[str, Any]], List[str]]] = {}
         self._logger = logging.getLogger(__name__)
 
-    def register_validator(self, service_type: str, validator: callable) -> None:
+    def register_validator(self, service_type: str, validator: Callable[[Dict[str, Any]], List[str]]) -> None:
         """Register service-specific validator"""
         self._validators[service_type] = validator
         self._logger.info(f"Registered validator for service type '{service_type}'")
 
     def validate_service_config(self, service_type: str, config: Dict[str, Any]) -> List[str]:
         """Validate service configuration"""
-        errors = []
+        errors: List[str] = []
 
         # Basic validation
         if not isinstance(config, dict):
@@ -113,7 +116,7 @@ class ConfigurationLoader:
     """Configuration loading system"""
 
     def __init__(self):
-        self._loaders: Dict[ConfigFormat, callable] = {
+        self._loaders: Dict[ConfigFormat, Callable[[Path], Dict[str, Any]]] = {
             ConfigFormat.JSON: self._load_json,
             ConfigFormat.YAML: self._load_yaml,
             ConfigFormat.ENV: self._load_env,
@@ -152,7 +155,7 @@ class ConfigurationLoader:
 
     def _load_env(self, file_path: Path) -> Dict[str, Any]:
         """Load environment configuration"""
-        config = {}
+        config: Dict[str, Any] = {}
         with open(file_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
@@ -168,7 +171,7 @@ class ConfigurationLoader:
         config = configparser.ConfigParser()
         config.read(file_path)
 
-        result = {}
+        result: Dict[str, Any] = {}
         for section in config.sections():
             result[section] = dict(config[section])
 
@@ -183,15 +186,16 @@ class ConfigurationWatcher:
             raise ImportError("watchdog package not installed. Install via: pip install -r tests/requirements-test.txt")
 
         # Dynamically create the event handler class
-        class Handler(FileSystemEventHandler):
-            def __init__(self, manager):
+        class Handler(FileSystemEventHandler):  # type: ignore
+            def __init__(self, manager: 'ConfigurationManager'):
                 self.config_manager = manager
                 self.logger = logging.getLogger(__name__)
 
-            def on_modified(self, event):
+            def on_modified(self, event: Any):
                 """Handle file modification"""
-                if not event.is_directory and event.src_path.endswith(('.json', '.yaml', '.yml', '.env', '.ini')):
-                    self.logger.info(f"Configuration file modified: {event.src_path}")
+                src_path = str(event.src_path) if hasattr(event, 'src_path') else ""
+                if not event.is_directory and src_path.endswith(('.json', '.yaml', '.yml', '.env', '.ini')):
+                    self.logger.info(f"Configuration file modified: {src_path}")
                     try:
                         self.config_manager.reload_config()
                     except Exception as e:
@@ -337,7 +341,7 @@ class ConfigurationManager(ConfigurationServiceInterface):
 
         config_file = services_dir / f"{service_name}.json"
 
-        config_data = {
+        config_data: Dict[str, Any] = {
             "enabled": config.enabled,
             "timeout": config.timeout,
             "retry_count": config.retry_count,
@@ -364,11 +368,12 @@ class ConfigurationManager(ConfigurationServiceInterface):
 
         try:
             watcher = ConfigurationWatcher(self)
-            self._observer = Observer()
-            self._observer.schedule(watcher.get_handler(), str(self._config_dir), recursive=True)
-            self._observer.start()
-            self._watch_enabled = True
-            self._logger.info("Configuration watching enabled")
+            if Observer is not None:
+                self._observer = Observer()
+                self._observer.schedule(watcher.get_handler(), str(self._config_dir), recursive=True)
+                self._observer.start()
+                self._watch_enabled = True
+                self._logger.info("Configuration watching enabled")
         except Exception as e:
             self._logger.error(f"Failed to enable configuration watching: {e}")
 
@@ -391,7 +396,7 @@ class ConfigurationManager(ConfigurationServiceInterface):
         with self._lock:
             return self._configurations.copy()
 
-    def register_validator(self, service_type: str, validator: callable) -> None:
+    def register_validator(self, service_type: str, validator: Callable[[Dict[str, Any]], List[str]]) -> None:
         """Register service-specific validator"""
         self._validator.register_validator(service_type, validator)
 
