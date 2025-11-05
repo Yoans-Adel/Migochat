@@ -6,7 +6,7 @@ Falls back to environment variables if not in database
 
 import logging
 import os
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 from datetime import datetime, timezone
 
 from database import AppSettings, get_db_session
@@ -133,7 +133,7 @@ class SettingsManager:
             logger.error(f"Error setting {key}: {e}")
             return False
 
-    def get_all_settings(self, category: Optional[str] = None) -> List[Dict]:
+    def get_all_settings(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get all settings, optionally filtered by category
 
@@ -152,10 +152,10 @@ class SettingsManager:
 
                 settings = query.all()
 
-                return [
+                result: List[Dict[str, Any]] = [
                     {
                         "key": s.key,
-                        "value": s.value if not s.is_sensitive else "***" + s.value[-4:] if len(s.value) > 4 else "***",
+                        "value": s.value if not s.is_sensitive else ("***" + s.value[-4:] if (s.value and len(s.value) > 4) else "***"),
                         "value_full": s.value,  # For editing
                         "category": s.category,
                         "is_sensitive": s.is_sensitive,
@@ -165,10 +165,12 @@ class SettingsManager:
                     }
                     for s in settings
                 ]
+                return result
 
         except Exception as e:
             logger.error(f"Error getting all settings: {e}")
-            return []
+            empty_result: List[Dict[str, Any]] = []
+            return empty_result
 
     def delete_setting(self, key: str) -> bool:
         """Delete a setting from database"""

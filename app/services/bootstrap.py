@@ -445,7 +445,7 @@ class ServiceBootstrap:
 
     def _get_error_handler_service_class(self) -> Type[ServiceInterface]:
         """Get error handler service class"""
-        return ErrorHandler
+        return ErrorHandler  # type: ignore[return-value]
 
     def _get_messenger_service_class(self) -> Type[ServiceInterface]:
         """Get messenger service class"""
@@ -480,22 +480,22 @@ class ServiceBootstrap:
     def _get_keyword_manager_class(self) -> Type[ServiceInterface]:
         """Get keyword manager class"""
         from app.services.business.keyword_manager import KeywordManager
-        return KeywordManager
+        return KeywordManager  # type: ignore[return-value]
 
     def _get_facebook_lead_center_service_class(self) -> Type[ServiceInterface]:
         """Get Facebook lead center service class"""
         from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
-        return FacebookLeadCenterService
+        return FacebookLeadCenterService  # type: ignore[return-value]
 
     def _get_message_source_tracker_class(self) -> Type[ServiceInterface]:
         """Get message source tracker class"""
         from app.services.business.message_source_tracker import MessageSourceTracker
-        return MessageSourceTracker
+        return MessageSourceTracker  # type: ignore[return-value]
 
     def _get_health_monitor_class(self) -> Type[ServiceInterface]:
         """Get health monitor class (archived - returns None)"""
         logger.warning("Health monitor service has been archived and is no longer available")
-        return None
+        return None  # type: ignore[return-value]
 
 
 # Global service bootstrap instance
