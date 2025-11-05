@@ -6,7 +6,6 @@ Bww-AI-Assistant - Log Management Utility
 
 import os
 import sys
-import logging
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -16,11 +15,12 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger
+from config.logging_config import setup_logging, get_logger  # noqa: E402
 
 # Setup logging
 setup_logging()
 logger = get_logger(__name__)
+
 
 def clean_old_logs(days_to_keep=7):
     """Clean up old log files older than specified days"""
@@ -47,6 +47,7 @@ def clean_old_logs(days_to_keep=7):
             logger.error(f"❌ Error processing {log_file.name}: {e}")
 
     logger.info(f"✅ Cleaned {cleaned_count} old log files")
+
 
 def show_log_status():
     """Show current log files status"""
@@ -81,6 +82,7 @@ def show_log_status():
     total_mb = total_size / (1024 * 1024)
     logger.info(f"📊 Total logs size: {total_mb:.2f} MB")
 
+
 def create_log_summary():
     """Create a summary of recent log activity"""
     logs_dir = Path("logs")
@@ -108,6 +110,7 @@ def create_log_summary():
         logger.info(f"📄 {log_type}: {count:,} entries")
 
     logger.info(f"📊 Total entries: {total_entries:,}")
+
 
 def main():
     """Main function"""
@@ -137,6 +140,7 @@ def main():
         logger.info("  python scripts/log_manager.py status    # Show log files status")
         logger.info("  python scripts/log_manager.py summary   # Show log activity summary")
         logger.info("  python scripts/log_manager.py clean 7  # Clean logs older than 7 days")
+
 
 if __name__ == "__main__":
     main()

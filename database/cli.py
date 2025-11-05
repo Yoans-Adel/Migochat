@@ -12,15 +12,16 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from database.scripts.rebuild import rebuild_database_cli
-from database.scripts.backup import backup_database_cli
-from database.scripts.health import health_check_cli
+from database.scripts.rebuild import rebuild_database_cli  # noqa: E402
+from database.scripts.backup import backup_database_cli  # noqa: E402
+from database.scripts.health import health_check_cli  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 def show_banner():
     """Display application banner"""
@@ -29,6 +30,7 @@ def show_banner():
     print("   Professional Database CLI Utility")
     print("=" * 60)
     print()
+
 
 def main():
     """Main CLI entry point"""
@@ -84,6 +86,7 @@ Examples:
     else:
         logger.error("❌ Operation failed")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     try:

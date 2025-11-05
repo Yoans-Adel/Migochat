@@ -1,13 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import logging
 import traceback
 
-from database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign
+from database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign, enum_to_value
 from Server.config import settings
+from Server.routes.service_helpers import (
+    get_messenger_service,
+    get_whatsapp_service,
+    get_message_handler,
+    get_facebook_lead_center_service,
+    get_message_source_tracker,
+    get_ai_service,
+    get_gemini_service,
+    get_settings_manager as get_settings_manager_helper
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,23 +34,12 @@ except ImportError:
 
 router = APIRouter()
 
-# Initialize services directly to avoid circular imports
-from app.services.messaging.messenger_service import MessengerService
-from app.services.messaging.message_handler import MessageHandler
-from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
-from app.services.business.message_source_tracker import MessageSourceTracker
-# health_monitor has been archived - removed
-
-messenger_service = MessengerService()
-message_handler = MessageHandler()
-lead_automation = FacebookLeadCenterService()
-source_tracker = MessageSourceTracker()
-
 # Initialize BWW Store Integration (if available)
 if bww_store_available and BWWStoreAPIService:
     bww_store_integration = BWWStoreAPIService(language="ar")
 else:
     bww_store_integration = None
+
 
 @router.get("/messages")
 async def get_messages(
@@ -49,7 +48,7 @@ async def get_messages(
     user_id: Optional[int] = None,
     source: Optional[str] = None,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get messages with pagination and source filtering"""
     try:
         query = db.query(Message)
@@ -73,9 +72,9 @@ async def get_messages(
                     "status": msg.status.value,
                     "timestamp": msg.timestamp.isoformat(),
                     "message_type": msg.message_type,
-                    "message_source": getattr(msg.message_source, 'value', None),
+                    "message_source": enum_to_value(msg.message_source),
                     "post_id": msg.post_id,
-                    "post_type": getattr(msg.post_type, 'value', None),
+                    "post_type": enum_to_value(msg.post_type),
                     "ad_id": msg.ad_id,
                     "comment_id": msg.comment_id
                 }
@@ -88,13 +87,19 @@ async def get_messages(
         logger.error(f"Error getting messages: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/messages/send")
 async def send_message(
     request: Request,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Send message to user"""
     try:
+        # Get message handler service
+        message_handler = get_message_handler()
+        if not message_handler:
+            raise HTTPException(status_code=503, detail="Message handler service unavailable")
+
         # Get data from request body
         data = await request.json()
         recipient_id = data.get("recipient_id")
@@ -141,12 +146,13 @@ async def send_message(
         else:
             raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/users")
 async def get_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get users list"""
     try:
         users = db.query(User).order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
@@ -159,13 +165,13 @@ async def get_users(
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "profile_pic": user.profile_pic,
-                    "governorate": getattr(user.governorate, 'value', None),
+                    "governorate": enum_to_value(user.governorate),
                     "created_at": user.created_at.isoformat(),
-                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at is not None else None,
                     "is_active": user.is_active,
-                    "lead_stage": getattr(user.lead_stage, 'value', None),
-                    "customer_type": getattr(user.customer_type, 'value', None),
-                    "customer_label": getattr(user.customer_label, 'value', None),
+                    "lead_stage": enum_to_value(user.lead_stage),
+                    "customer_type": enum_to_value(user.customer_type),
+                    "customer_label": enum_to_value(user.customer_label),
                     "lead_score": user.lead_score
                 }
                 for user in users
@@ -177,8 +183,9 @@ async def get_users(
         logger.error(f"Error getting users: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/users/{psid}")
-async def get_user_profile(psid: str, db: Session = Depends(get_session)):
+async def get_user_profile(psid: str, db: Session = Depends(get_session)) -> Dict[str, Any]:
     """Get user profile and message history"""
     try:
         user = db.query(User).filter(User.psid == psid).first()
@@ -199,15 +206,15 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "profile_pic": user.profile_pic,
-                "governorate": getattr(user.governorate, 'value', None),
+                "governorate": enum_to_value(user.governorate),
                 "created_at": user.created_at.isoformat(),
-                "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                "last_message_at": user.last_message_at.isoformat() if user.last_message_at is not None else None,
                 "is_active": user.is_active,
-                "lead_stage": getattr(user.lead_stage, 'value', None),
-                "customer_type": getattr(user.customer_type, 'value', None),
-                "customer_label": getattr(user.customer_label, 'value', None),
+                "lead_stage": enum_to_value(user.lead_stage),
+                "customer_type": enum_to_value(user.customer_type),
+                "customer_label": enum_to_value(user.customer_label),
                 "lead_score": user.lead_score,
-                "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
+                "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change is not None else None
             },
             "messages": [
                 {
@@ -217,9 +224,9 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
                     "status": msg.status.value,
                     "timestamp": msg.timestamp.isoformat(),
                     "message_type": msg.message_type,
-                    "message_source": getattr(msg.message_source, 'value', None),
+                    "message_source": enum_to_value(msg.message_source),
                     "post_id": msg.post_id,
-                    "post_type": getattr(msg.post_type, 'value', None),
+                    "post_type": enum_to_value(msg.post_type),
                     "ad_id": msg.ad_id,
                     "comment_id": msg.comment_id
                 }
@@ -245,12 +252,13 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)):
         logger.error(f"Error getting user profile: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.put("/users/{psid}")
 async def update_user(
     psid: str,
     request: Request,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Update user information"""
     try:
         # Get JSON body
@@ -262,7 +270,7 @@ async def update_user(
             raise HTTPException(status_code=404, detail="User not found")
 
         # Track changes for lead activity
-        changes = []
+        changes: List[tuple[str, Optional[str], str]] = []
 
         if "first_name" in update_data:
             user.first_name = update_data["first_name"]
@@ -271,7 +279,7 @@ async def update_user(
         if "governorate" in update_data:
             from database import Governorate
             try:
-                old_value = getattr(user.governorate, 'value', None)
+                old_value = enum_to_value(user.governorate)
                 setattr(user, 'governorate', Governorate(update_data["governorate"]))
                 if old_value != update_data["governorate"]:
                     changes.append(("governorate", old_value, update_data["governorate"]))
@@ -280,7 +288,7 @@ async def update_user(
 
         if "lead_stage" in update_data:
             try:
-                old_value = getattr(user.lead_stage, 'value', None)
+                old_value = enum_to_value(user.lead_stage)
                 setattr(user, 'lead_stage', LeadStage(update_data["lead_stage"]))
                 setattr(user, 'last_stage_change', datetime.now(timezone.utc))
                 if old_value != update_data["lead_stage"]:
@@ -290,7 +298,7 @@ async def update_user(
 
         if "customer_type" in update_data:
             try:
-                old_value = getattr(user.customer_type, 'value', None)
+                old_value = enum_to_value(user.customer_type)
                 setattr(user, 'customer_type', CustomerType(update_data["customer_type"]))
                 if old_value != update_data["customer_type"]:
                     changes.append(("customer_type", old_value, update_data["customer_type"]))
@@ -299,7 +307,7 @@ async def update_user(
 
         if "customer_label" in update_data:
             try:
-                old_value = getattr(user.customer_label, 'value', None)
+                old_value = enum_to_value(user.customer_label)
                 setattr(user, 'customer_label', CustomerLabel(update_data["customer_label"]))
                 if old_value != update_data["customer_label"]:
                     changes.append(("customer_label", old_value, update_data["customer_label"]))
@@ -335,8 +343,9 @@ async def update_user(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/stats")
-async def get_stats(db: Session = Depends(get_session)):
+async def get_stats(db: Session = Depends(get_session)) -> Dict[str, Any]:
     """Get dashboard statistics with message source analytics"""
     try:
         # Basic counts
@@ -359,10 +368,12 @@ async def get_stats(db: Session = Depends(get_session)):
         read_messages = db.query(Message).filter(Message.status == MessageStatus.READ).count()
 
         # Lead analytics
-        lead_analytics = lead_automation.get_lead_analytics()
+        lead_automation = get_facebook_lead_center_service()
+        lead_analytics = lead_automation.get_lead_analytics() if lead_automation else {}
 
         # Message source analytics
-        source_analytics = source_tracker.get_message_source_analytics()
+        source_tracker = get_message_source_tracker()
+        source_analytics = source_tracker.get_message_source_analytics() if source_tracker else {}
 
         return {
             "total_users": total_users,
@@ -383,12 +394,13 @@ async def get_stats(db: Session = Depends(get_session)):
         logger.error(f"Error getting stats: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/conversations")
 async def get_conversations(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get active conversations"""
     try:
         conversations = db.query(Conversation).join(User).filter(
@@ -419,6 +431,7 @@ async def get_conversations(
         logger.error(f"Error getting conversations: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/leads")
 async def get_leads(
     skip: int = 0,
@@ -426,7 +439,7 @@ async def get_leads(
     stage: Optional[str] = None,
     customer_type: Optional[str] = None,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get leads with filtering"""
     try:
         query = db.query(User)
@@ -447,15 +460,15 @@ async def get_leads(
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "profile_pic": user.profile_pic,
-                    "governorate": user.governorate.value if user.governorate else None,
+                    "governorate": enum_to_value(user.governorate),
                     "created_at": user.created_at.isoformat(),
-                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at else None,
+                    "last_message_at": user.last_message_at.isoformat() if user.last_message_at is not None else None,
                     "is_active": user.is_active,
-                    "lead_stage": user.lead_stage.value if user.lead_stage else None,
-                    "customer_type": user.customer_type.value if user.customer_type else None,
-                    "customer_label": user.customer_label.value if user.customer_label else None,
+                    "lead_stage": enum_to_value(user.lead_stage),
+                    "customer_type": enum_to_value(user.customer_type),
+                    "customer_label": enum_to_value(user.customer_label),
                     "lead_score": user.lead_score,
-                    "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
+                    "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change is not None else None
                 }
                 for user in leads
             ],
@@ -466,16 +479,22 @@ async def get_leads(
         logger.error(f"Error getting leads: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/posts")
 async def create_post(
-    post_data: dict,
+    post_data: Dict[str, Any],
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Create a new post record"""
     try:
-        facebook_post_id = post_data.get("facebook_post_id")
-        post_type = post_data.get("post_type")
-        content = post_data.get("content")
+        # Get source tracker service
+        source_tracker = get_message_source_tracker()
+        if not source_tracker:
+            raise HTTPException(status_code=503, detail="Message source tracker service unavailable")
+
+        facebook_post_id = str(post_data.get("facebook_post_id", ""))
+        post_type = str(post_data.get("post_type", ""))
+        content = str(post_data.get("content", ""))
         price = post_data.get("price")
         data = post_data.get("data")
 
@@ -483,8 +502,8 @@ async def create_post(
             facebook_post_id=facebook_post_id,
             post_type=PostType(post_type),
             content=content,
-            price=price,
-            data=data
+            price=str(price) if price else None,
+            data=data if data else None
         )
 
         if post:
@@ -508,16 +527,22 @@ async def create_post(
         logger.error(f"Error creating post: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/ad-campaigns")
 async def create_ad_campaign(
-    ad_data: dict,
+    ad_data: Dict[str, Any],
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Create a new ad campaign record"""
     try:
-        facebook_ad_id = ad_data.get("facebook_ad_id")
-        campaign_name = ad_data.get("campaign_name")
-        content = ad_data.get("content")
+        # Get source tracker service
+        source_tracker = get_message_source_tracker()
+        if not source_tracker:
+            raise HTTPException(status_code=503, detail="Message source tracker service unavailable")
+
+        facebook_ad_id = str(ad_data.get("facebook_ad_id", ""))
+        campaign_name = str(ad_data.get("campaign_name", ""))
+        content = str(ad_data.get("content", ""))
         target_audience = ad_data.get("target_audience")
         budget = ad_data.get("budget")
 
@@ -525,8 +550,8 @@ async def create_ad_campaign(
             facebook_ad_id=facebook_ad_id,
             campaign_name=campaign_name,
             content=content,
-            target_audience=target_audience,
-            budget=budget
+            target_audience=target_audience if target_audience else None,
+            budget=str(budget) if budget else None
         )
 
         if ad:
@@ -549,12 +574,13 @@ async def create_ad_campaign(
         logger.error(f"Error creating ad campaign: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/posts")
 async def get_posts(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get posts list"""
     try:
         posts = db.query(Post).order_by(desc(Post.created_at)).offset(skip).limit(limit).all()
@@ -564,7 +590,7 @@ async def get_posts(
                 {
                     "id": post.id,
                     "facebook_post_id": post.facebook_post_id,
-                    "post_type": post.post_type.value if post.post_type else None,
+                    "post_type": enum_to_value(post.post_type),
                     "post_content": post.post_content,
                     "post_price": post.post_price,
                     "post_data": post.post_data,
@@ -580,12 +606,13 @@ async def get_posts(
         logger.error(f"Error getting posts: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/ad-campaigns")
 async def get_ad_campaigns(
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """Get ad campaigns list"""
     try:
         campaigns = db.query(AdCampaign).order_by(desc(AdCampaign.created_at)).offset(skip).limit(limit).all()
@@ -611,11 +638,12 @@ async def get_ad_campaigns(
         logger.error(f"Error getting ad campaigns: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/ai/respond")
 async def trigger_ai_response(
     request: Request,
     db: Session = Depends(get_session)
-):
+) -> Dict[str, Any]:
     """
     Trigger AI response for a user with multimodal support
 
@@ -639,7 +667,6 @@ async def trigger_ai_response(
         user_psid = data.get("user_psid")
         message_text = data.get("message_text")
         media_files = data.get("media_files", [])
-        use_quality = data.get("use_quality_model", False)
 
         # Validate inputs
         if not user_psid:
@@ -661,21 +688,12 @@ async def trigger_ai_response(
 
         # Generate AI response
         logger.info("Initializing AI service...")
-        from app.services.ai.ai_service import AIService
-        ai_service = AIService()
-
-        # Prepare context with media files
-        context = {
-            "user_id": user.id,
-            "user_name": f"{user.first_name or ''} {user.last_name or ''}".strip(),
-            "lead_stage": user.lead_stage.value if user.lead_stage else None,
-            "customer_type": user.customer_type.value if user.customer_type else None,
-            "media_files": media_files if media_files else None,
-            "use_quality_model": use_quality
-        }
+        ai_service = get_ai_service()
+        if not ai_service:
+            raise HTTPException(status_code=503, detail="AI service unavailable")
 
         logger.info("Generating AI response...")
-        ai_response = await ai_service.generate_response(message_text, user)
+        ai_response = ai_service.generate_response(message_text, user)
         logger.info(f"AI response generated: {ai_response is not None}")
 
         if ai_response:
@@ -683,10 +701,15 @@ async def trigger_ai_response(
             # Send response to user (only if Facebook credentials are configured)
             if settings.FB_PAGE_ACCESS_TOKEN and settings.FB_PAGE_ACCESS_TOKEN != "":
                 try:
-                    # Use correct method name: send_message instead of send_message_to_user
-                    success = message_handler.send_message(user_psid, ai_response, platform="facebook")
-                    logger.info(f"Message sent successfully: {success}")
-                    response = {"message_id": "sent" if success else "failed"}
+                    # Get message handler
+                    message_handler = get_message_handler()
+                    if not message_handler:
+                        logger.warning("Message handler unavailable")
+                    else:
+                        # Use correct method name: send_message instead of send_message_to_user
+                        success = message_handler.send_message(user_psid, ai_response, platform="facebook")
+                        logger.info(f"Message sent successfully: {success}")
+                        response = {"message_id": "sent" if success else "failed"}
                 except Exception as send_error:
                     logger.warning(f"Failed to send message via Facebook API: {send_error}")
                     # Continue without sending - just return the response
@@ -716,12 +739,18 @@ async def trigger_ai_response(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+
 @router.get("/ai/status")
-async def ai_status():
+async def ai_status() -> Dict[str, Any]:
     """Get AI service status"""
     try:
-        from app.services.ai.ai_service import AIService
-        ai_service = AIService()
+        ai_service = get_ai_service()
+        if not ai_service:
+            return {
+                "status": "unavailable",
+                "message": "AI service not initialized"
+            }
+
         status = ai_service.get_service_status()
 
         return {
@@ -734,12 +763,14 @@ async def ai_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 # BWW Store Enhanced Endpoints
+
+
 @router.post("/bww-store/query")
 async def bww_store_query(
     query: str,
     language: str = "ar",
     limit: int = 3
-):
+) -> Dict[str, Any]:
     """Enhanced BWW Store customer query handling"""
     try:
         if not bww_store_available or not bww_store_integration:
@@ -763,11 +794,12 @@ async def bww_store_query(
         logger.error(f"Error handling BWW Store query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/bww-store/compare")
 async def bww_store_compare(
     product_ids: List[str],
     language: str = "ar"
-):
+) -> Dict[str, Any]:
     """Compare BWW Store products"""
     try:
         if not bww_store_available or not bww_store_integration:
@@ -802,11 +834,12 @@ async def bww_store_compare(
         logger.error(f"Error comparing products: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/bww-store/suggestions")
 async def bww_store_suggestions(
     query: str,
     language: str = "ar"
-):
+) -> Dict[str, Any]:
     """Get BWW Store search suggestions (simplified version)"""
     try:
         if not bww_store_available or not bww_store_integration:
@@ -830,8 +863,9 @@ async def bww_store_suggestions(
         logger.error(f"Error getting search suggestions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/bww-store/analytics")
-async def bww_store_analytics():
+async def bww_store_analytics() -> Dict[str, Any]:
     """Get BWW Store analytics - Basic cache stats"""
     try:
         if not bww_store_available or not bww_store_integration:
@@ -851,8 +885,9 @@ async def bww_store_analytics():
         logger.error(f"Error getting analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.get("/bww-store/status")
-async def bww_store_status():
+async def bww_store_status() -> Dict[str, Any]:
     """Get BWW Store integration status"""
     try:
         if not bww_store_available or not bww_store_integration:
@@ -875,11 +910,13 @@ async def bww_store_status():
         raise HTTPException(status_code=500, detail=str(e))
 
 # Facebook Lead Center Integration Endpoints
+
+
 @router.post("/leads/sync-to-facebook")
-async def sync_leads_to_facebook():
+async def sync_leads_to_facebook() -> Dict[str, Any]:
     """Sync all leads to Facebook Lead Center"""
     try:
-        results = await lead_automation.sync_all_leads_to_facebook()
+        results = lead_automation.sync_all_leads_to_facebook()
 
         return {
             "success": True,
@@ -891,8 +928,9 @@ async def sync_leads_to_facebook():
         logger.error(f"Error syncing leads to Facebook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/leads/analytics")
-async def get_lead_analytics():
+async def get_lead_analytics() -> Dict[str, Any]:
     """Get comprehensive lead analytics"""
     try:
         analytics = lead_automation.get_lead_analytics()
@@ -906,8 +944,9 @@ async def get_lead_analytics():
         logger.error(f"Error getting lead analytics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @router.post("/leads/{psid}/create-in-facebook")
-async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session)):
+async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session)) -> Dict[str, Any]:
     """Create a specific lead in Facebook Lead Center"""
     try:
         user = db.query(User).filter(User.psid == psid).first()
@@ -915,7 +954,7 @@ async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session))
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        success = await lead_automation.create_lead_in_facebook(user)
+        success = lead_automation.create_lead_in_facebook(user)
 
         return {
             "success": success,
@@ -929,8 +968,9 @@ async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session))
         logger.error(f"Error creating lead in Facebook: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.post("/whatsapp/send-message")
-async def send_whatsapp_message(request: Request):
+async def send_whatsapp_message(request: Request) -> Dict[str, Any]:
     """Send a message via WhatsApp"""
     try:
         data = await request.json()
@@ -941,8 +981,9 @@ async def send_whatsapp_message(request: Request):
         if not phone_number or not message:
             raise HTTPException(status_code=400, detail="phone_number and message are required")
 
-        from app.services.messaging.whatsapp_service import WhatsAppService
-        whatsapp_service = WhatsAppService()
+        whatsapp_service = get_whatsapp_service()
+        if not whatsapp_service:
+            raise HTTPException(status_code=503, detail="WhatsApp service unavailable")
 
         if message_type == "text":
             response = whatsapp_service.send_message(phone_number, message)
@@ -991,12 +1032,14 @@ async def send_whatsapp_message(request: Request):
         else:
             raise HTTPException(status_code=500, detail="Internal server error")
 
+
 @router.get("/whatsapp/status")
-async def whatsapp_status():
+async def whatsapp_status() -> Dict[str, Any]:
     """Check WhatsApp service status"""
     try:
-        from app.services.messaging.whatsapp_service import WhatsAppService
-        whatsapp_service = WhatsAppService()
+        whatsapp_service = get_whatsapp_service()
+        if not whatsapp_service:
+            raise HTTPException(status_code=503, detail="WhatsApp service unavailable")
 
         # Check if WhatsApp is configured
         is_available = bool(whatsapp_service.access_token and whatsapp_service.phone_number_id)
@@ -1013,8 +1056,10 @@ async def whatsapp_status():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Enhanced Health Check Endpoints
+
+
 @router.get("/health/detailed")
-async def detailed_health_check():
+async def detailed_health_check() -> Dict[str, Any]:
     """Detailed system health check"""
     try:
         # Health monitor has been archived - return basic health status
@@ -1026,8 +1071,9 @@ async def detailed_health_check():
         logger.error(f"Error in detailed health check: {e}")
         return {"error": "Health check failed", "status": "error"}
 
+
 @router.get("/health/alerts")
-async def health_alerts():
+async def health_alerts() -> Dict[str, Any]:
     """Get system health alerts"""
     try:
         # Health monitor has been archived - return empty alerts
@@ -1037,8 +1083,10 @@ async def health_alerts():
         return {"error": "Failed to get alerts", "alerts": []}
 
 # AI Service Testing Endpoint
+
+
 @router.post("/ai/test")
-async def test_ai_connection(request: Request):
+async def test_ai_connection(request: Request) -> Dict[str, Any]:
     """Test AI service connection and response"""
     try:
         # Get test message from request
@@ -1056,14 +1104,16 @@ async def test_ai_connection(request: Request):
 
         # Try to initialize and test Gemini service
         try:
-            from app.services.ai.gemini_service import GeminiService
-            gemini_service = GeminiService()
+            gemini_service = get_gemini_service()
+            if not gemini_service:
+                return {
+                    "success": False,
+                    "error": "AI service unavailable",
+                    "instruction": "Service initialization failed"
+                }
 
             # Test AI response
-            response = await gemini_service.generate_response(
-                message=test_message,
-                user_name="Test User"
-            )
+            response = gemini_service.generate_response(test_message, None)
 
             return {
                 "success": True,
@@ -1090,8 +1140,10 @@ async def test_ai_connection(request: Request):
         }
 
 # AI Model Configuration Endpoints
+
+
 @router.get("/ai/models")
-async def get_available_models():
+async def get_available_models() -> Dict[str, Any]:
     """Get list of available AI models"""
     try:
         models = [
@@ -1143,8 +1195,9 @@ async def get_available_models():
         logger.error(f"Error getting available models: {e}")
         raise HTTPException(status_code=500, detail="Failed to get models")
 
+
 @router.get("/ai/current")
-async def get_current_model():
+async def get_current_model() -> Dict[str, Any]:
     """Get currently active AI model"""
     try:
         # Check configuration directly from settings
@@ -1163,8 +1216,9 @@ async def get_current_model():
         logger.error(f"Error getting current model: {e}")
         raise HTTPException(status_code=500, detail="Failed to get current model")
 
+
 @router.post("/ai/model/change")
-async def change_ai_model(request: Request):
+async def change_ai_model(request: Request) -> Dict[str, Any]:
     """Change AI model (requires environment variable update)"""
     try:
         data = await request.json()
@@ -1190,9 +1244,9 @@ async def change_ai_model(request: Request):
             "success": False,
             "message": "Model change requires environment update",
             "instructions": [
-                f"1. Go to Railway dashboard",
-                f"2. Add environment variable: GEMINI_MODEL={new_model}",
-                f"3. Restart the service",
+                "1. Go to Railway dashboard",
+                "2. Add environment variable: GEMINI_MODEL={new_model}",
+                "3. Restart the service",
                 f"4. Model will be updated to: {new_model}"
             ],
             "requested_model": new_model,
@@ -1209,8 +1263,9 @@ async def change_ai_model(request: Request):
 # Admin Settings Management
 # ============================================================
 
+
 @router.get("/settings")
-async def get_settings(category: Optional[str] = None):
+async def get_settings(category: Optional[str] = None) -> Dict[str, Any]:
     """
     Get all settings, optionally filtered by category
 
@@ -1218,9 +1273,10 @@ async def get_settings(category: Optional[str] = None):
         category: Filter by category (facebook, whatsapp, ai, system)
     """
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
 
-        settings_manager = get_settings_manager()
         settings = settings_manager.get_all_settings(category=category)
 
         return {
@@ -1229,17 +1285,20 @@ async def get_settings(category: Optional[str] = None):
             "count": len(settings)
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve settings")
 
+
 @router.get("/settings/{key}")
-async def get_setting(key: str):
+async def get_setting(key: str) -> Dict[str, Any]:
     """Get a specific setting by key"""
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
-
-        settings_manager = get_settings_manager()
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
         value = settings_manager.get_setting(key)
 
         if not value:
@@ -1257,8 +1316,9 @@ async def get_setting(key: str):
         logger.error(f"Error getting setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve setting")
 
+
 @router.put("/settings/{key}")
-async def update_setting(key: str, request: Request):
+async def update_setting(key: str, request: Request) -> Dict[str, Any]:
     """
     Update a setting
 
@@ -1271,7 +1331,9 @@ async def update_setting(key: str, request: Request):
         }
     """
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
 
         data = await request.json()
         value = data.get("value", "")
@@ -1282,7 +1344,6 @@ async def update_setting(key: str, request: Request):
         if not value:
             raise HTTPException(status_code=400, detail="Value is required")
 
-        settings_manager = get_settings_manager()
         success = settings_manager.set_setting(
             key=key,
             value=value,
@@ -1307,8 +1368,9 @@ async def update_setting(key: str, request: Request):
         logger.error(f"Error updating setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update setting")
 
+
 @router.post("/settings/bulk")
-async def bulk_update_settings(request: Request):
+async def bulk_update_settings(request: Request) -> Dict[str, Any]:
     """
     Update multiple settings at once
 
@@ -1327,7 +1389,9 @@ async def bulk_update_settings(request: Request):
         }
     """
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
 
         data = await request.json()
         settings_list = data.get("settings", [])
@@ -1335,7 +1399,6 @@ async def bulk_update_settings(request: Request):
         if not settings_list:
             raise HTTPException(status_code=400, detail="No settings provided")
 
-        settings_manager = get_settings_manager()
         success_count = 0
         failed_settings = []
 
@@ -1378,13 +1441,15 @@ async def bulk_update_settings(request: Request):
         logger.error(f"Error bulk updating settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to update settings")
 
+
 @router.delete("/settings/{key}")
-async def delete_setting(key: str):
+async def delete_setting(key: str) -> Dict[str, Any]:
     """Delete a setting"""
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
 
-        settings_manager = get_settings_manager()
         success = settings_manager.delete_setting(key)
 
         if not success:
@@ -1401,13 +1466,14 @@ async def delete_setting(key: str):
         logger.error(f"Error deleting setting {key}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete setting")
 
+
 @router.post("/settings/initialize")
-async def initialize_settings():
+async def initialize_settings() -> Dict[str, Any]:
     """Initialize default settings from environment variables"""
     try:
-        from app.services.infrastructure.settings_manager import get_settings_manager
-
-        settings_manager = get_settings_manager()
+        settings_manager = get_settings_manager_helper()
+        if not settings_manager:
+            raise HTTPException(status_code=503, detail="Settings manager unavailable")
         settings_manager.initialize_default_settings()
 
         return {
@@ -1418,4 +1484,3 @@ async def initialize_settings():
     except Exception as e:
         logger.error(f"Error initializing settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to initialize settings")
-

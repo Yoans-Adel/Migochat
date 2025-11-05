@@ -14,6 +14,7 @@ from .models import APIResponse
 
 logger = logging.getLogger(__name__)
 
+
 class APIService:
     """Lightweight base class to align with previous usage patterns."""
 
@@ -25,17 +26,21 @@ class APIService:
     def make_request(self, method: str, endpoint: str, **kwargs) -> Any:  # pragma: no cover - interface
         raise NotImplementedError
 
+
 @dataclass
 class RetryConfig:
     max_retries: int = 3
     delay: float = 1.0
+
 
 @dataclass
 class CircuitBreakerConfig:
     failure_threshold: int = 5
     reset_timeout: float = 60.0
 
+
 F = TypeVar("F", bound=Callable[..., Awaitable[Any]])
+
 
 def api_error_handler(func: F) -> F:
     """Capture unexpected errors and return a consistent APIResponse for async call sites."""
@@ -49,6 +54,7 @@ def api_error_handler(func: F) -> F:
             return APIResponse(success=False, error=str(exc), status_code=500)
 
     return wrapper  # type: ignore[return-value]
+
 
 def retry_on_error(config: RetryConfig) -> Callable[[F], F]:
     def decorator(func: F) -> F:
@@ -71,6 +77,7 @@ def retry_on_error(config: RetryConfig) -> Callable[[F], F]:
         return wrapper  # type: ignore[return-value]
 
     return decorator
+
 
 def circuit_breaker(name: str, config: CircuitBreakerConfig) -> Callable[[F], F]:
     state: dict[str, Any] = {"failures": 0, "open_until": 0.0}
@@ -100,4 +107,3 @@ def circuit_breaker(name: str, config: CircuitBreakerConfig) -> Callable[[F], F]
         return wrapper  # type: ignore[return-value]
 
     return decorator
-

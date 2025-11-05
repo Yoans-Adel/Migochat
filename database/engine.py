@@ -3,7 +3,6 @@ Database Engine Module
 SQLAlchemy engine and session management
 """
 import logging
-import os
 from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -21,6 +20,7 @@ DATABASE_URL = f"sqlite:///{DATABASE_FILE}"
 # Global engine and session factory
 _engine = None
 _SessionLocal = None
+
 
 def get_engine():
     """Get or create database engine (singleton)"""
@@ -44,6 +44,7 @@ def get_engine():
 
     return _engine
 
+
 def get_session_factory():
     """Get or create session factory (singleton)"""
     global _SessionLocal
@@ -59,6 +60,7 @@ def get_session_factory():
 
     return _SessionLocal
 
+
 def get_session() -> Session:
     """
     Get a new database session
@@ -73,6 +75,7 @@ def get_session() -> Session:
     """
     SessionLocal = get_session_factory()
     return SessionLocal()
+
 
 def create_all_tables():
     """
@@ -91,6 +94,7 @@ def create_all_tables():
         logger.error(f"❌ Error creating database tables: {e}", exc_info=True)
         return False
 
+
 def drop_all_tables():
     """
     Drop all database tables (DANGEROUS!)
@@ -108,6 +112,7 @@ def drop_all_tables():
         logger.error(f"❌ Error dropping database tables: {e}", exc_info=True)
         return False
 
+
 def close_engine():
     """Close database engine and dispose of connections"""
     global _engine, _SessionLocal
@@ -119,9 +124,11 @@ def close_engine():
         _SessionLocal = None
         logger.info("Database engine closed")
 
+
 def get_database_path() -> Path:
     """Get the path to the database file"""
     return DATABASE_FILE
+
 
 def database_exists() -> bool:
     """Check if database file exists"""

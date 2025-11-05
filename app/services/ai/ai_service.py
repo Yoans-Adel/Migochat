@@ -12,6 +12,7 @@ from app.services.ai.gemini_service import GeminiService
 
 logger = logging.getLogger(__name__)
 
+
 class AIService(BaseAIService):
     """
     AI service with provider management and fallback
@@ -20,7 +21,7 @@ class AIService(BaseAIService):
     Can be extended to support multiple AI providers (OpenAI, Anthropic, etc.)
     """
 
-    def __init__(self, config: Optional[ServiceConfig] = None):
+    def __init__(self, config: Optional[ServiceConfig] = None) -> None:
         super().__init__(config)
 
         # AI provider configuration
@@ -244,6 +245,8 @@ class AIService(BaseAIService):
             logger.error(f"Error during AI service shutdown: {e}")
 
 # Convenience function for quick access
+
+
 def get_ai_service() -> AIService:
     """Get AI service instance"""
     from app.services.infrastructure.di_container import get_service

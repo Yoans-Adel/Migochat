@@ -25,6 +25,7 @@ from .product_formatter import format_product_for_messenger
 
 logger = logging.getLogger(__name__)
 
+
 def fuzzy_similarity(text1: str, text2: str) -> float:
     """Calculate fuzzy similarity between two text strings.
 
@@ -40,6 +41,7 @@ def fuzzy_similarity(text1: str, text2: str) -> float:
     """
     return fuzz.ratio(text1.lower(), text2.lower()) / 100.0
 
+
 def spelling_suggestions(search_term: str, dictionary: List[str], limit: int = 3) -> List[str]:
     """Generate spelling correction suggestions for a search term.
 
@@ -53,6 +55,7 @@ def spelling_suggestions(search_term: str, dictionary: List[str], limit: int = 3
     """
     results = process.extract(search_term, dictionary, limit=limit, score_cutoff=50)
     return [word for word, score, _ in results]
+
 
 def calculate_product_score(product: Dict[str, Any], search_term: str) -> float:
     """Calculate relevance score for a product based on search term matching.
@@ -83,6 +86,7 @@ def calculate_product_score(product: Dict[str, Any], search_term: str) -> float:
         base_score += 0.1
 
     return min(base_score, 1.0)  # Cap at 1.0 for consistency
+
 
 class BWWStoreSearchEngine:
     """Intelligent search engine for BWW Store products."""

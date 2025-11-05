@@ -12,7 +12,7 @@ This module provides:
 These services enable robust, maintainable, and scalable architecture.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Lazy imports for better performance
 if TYPE_CHECKING:
@@ -82,27 +82,86 @@ __all__ = [
     "ConfigurationValidator",
 ]
 
-def __getattr__(name: str):
+
+def __getattr__(name: str) -> Any:
     """Lazy import mechanism for better performance."""
     if name in __all__:
         # DI Container imports
         if name in ["DependencyInjectionContainer", "ServiceScope", "ServiceRegistration", "get_container"]:
-            from .di_container import DependencyInjectionContainer, ServiceScope, ServiceRegistration, get_container
-            return locals()[name]
+            from .di_container import (
+                DependencyInjectionContainer,
+                ServiceScope,
+                ServiceRegistration,
+                get_container,
+            )
+            return {
+                "DependencyInjectionContainer": DependencyInjectionContainer,
+                "ServiceScope": ServiceScope,
+                "ServiceRegistration": ServiceRegistration,
+                "get_container": get_container,
+            }[name]
 
         # Service Registry imports
         if name in ["ServiceRegistry", "ServiceFactory", "ServiceLifecycleManager", "ServiceDefinition", "ServicePriority"]:
-            from .service_registry import ServiceRegistry, ServiceFactory, ServiceLifecycleManager, ServiceDefinition, ServicePriority
-            return locals()[name]
+            from .service_registry import (
+                ServiceRegistry,
+                ServiceFactory,
+                ServiceLifecycleManager,
+                ServiceDefinition,
+                ServicePriority,
+            )
+            return {
+                "ServiceRegistry": ServiceRegistry,
+                "ServiceFactory": ServiceFactory,
+                "ServiceLifecycleManager": ServiceLifecycleManager,
+                "ServiceDefinition": ServiceDefinition,
+                "ServicePriority": ServicePriority,
+            }[name]
 
         # Error Handler imports
         if name in ["CircuitBreaker", "CircuitBreakerState", "CircuitBreakerConfig", "ErrorMonitor", "RetryConfig", "ErrorHandler", "ErrorSeverity", "ErrorCategory", "ErrorContext", "ErrorRecord"]:
-            from .error_handler import CircuitBreaker, CircuitBreakerState, CircuitBreakerConfig, ErrorMonitor, RetryConfig, ErrorHandler, ErrorSeverity, ErrorCategory, ErrorContext, ErrorRecord
-            return locals()[name]
+            from .error_handler import (
+                CircuitBreaker,
+                CircuitBreakerState,
+                CircuitBreakerConfig,
+                ErrorMonitor,
+                RetryConfig,
+                ErrorHandler,
+                ErrorSeverity,
+                ErrorCategory,
+                ErrorContext,
+                ErrorRecord,
+            )
+            return {
+                "CircuitBreaker": CircuitBreaker,
+                "CircuitBreakerState": CircuitBreakerState,
+                "CircuitBreakerConfig": CircuitBreakerConfig,
+                "ErrorMonitor": ErrorMonitor,
+                "RetryConfig": RetryConfig,
+                "ErrorHandler": ErrorHandler,
+                "ErrorSeverity": ErrorSeverity,
+                "ErrorCategory": ErrorCategory,
+                "ErrorContext": ErrorContext,
+                "ErrorRecord": ErrorRecord,
+            }[name]
 
         # Configuration imports
         if name in ["ConfigurationManager", "ConfigurationLoader", "ConfigurationWatcher", "ServiceConfiguration", "ConfigFormat", "ConfigurationValidator"]:
-            from .configuration_manager import ConfigurationManager, ConfigurationLoader, ConfigurationWatcher, ServiceConfiguration, ConfigFormat, ConfigurationValidator
-            return locals()[name]
+            from .configuration_manager import (
+                ConfigurationManager,
+                ConfigurationLoader,
+                ConfigurationWatcher,
+                ServiceConfiguration,
+                ConfigFormat,
+                ConfigurationValidator,
+            )
+            return {
+                "ConfigurationManager": ConfigurationManager,
+                "ConfigurationLoader": ConfigurationLoader,
+                "ConfigurationWatcher": ConfigurationWatcher,
+                "ServiceConfiguration": ServiceConfiguration,
+                "ConfigFormat": ConfigFormat,
+                "ConfigurationValidator": ConfigurationValidator,
+            }[name]
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -6,14 +6,13 @@ Main entry point for running the application
 
 import uvicorn
 import sys
-import os
 from pathlib import Path
 
 # Add the project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from Server.config import settings
+from Server.config import settings  # noqa: E402
 
 if __name__ == "__main__":
     print("🚀 Starting Bww-Assistant-chatbot Facebook Messenger Platform...")
@@ -22,7 +21,7 @@ if __name__ == "__main__":
     print(f"🔗 Webhook URL: http://{settings.HOST}:{settings.PORT}/webhook")
     print(f"📊 Dashboard: http://{settings.HOST}:{settings.PORT}/dashboard")
     print("=" * 60)
-    
+
     uvicorn.run(
         "Server.main:app",
         host=settings.HOST,

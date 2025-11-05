@@ -5,10 +5,11 @@ Centralized configuration management with validation
 
 import os
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, overload
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
+
 
 class ConfigurationManager:
     """Centralized configuration management"""
@@ -121,33 +122,44 @@ class ConfigurationManager:
         self._validated = len(missing_fields) == 0
         return missing_fields
 
-    def get_config(self, section: str = None, key: str = None, default: Any = None) -> Any:
+    @overload
+    def get_config(self, section: str) -> Dict[str, Any]:
+        """Get entire section as dictionary"""
+        ...
+
+    @overload
+    def get_config(self, section: str, key: str, default: Any = None) -> Any:
+        """Get specific key from section with optional default"""
+        ...
+
+    def get_config(self, section: str, key: Optional[str] = None, default: Any = None) -> Any:
         """Get configuration value with optional default
 
         Args:
             section: Configuration section (e.g., 'facebook', 'whatsapp', 'ai')
-            key: Configuration key within section
+            key: Configuration key within section (optional - if None, returns entire section)
             default: Default value if key not found
 
         Returns:
-            Configuration value or default
+            Configuration value, entire section dict, or default
         """
         if not self._loaded:
+            self.logger.warning("Configuration not loaded, loading now...")
             self.load_configuration()
 
-        if section is None:
-            return self.config
+        try:
+            # If no key specified, return entire section
+            if key is None:
+                return self.config.get(section, {})
 
-        if key is None:
-            return self.config.get(section, {})
-
-        value = self.config.get(section, {}).get(key)
-
-        # Return default if value is None or empty string
-        if value is None or (isinstance(value, str) and value == ""):
+            # Get specific key from section
+            if section in self.config and key in self.config[section]:
+                value = self.config[section][key]
+                return value if value != "" else default
             return default
-
-        return value
+        except (KeyError, TypeError) as e:
+            self.logger.warning(f"Configuration key not found: {section}.{key} - {e}")
+            return default
 
     def get_facebook_config(self) -> Dict[str, str]:
         """Get Facebook configuration"""
@@ -219,20 +231,25 @@ class ConfigurationManager:
 
         return summary
 
+
 # Global configuration manager instance
 config_manager = ConfigurationManager()
+
 
 def get_config_manager() -> ConfigurationManager:
     """Get the global configuration manager instance"""
     return config_manager
 
+
 def load_configuration() -> bool:
     """Load configuration"""
     return config_manager.load_configuration()
 
+
 def validate_configuration() -> List[str]:
     """Validate configuration"""
     return config_manager.validate_configuration()
+
 
 def get_config(section: str = None, key: str = None) -> Any:
     """Get configuration value"""

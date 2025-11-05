@@ -4,20 +4,20 @@ Centralized service initialization with dependency management and health monitor
 """
 
 import logging
-import asyncio
 import threading
 from typing import Dict, Any, Optional, List, Type
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.services.core.interfaces import ServiceInterface, ServiceConfig, ServiceStatus
-from app.services.infrastructure.di_container import DependencyInjectionContainer, ServiceScope, get_container
-from app.services.infrastructure.service_registry import ServiceRegistry, ServiceDefinition, ServicePriority, get_registry
-from app.services.infrastructure.configuration_manager import ConfigurationManager, get_config_manager
-from app.services.infrastructure.error_handler import ErrorHandler, get_error_handler
+from app.services.core.interfaces import ServiceInterface, ServiceStatus
+from app.services.infrastructure.di_container import DependencyInjectionContainer, ServiceScope
+from app.services.infrastructure.service_registry import ServiceRegistry, ServiceDefinition, ServicePriority
+from app.services.infrastructure.configuration_manager import ConfigurationManager
+from app.services.infrastructure.error_handler import ErrorHandler
 from app.services.core.base_service import BaseService
 
 logger = logging.getLogger(__name__)
+
 
 class ServiceBootstrap:
     """Professional service bootstrap and initialization system"""
@@ -258,10 +258,10 @@ class ServiceBootstrap:
         # The _get_health_monitor_class() method is kept for backward compatibility
 
     def _register_service(self, name: str, service_type: Type[ServiceInterface],
-                         implementation: Optional[Type[ServiceInterface]] = None,
-                         scope: ServiceScope = ServiceScope.SINGLETON,
-                         priority: ServicePriority = ServicePriority.NORMAL,
-                         dependencies: List[str] = None) -> None:
+                          implementation: Optional[Type[ServiceInterface]] = None,
+                          scope: ServiceScope = ServiceScope.SINGLETON,
+                          priority: ServicePriority = ServicePriority.NORMAL,
+                          dependencies: List[str] = None) -> None:
         """Register a service definition"""
         definition = ServiceDefinition(
             name=name,
@@ -491,9 +491,11 @@ class ServiceBootstrap:
         logger.warning("Health monitor service has been archived and is no longer available")
         return None
 
+
 # Global service bootstrap instance
 _service_bootstrap: Optional[ServiceBootstrap] = None
 _bootstrap_lock = threading.Lock()
+
 
 def get_service_bootstrap(config_dir: Optional[str] = None) -> ServiceBootstrap:
     """Get global service bootstrap instance"""
@@ -506,20 +508,24 @@ def get_service_bootstrap(config_dir: Optional[str] = None) -> ServiceBootstrap:
 
     return _service_bootstrap
 
+
 def initialize_services(config_dir: Optional[str] = None) -> bool:
     """Initialize all services"""
     bootstrap = get_service_bootstrap(config_dir)
     return bootstrap.initialize()
+
 
 def get_service(name: str) -> Optional[ServiceInterface]:
     """Get service by name"""
     bootstrap = get_service_bootstrap()
     return bootstrap.get_service(name)
 
+
 def get_all_services() -> Dict[str, ServiceInterface]:
     """Get all services"""
     bootstrap = get_service_bootstrap()
     return bootstrap.get_all_services()
+
 
 def shutdown_services() -> None:
     """Shutdown all services"""

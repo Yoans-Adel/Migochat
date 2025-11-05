@@ -10,9 +10,11 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
+
 def get_project_root():
     """Get project root directory"""
     return Path(__file__).parent.parent
+
 
 def find_pycache_directories(root_dir):
     """Find all __pycache__ directories (exclude venv)"""
@@ -24,6 +26,7 @@ def find_pycache_directories(root_dir):
         if '__pycache__' in dirs:
             pycache_dirs.append(os.path.join(root, '__pycache__'))
     return pycache_dirs
+
 
 def find_cache_files(root_dir):
     """Find all .pyc, .pyo, and .pyd files (exclude venv)"""
@@ -37,6 +40,7 @@ def find_cache_files(root_dir):
                 cache_files.append(os.path.join(root, file))
     return cache_files
 
+
 def find_temp_files(root_dir):
     """Find temporary files in temp/ directory"""
     temp_dir = root_dir / "temp"
@@ -48,6 +52,7 @@ def find_temp_files(root_dir):
         for file in files:
             temp_files.append(os.path.join(root, file))
     return temp_files
+
 
 def clean_pycache():
     """Clean all __pycache__ directories"""
@@ -71,6 +76,7 @@ def clean_pycache():
 
     return cleaned_count
 
+
 def clean_cache_files():
     """Clean all .pyc, .pyo, .pyd files"""
     project_root = get_project_root()
@@ -92,6 +98,7 @@ def clean_cache_files():
             print(f"  ❌ Error removing {cache_file}: {e}")
 
     return cleaned_count
+
 
 def clean_temp_files():
     """Clean temporary files in temp/ directory"""
@@ -121,6 +128,7 @@ def clean_temp_files():
 
     return cleaned_count
 
+
 def clean_pytest_cache():
     """Clean pytest cache directory"""
     project_root = get_project_root()
@@ -137,6 +145,7 @@ def clean_pytest_cache():
     except Exception as e:
         print(f"\n❌ Error removing .pytest_cache: {e}")
         return 0
+
 
 def clean_coverage_files():
     """Clean coverage reports and data files"""
@@ -168,6 +177,7 @@ def clean_coverage_files():
 
     return cleaned_count
 
+
 def clean_empty_dirs():
     """Clean empty directories in temp/"""
     project_root = get_project_root()
@@ -194,6 +204,39 @@ def clean_empty_dirs():
         print("✅ No empty directories found")
 
     return cleaned_count
+
+
+def clean_temporary_docs():
+    """Clean temporary documentation and test files from root"""
+    project_root = get_project_root()
+    cleaned_count = 0
+
+    # List of temporary files to remove
+    temp_docs = [
+        "ERROR_SUMMARY.md",
+        "CODE_QUALITY_REPORT.md",
+        "check_logic_errors.py",
+        "fix_all_errors.py",
+        "fix_critical_errors.py",
+    ]
+
+    print("\n🗑️  Checking for temporary documentation files...")
+
+    for filename in temp_docs:
+        file_path = project_root / filename
+        if file_path.exists():
+            try:
+                os.remove(file_path)
+                print(f"  ✅ Removed: {filename}")
+                cleaned_count += 1
+            except Exception as e:
+                print(f"  ❌ Error removing {filename}: {e}")
+
+    if cleaned_count == 0:
+        print("✅ No temporary documentation files found")
+
+    return cleaned_count
+
 
 def clean_all(keep_temp=True):
     """Clean all cache files"""
@@ -225,6 +268,10 @@ def clean_all(keep_temp=True):
     empty_dirs_count = clean_empty_dirs()
     total_cleaned += empty_dirs_count
 
+    # Clean temporary documentation files
+    temp_docs_count = clean_temporary_docs()
+    total_cleaned += temp_docs_count
+
     # Clean temp files (optional)
     if not keep_temp:
         temp_count = clean_temp_files()
@@ -236,6 +283,7 @@ def clean_all(keep_temp=True):
     print(f"✅ Cleanup complete! Removed {total_cleaned} items")
     print(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     # Check for --all flag to clean temp files too
@@ -249,4 +297,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Error during cleanup: {e}")
         sys.exit(1)
-

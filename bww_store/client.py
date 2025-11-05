@@ -28,6 +28,7 @@ from .models import APIResponse, CacheStrategy
 
 logger = logging.getLogger(__name__)
 
+
 class BWWStoreAPIClient(APIService):
     """Core HTTP client for BWW Store API with enterprise-grade reliability features."""
 
@@ -151,7 +152,7 @@ class BWWStoreAPIClient(APIService):
     @retry_on_error(RetryConfig(max_retries=3, delay=1.0))
     @circuit_breaker("BWWStoreAPIClient", CircuitBreakerConfig(failure_threshold=5))
     async def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None,
-                      cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
+                       cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
         """Make HTTP request with caching and error handling."""
         if not self._within_rate_limit():
             return APIResponse(success=False, error="Rate limit exceeded", status_code=429)
@@ -187,11 +188,11 @@ class BWWStoreAPIClient(APIService):
     @retry_on_error(RetryConfig(max_retries=3, delay=1.0))
     @circuit_breaker("BWWStoreAPIClient", CircuitBreakerConfig(failure_threshold=5))
     async def filter_products(self, *, search: Optional[str] = None, product_code: Optional[str] = None,
-                            colors: Optional[List[str]] = None, sizes: Optional[List[str]] = None,
-                            material: Optional[str] = None, sku_code: Optional[str] = None,
-                            category: Optional[str] = None, min_price: Optional[float] = None,
-                            max_price: Optional[float] = None, page: int = 1, page_size: int = 10,
-                            cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
+                              colors: Optional[List[str]] = None, sizes: Optional[List[str]] = None,
+                              material: Optional[str] = None, sku_code: Optional[str] = None,
+                              category: Optional[str] = None, min_price: Optional[float] = None,
+                              max_price: Optional[float] = None, page: int = 1, page_size: int = 10,
+                              cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
         """Filter products with various criteria."""
         payload: Dict[str, Any] = {}
         if search:

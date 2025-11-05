@@ -13,6 +13,7 @@ from database import AppSettings, get_db_session
 
 logger = logging.getLogger(__name__)
 
+
 class SettingsManager:
     """
     Manages application settings with database storage
@@ -41,7 +42,7 @@ class SettingsManager:
             logger.error(f"Error loading settings from database: {e}")
             return {}
 
-    def _refresh_cache(self):
+    def _refresh_cache(self) -> None:
         """Refresh settings cache from database"""
         self._cache = self._load_from_database()
         self._cache_time = datetime.now(timezone.utc)
@@ -192,7 +193,7 @@ class SettingsManager:
             logger.error(f"Error deleting setting {key}: {e}")
             return False
 
-    def initialize_default_settings(self):
+    def initialize_default_settings(self) -> None:
         """Initialize default settings from environment variables"""
         default_settings = [
             # Facebook
@@ -226,8 +227,10 @@ class SettingsManager:
 
         logger.info("Default settings initialized from environment")
 
+
 # Global instance
 _settings_manager: Optional[SettingsManager] = None
+
 
 def get_settings_manager() -> SettingsManager:
     """Get or create global settings manager instance"""

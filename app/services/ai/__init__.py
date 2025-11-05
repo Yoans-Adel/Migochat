@@ -23,6 +23,7 @@ __all__ = [
     "AIService",
 ]
 
+
 def __getattr__(name: str):
     """Lazy import mechanism for better performance."""
     if name == "GeminiService":

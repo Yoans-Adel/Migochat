@@ -1,5 +1,4 @@
 # Database Configuration for Bww-AI-Assistant
-import os
 from pathlib import Path
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, inspect
 from sqlalchemy.ext.declarative import declarative_base
@@ -33,9 +32,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Enums
+
+
 class MessageDirection(enum.Enum):
     INBOUND = "inbound"
     OUTBOUND = "outbound"
+
 
 class MessageStatus(enum.Enum):
     SENT = "sent"
@@ -43,11 +45,13 @@ class MessageStatus(enum.Enum):
     READ = "read"
     FAILED = "failed"
 
+
 class MessageSource(enum.Enum):
     MESSENGER = "messenger"
     WHATSAPP = "whatsapp"
     LEAD_CENTER = "lead_center"
     MANUAL = "manual"
+
 
 class LeadStage(enum.Enum):
     NEW = "new"
@@ -58,11 +62,13 @@ class LeadStage(enum.Enum):
     CLOSED_WON = "closed_won"
     CLOSED_LOST = "closed_lost"
 
+
 class CustomerLabel(enum.Enum):
     HOT = "hot"
     WARM = "warm"
     COLD = "cold"
     UNQUALIFIED = "unqualified"
+
 
 class CustomerType(enum.Enum):
     INDIVIDUAL = "individual"
@@ -70,11 +76,13 @@ class CustomerType(enum.Enum):
     WHOLESALE = "wholesale"
     RETAIL = "retail"
 
+
 class PostType(enum.Enum):
     POST = "post"
     STORY = "story"
     REEL = "reel"
     AD = "ad"
+
 
 class Governorate(enum.Enum):
     CAIRO = "cairo"
@@ -106,6 +114,8 @@ class Governorate(enum.Enum):
     FAYOUM = "fayoum"
 
 # Database Models
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -136,6 +146,7 @@ class User(Base):
     messages = relationship("Message", back_populates="user")
     conversations = relationship("Conversation", back_populates="user")
     lead_activities = relationship("LeadActivity", back_populates="user")
+
 
 class Message(Base):
     __tablename__ = "messages"
@@ -170,6 +181,7 @@ class Message(Base):
     # Relationships
     user = relationship("User", back_populates="messages")
 
+
 class Conversation(Base):
     __tablename__ = "conversations"
 
@@ -188,6 +200,7 @@ class Conversation(Base):
 
     # Relationships
     user = relationship("User", back_populates="conversations")
+
 
 class LeadActivity(Base):
     __tablename__ = "lead_activities"
@@ -210,6 +223,7 @@ class LeadActivity(Base):
     # Relationships
     user = relationship("User", back_populates="lead_activities")
 
+
 class Post(Base):
     __tablename__ = "posts"
 
@@ -229,6 +243,7 @@ class Post(Base):
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     posted_at = Column(DateTime)
+
 
 class AdCampaign(Base):
     __tablename__ = "ad_campaigns"
@@ -253,6 +268,8 @@ class AdCampaign(Base):
     ended_at = Column(DateTime)
 
 # Database utility functions
+
+
 def get_session():
     """Get database session"""
     db = SessionLocal()
@@ -260,6 +277,7 @@ def get_session():
         yield db
     finally:
         db.close()
+
 
 def create_database():
     """Create all database tables"""
@@ -270,6 +288,7 @@ def create_database():
         print(f"❌ Error creating database tables: {e}")
         raise
 
+
 def drop_database():
     """Drop all database tables"""
     try:
@@ -278,6 +297,7 @@ def drop_database():
     except Exception as e:
         print(f"❌ Error dropping database tables: {e}")
         raise
+
 
 def backup_database():
     """Create a backup of the database"""
@@ -298,6 +318,7 @@ def backup_database():
         print(f"❌ Error creating database backup: {e}")
         raise
 
+
 def restore_database(backup_file):
     """Restore database from backup"""
     try:
@@ -310,6 +331,8 @@ def restore_database(backup_file):
         raise
 
 # Database health check
+
+
 def check_database_health():
     """Check database health and connectivity"""
     try:

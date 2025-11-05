@@ -1,22 +1,22 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy.orm import Session
 import logging
 
-from database import get_session
 from Server.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services directly to avoid circular imports
-from app.services.messaging.message_handler import MessageHandler
-from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
+from app.services.messaging.message_handler import MessageHandler  # noqa: E402
+from app.services.business.facebook_lead_center_service import FacebookLeadCenterService  # noqa: E402
 
 message_handler = MessageHandler()
 facebook_lead_center = FacebookLeadCenterService()
 
 # Helper function for consistent error handling
+
+
 def handle_webhook_error(error: Exception, action: str):
     """Handle webhook errors consistently with security logging"""
     logger.error(f"Error {action}: {error}")
@@ -26,6 +26,8 @@ def handle_webhook_error(error: Exception, action: str):
     raise HTTPException(status_code=500, detail="Internal server error")
 
 # Facebook Messenger Integration Endpoints
+
+
 @router.get("/messenger")
 async def messenger_webhook_get(request: Request):
     """Facebook Messenger webhook verification"""
@@ -49,6 +51,7 @@ async def messenger_webhook_get(request: Request):
         raise
     except Exception as e:
         handle_webhook_error(e, "verifying Messenger webhook")
+
 
 @router.post("/messenger")
 async def messenger_webhook_post(request: Request):
@@ -86,6 +89,8 @@ async def messenger_webhook_post(request: Request):
         handle_webhook_error(e, "processing Messenger webhook")
 
 # WhatsApp Integration Endpoints
+
+
 @router.get("/whatsapp")
 async def whatsapp_webhook_get(request: Request):
     """WhatsApp webhook verification"""
@@ -105,6 +110,7 @@ async def whatsapp_webhook_get(request: Request):
         raise
     except Exception as e:
         handle_webhook_error(e, "verifying WhatsApp webhook")
+
 
 @router.post("/whatsapp")
 async def whatsapp_webhook_post(request: Request):
@@ -146,6 +152,8 @@ async def whatsapp_webhook_post(request: Request):
         handle_webhook_error(e, "processing WhatsApp webhook")
 
 # Telegram Integration Endpoints (for future use)
+
+
 @router.get("/telegram")
 async def telegram_webhook_get(request: Request):
     """Telegram webhook verification"""
@@ -154,6 +162,7 @@ async def telegram_webhook_get(request: Request):
         return {"status": "not_implemented"}
     except Exception as e:
         handle_webhook_error(e, "verifying Telegram webhook")
+
 
 @router.post("/telegram")
 async def telegram_webhook_post(request: Request):
@@ -165,6 +174,8 @@ async def telegram_webhook_post(request: Request):
         handle_webhook_error(e, "processing Telegram webhook")
 
 # Instagram Integration Endpoints (for future use)
+
+
 @router.get("/instagram")
 async def instagram_webhook_get(request: Request):
     """Instagram webhook verification"""
@@ -173,6 +184,7 @@ async def instagram_webhook_get(request: Request):
         return {"status": "not_implemented"}
     except Exception as e:
         handle_webhook_error(e, "verifying Instagram webhook")
+
 
 @router.post("/instagram")
 async def instagram_webhook_post(request: Request):
@@ -184,6 +196,8 @@ async def instagram_webhook_post(request: Request):
         handle_webhook_error(e, "processing Instagram webhook")
 
 # Facebook Lead Center Integration Endpoints
+
+
 @router.get("/leadgen")
 async def leadgen_webhook_get(request: Request):
     """Facebook Lead Center webhook verification"""
@@ -207,6 +221,7 @@ async def leadgen_webhook_get(request: Request):
         raise
     except Exception as e:
         handle_webhook_error(e, "verifying Leadgen webhook")
+
 
 @router.post("/leadgen")
 async def leadgen_webhook_post(request: Request):

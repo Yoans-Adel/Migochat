@@ -1,15 +1,16 @@
 import requests
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from Server.config import settings
-from app.services.core.base_service import APIService
+from app.services.messaging.platform_messaging_service import PlatformMessagingService
 from app.services.infrastructure.error_handler import api_error_handler, retry_on_error, circuit_breaker, RetryConfig, CircuitBreakerConfig
 
 logger = logging.getLogger(__name__)
 
-class MessengerService(APIService):
-    def __init__(self):
+
+class MessengerService(PlatformMessagingService):
+    def __init__(self) -> None:
         super().__init__()
         self.api_url = settings.MESSENGER_API_URL
         self.page_access_token = settings.FB_PAGE_ACCESS_TOKEN
@@ -22,7 +23,7 @@ class MessengerService(APIService):
     @api_error_handler
     @retry_on_error(RetryConfig(max_retries=3, delay=1.0))
     @circuit_breaker("messenger_service", CircuitBreakerConfig(failure_threshold=5))
-    def send_message(self, recipient_id: str, message: str, message_type: str = "text") -> Dict:
+    def send_message(self, recipient_id: str, message: str, message_type: str = "text") -> Dict[str, Any]:
         """Send a text message to a user"""
         url = f"{self.api_url}/me/messages"
 
@@ -47,7 +48,7 @@ class MessengerService(APIService):
             logger.error(f"Error sending message: {e}{error_detail}")
             raise
 
-    def send_quick_reply(self, recipient_id: str, text: str, quick_replies: List[Dict]) -> Dict:
+    def send_quick_reply(self, recipient_id: str, text: str, quick_replies: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Send a message with quick reply buttons"""
         url = f"{self.api_url}/me/messages"
 
@@ -69,7 +70,7 @@ class MessengerService(APIService):
             logger.error(f"Error sending quick reply: {e}")
             raise
 
-    def send_typing_indicator(self, recipient_id: str) -> Dict:
+    def send_typing_indicator(self, recipient_id: str) -> Dict[str, Any]:
         """Send typing indicator"""
         url = f"{self.api_url}/me/messages"
 
@@ -88,7 +89,7 @@ class MessengerService(APIService):
             logger.error(f"Error sending typing indicator: {e}")
             raise
 
-    def get_user_profile(self, psid: str) -> Dict:
+    def get_user_profile(self, psid: str) -> Dict[str, Any]:
         """Get user profile information"""
         url = f"{self.api_url}/{psid}"
 
@@ -105,7 +106,7 @@ class MessengerService(APIService):
             logger.error(f"Error getting user profile: {e}")
             raise
 
-    def send_media(self, recipient_id: str, media_type: str, media_url: str) -> Dict:
+    def send_media(self, recipient_id: str, media_type: str, media_url: str) -> Dict[str, Any]:
         """Send media message (image, file, etc.)"""
         url = f"{self.api_url}/me/messages"
 
@@ -131,7 +132,7 @@ class MessengerService(APIService):
             logger.error(f"Error sending media: {e}")
             raise
 
-    def mark_message_as_read(self, recipient_id: str) -> Dict:
+    def mark_message_as_read(self, recipient_id: str) -> Dict[str, Any]:
         """Mark messages as read"""
         url = f"{self.api_url}/me/messages"
 
@@ -152,11 +153,9 @@ class MessengerService(APIService):
 
     def verify_webhook(self, verify_token: str, challenge: str) -> Optional[str]:
         """Verify webhook subscription"""
-        if verify_token == settings.FB_VERIFY_TOKEN:
-            return challenge
-        return None
+        return super().verify_webhook(verify_token, challenge, settings.FB_VERIFY_TOKEN)
 
-    def _do_initialize(self):
+    def _do_initialize(self) -> None:
         """Initialize Messenger service"""
         # Test API connection
         try:
@@ -170,16 +169,3 @@ class MessengerService(APIService):
             logger.warning(f"Messenger API connection test failed: {e}")
             # Don't raise exception, service can still work with limited functionality
 
-    def make_request(self, method: str, url: str, **kwargs) -> Dict:
-        """Make HTTP request"""
-        try:
-            response = requests.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Request failed: {e}")
-            raise
-
-    def _do_shutdown(self):
-        """Shutdown Messenger service"""
-        logger.info("Messenger service shutdown")

@@ -17,10 +17,9 @@ from fastapi.testclient import TestClient
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-# Import after adding to path
-from Server.config import settings
-from database import Base, get_engine
-from Server.main import app
+# Import after adding to path - required for module discovery
+from database import Base  # noqa: E402
+from Server.main import app  # noqa: E402
 
 
 # ==================== Fixtures ====================
@@ -65,7 +64,7 @@ def client(test_db_engine) -> Generator[TestClient, None, None]:
         autoflush=False,
         bind=test_db_engine
     )
-    
+
     def override_get_session():
         """Override get_session to use test database"""
         session = TestSessionLocal()
@@ -73,14 +72,14 @@ def client(test_db_engine) -> Generator[TestClient, None, None]:
             yield session
         finally:
             session.close()
-    
+
     # Import and override the get_session dependency
     from database import get_session
     app.dependency_overrides[get_session] = override_get_session
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     # Clean up
     app.dependency_overrides.clear()
 
@@ -189,12 +188,12 @@ def mock_gemini_response():
 def create_test_user(db_session):
     """Helper to create test users"""
     from database import User
-    
+
     def _create_user(**kwargs):
         # Generate unique psid if not provided
         if "psid" not in kwargs:
             kwargs["psid"] = f"test_{uuid.uuid4().hex[:12]}"
-        
+
         defaults = {
             "first_name": "Test",
             "last_name": "User",
@@ -206,7 +205,7 @@ def create_test_user(db_session):
         db_session.commit()
         db_session.refresh(user)
         return user
-    
+
     return _create_user
 
 
@@ -214,17 +213,17 @@ def create_test_user(db_session):
 def create_test_message(db_session, create_test_user):
     """Helper to create test messages"""
     from database import Message, MessageDirection, MessageStatus
-    
+
     def _create_message(**kwargs):
         # Create user if not provided
         if "user_id" not in kwargs:
             user = create_test_user()
             kwargs["user_id"] = user.id
-        
+
         # Generate unique facebook_message_id if not provided
         if "facebook_message_id" not in kwargs:
             kwargs["facebook_message_id"] = f"test_msg_{uuid.uuid4().hex[:12]}"
-        
+
         defaults = {
             "sender_id": "sender_123",
             "recipient_id": "page_123",
@@ -239,7 +238,7 @@ def create_test_message(db_session, create_test_user):
         db_session.commit()
         db_session.refresh(message)
         return message
-    
+
     return _create_message
 
 
@@ -247,19 +246,19 @@ def create_test_message(db_session, create_test_user):
 def create_test_conversation(db_session, create_test_user):
     """Helper to create test conversations"""
     from database import Conversation
-    
+
     def _create_conversation(**kwargs):
         if "user_id" not in kwargs:
             user = create_test_user()
             kwargs["user_id"] = user.id
-        
+
         # Conversation doesn't have platform field
         conversation = Conversation(**kwargs)
         db_session.add(conversation)
         db_session.commit()
         db_session.refresh(conversation)
         return conversation
-    
+
     return _create_conversation
 
 

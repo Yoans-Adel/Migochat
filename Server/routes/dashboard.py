@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
-from typing import List, Optional
+from sqlalchemy import desc
 from datetime import datetime, timedelta, timezone
 import logging
 
-from database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity
+from database import get_db_session, User, Message, Conversation
 from Server.config import settings
 import os
 
@@ -20,21 +19,25 @@ templates_dir = os.path.join(base_dir, "app", "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize services directly to avoid circular imports
-from app.services.messaging.messenger_service import MessengerService
-from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
+from app.services.messaging.messenger_service import MessengerService  # noqa: E402
+from app.services.business.facebook_lead_center_service import FacebookLeadCenterService  # noqa: E402
 
 messenger_service = MessengerService()
 lead_automation = FacebookLeadCenterService()
 
 # Helper functions
+
+
 def get_users_by_last_message(db: Session, limit: int = 100):
     """Get users ordered by last message timestamp"""
     return db.query(User).order_by(desc(User.last_message_at)).limit(limit).all()
+
 
 def handle_dashboard_error(error: Exception, view_name: str):
     """Handle dashboard errors consistently"""
     logger.error(f"Error loading {view_name}: {error}")
     raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.get("/", response_class=HTMLResponse)
 async def dashboard_home(request: Request):
@@ -69,10 +72,10 @@ async def dashboard_home(request: Request):
                 "total_users": total_users,
                 "total_messages": total_messages,
                 "active_conversations": active_conversations,
-            "active_users": active_users,
-            "recent_messages": recent_messages,
-            "lead_analytics": lead_analytics
-        }
+                "active_users": active_users,
+                "recent_messages": recent_messages,
+                "lead_analytics": lead_analytics
+            }
 
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
@@ -81,6 +84,7 @@ async def dashboard_home(request: Request):
 
     except Exception as e:
         handle_dashboard_error(e, "dashboard")
+
 
 @router.get("/leads", response_class=HTMLResponse)
 async def leads_view(request: Request):
@@ -107,6 +111,7 @@ async def leads_view(request: Request):
         logger.error(f"Error in leads_view: {e}", exc_info=True)
         handle_dashboard_error(e, "leads view")
 
+
 @router.get("/messages", response_class=HTMLResponse)
 async def messages_view(request: Request):
     """Messages management page"""
@@ -125,6 +130,7 @@ async def messages_view(request: Request):
     except Exception as e:
         handle_dashboard_error(e, "messages view")
 
+
 @router.get("/users", response_class=HTMLResponse)
 async def users_view(request: Request):
     """Users management page"""
@@ -140,6 +146,7 @@ async def users_view(request: Request):
 
     except Exception as e:
         handle_dashboard_error(e, "users view")
+
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_view(request: Request):

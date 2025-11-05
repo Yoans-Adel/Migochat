@@ -11,14 +11,15 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from database.manager import get_database_manager
-from database.engine import get_database_path, database_exists
+from database.manager import get_database_manager  # noqa: E402
+from database.engine import get_database_path, database_exists  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 def health_check_cli():
     """Perform database health check from command line"""
@@ -90,6 +91,7 @@ def health_check_cli():
 
     logger.info("\n✅ Health check completed successfully!")
     return True
+
 
 if __name__ == "__main__":
     success = health_check_cli()

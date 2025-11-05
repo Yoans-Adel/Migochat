@@ -6,19 +6,20 @@ Professional service base classes with comprehensive functionality
 import logging
 import asyncio
 import time
-from typing import Dict, Any, Optional, List, Type, TypeVar
+from typing import Dict, Any, Optional, List, TypeVar
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from enum import Enum
 from contextlib import asynccontextmanager
 
 from app.services.core.interfaces import ServiceInterface, ServiceHealth, ServiceStatus, ServiceConfig
-from app.services.infrastructure.di_container import DependencyInjectionContainer, get_container
+from app.services.infrastructure.di_container import get_container
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
+
 
 class ServiceState(Enum):
     """Service state enumeration"""
@@ -27,6 +28,7 @@ class ServiceState(Enum):
     RUNNING = "running"
     STOPPING = "stopping"
     ERROR = "error"
+
 
 @dataclass
 class ServiceMetrics:
@@ -61,6 +63,7 @@ class ServiceMetrics:
                 (self.average_response_time * (self.request_count - 1) + response_time)
                 / self.request_count
             )
+
 
 class BaseService(ABC):
     """Enhanced base service class with comprehensive functionality"""
@@ -338,6 +341,7 @@ class BaseService(ABC):
             self.record_request(response_time, success)
             self.logger.debug(f"Completed {operation_name} in {response_time:.3f}s")
 
+
 class DatabaseService(BaseService):
     """Enhanced database service base class"""
 
@@ -369,6 +373,7 @@ class DatabaseService(BaseService):
     def get_session(self):
         """Get database session"""
         pass
+
 
 class APIService(BaseService):
     """Enhanced API service base class"""
@@ -403,6 +408,7 @@ class APIService(BaseService):
     def make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """Make API request"""
         pass
+
 
 class MessageService(BaseService):
     """Enhanced message service base class"""
@@ -440,6 +446,7 @@ class MessageService(BaseService):
         """Process incoming message"""
         pass
 
+
 class AIService(BaseService):
     """Enhanced AI service base class"""
 
@@ -476,6 +483,7 @@ class AIService(BaseService):
         """Detect user intent"""
         pass
 
+
 class LeadService(BaseService):
     """Enhanced lead service base class"""
 
@@ -490,7 +498,7 @@ class LeadService(BaseService):
             # Initialize lead-specific data
             self.lead_stages = ["Intake", "Qualified", "In-Progress", "Converted"]
             self.customer_types = ["SCARCITY_BUYER", "EMOTIONAL_BUYER", "VALUE_SEEKER",
-                                  "LOYAL_BUYER", "LOGICAL_BUYER", "BARGAIN_HUNTER", "HESITANT_BUYER"]
+                                   "LOYAL_BUYER", "LOGICAL_BUYER", "BARGAIN_HUNTER", "HESITANT_BUYER"]
 
             # Add lead-specific health check
             self.add_health_check(self._check_lead_service)
@@ -516,6 +524,7 @@ class LeadService(BaseService):
     def calculate_lead_score(self, user: Any) -> int:
         """Calculate lead score"""
         pass
+
 
 class ProductService(BaseService):
     """Enhanced product service base class"""

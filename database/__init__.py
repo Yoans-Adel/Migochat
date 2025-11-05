@@ -50,6 +50,12 @@ from database.context import (
     execute_db_operation
 )
 
+from database.utils import (
+    enum_to_value,
+    enum_to_name,
+    safe_enum_comparison
+)
+
 __all__ = [
     # Enums
     "MessageSource",
@@ -87,4 +93,8 @@ __all__ = [
     "DatabaseSessionManager",
     "get_safe_session",
     "execute_db_operation",
+    # Utils
+    "enum_to_value",
+    "enum_to_name",
+    "safe_enum_comparison",
 ]

@@ -1,9 +1,9 @@
 # Centralized Logging Configuration for Bww-AI-Assistant
 import logging
 import logging.handlers
-import os
 from pathlib import Path
 from datetime import datetime
+
 
 def setup_logging():
     """Setup centralized logging configuration"""
@@ -189,6 +189,7 @@ def setup_logging():
 
     return handlers, log_files
 
+
 def get_logger(name: str, log_type: str = 'app'):
     """Get a logger with specific configuration"""
     logger = logging.getLogger(name)
@@ -199,6 +200,7 @@ def get_logger(name: str, log_type: str = 'app'):
         pass
 
     return logger
+
 
 # Initialize logging when this module is imported
 if __name__ != "__main__":

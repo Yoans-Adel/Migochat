@@ -30,7 +30,7 @@ bootstrap = ServiceBootstrap()
 await bootstrap.initialize_services()
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Re-export commonly used items for convenience
 if TYPE_CHECKING:
@@ -92,33 +92,75 @@ __all__ = [
     "MessageSourceTracker",
 ]
 
-def __getattr__(name: str):
+
+def __getattr__(name: str) -> Any:
     """Lazy import mechanism for optimal performance."""
     if name in __all__:
         # Core imports
         if name in ["ServiceInterface", "AIServiceInterface", "MessageServiceInterface", "BaseService", "APIService", "MessageService"]:
-            from .core import ServiceInterface, AIServiceInterface, MessageServiceInterface, BaseService, APIService, MessageService
-            return locals()[name]
+            from .core import (
+                ServiceInterface,
+                AIServiceInterface,
+                MessageServiceInterface,
+                BaseService,
+                APIService,
+                MessageService,
+            )
+            return {
+                "ServiceInterface": ServiceInterface,
+                "AIServiceInterface": AIServiceInterface,
+                "MessageServiceInterface": MessageServiceInterface,
+                "BaseService": BaseService,
+                "APIService": APIService,
+                "MessageService": MessageService,
+            }[name]
 
         # Infrastructure imports
         if name in ["DependencyInjectionContainer", "ServiceRegistry", "get_container"]:
-            from .infrastructure import DependencyInjectionContainer, ServiceRegistry, get_container
-            return locals()[name]
+            from .infrastructure import (
+                DependencyInjectionContainer,
+                ServiceRegistry,
+                get_container,
+            )
+            return {
+                "DependencyInjectionContainer": DependencyInjectionContainer,
+                "ServiceRegistry": ServiceRegistry,
+                "get_container": get_container,
+            }[name]
 
         # Messaging imports
         if name in ["MessengerService", "WhatsAppService", "MessageHandler"]:
-            from .messaging import MessengerService, WhatsAppService, MessageHandler
-            return locals()[name]
+            from .messaging import (
+                MessengerService,
+                WhatsAppService,
+                MessageHandler,
+            )
+            return {
+                "MessengerService": MessengerService,
+                "WhatsAppService": WhatsAppService,
+                "MessageHandler": MessageHandler,
+            }[name]
 
         # AI imports
         if name in ["GeminiService", "AIService"]:
             from .ai import GeminiService, AIService
-            return locals()[name]
+            return {
+                "GeminiService": GeminiService,
+                "AIService": AIService,
+            }[name]
 
         # Business imports
         if name in ["FacebookLeadCenterService", "KeywordManager", "MessageSourceTracker"]:
-            from .business import FacebookLeadCenterService, KeywordManager, MessageSourceTracker
-            return locals()[name]
+            from .business import (
+                FacebookLeadCenterService,
+                KeywordManager,
+                MessageSourceTracker,
+            )
+            return {
+                "FacebookLeadCenterService": FacebookLeadCenterService,
+                "KeywordManager": KeywordManager,
+                "MessageSourceTracker": MessageSourceTracker,
+            }[name]
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     # files for proper Python package structure

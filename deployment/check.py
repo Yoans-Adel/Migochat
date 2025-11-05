@@ -10,7 +10,7 @@ from pathlib import Path
 def check_files():
     """Check required files exist"""
     print("📋 Checking deployment files...\n")
-    
+
     required = {
         "requirements.txt": "Python dependencies",
         "Procfile": "Process configuration",
@@ -18,7 +18,7 @@ def check_files():
         "Server/main.py": "FastAPI application",
         ".env": "Environment variables"
     }
-    
+
     missing = []
     for file, desc in required.items():
         path = Path(file)
@@ -27,20 +27,25 @@ def check_files():
         else:
             print(f"  ❌ {file} - MISSING")
             missing.append(file)
-    
+
     return len(missing) == 0
 
 
 def check_imports():
     """Check imports work"""
     print("\n🔍 Checking imports...\n")
-    
+
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent))
         from Server.main import app
         from Server.config import settings
-        print("  ✅ All imports working")
-        return True
+        # Verify imports work by checking they're not None
+        if app is not None and settings is not None:
+            print("  ✅ All imports working")
+            return True
+        else:
+            print("  ❌ Imports returned None")
+            return False
     except ImportError as e:
         print(f"  ❌ Import error: {e}")
         return False
@@ -49,10 +54,10 @@ def check_imports():
 def show_env_vars():
     """Show required environment variables"""
     print("\n📝 Required environment variables:\n")
-    
+
     vars_needed = [
         "FB_APP_ID",
-        "FB_APP_SECRET", 
+        "FB_APP_SECRET",
         "FB_PAGE_ACCESS_TOKEN",
         "FB_VERIFY_TOKEN",
         "WHATSAPP_ACCESS_TOKEN",
@@ -62,7 +67,7 @@ def show_env_vars():
         "DEBUG",
         "TIMEZONE"
     ]
-    
+
     for var in vars_needed:
         print(f"  • {var}")
 
@@ -72,13 +77,13 @@ def main():
     print("🚀 DEPLOYMENT READINESS CHECK")
     print("=" * 60)
     print()
-    
+
     files_ok = check_files()
     imports_ok = check_imports()
     show_env_vars()
-    
+
     print("\n" + "=" * 60)
-    
+
     if files_ok and imports_ok:
         print("✅ DEPLOYMENT READY!")
         print("=" * 60)

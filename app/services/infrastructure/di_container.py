@@ -10,17 +10,19 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 
-from app.services.core.interfaces import ServiceInterface, ServiceConfig, ServiceStatus
+from app.services.core.interfaces import ServiceInterface, ServiceConfig
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T', bound=ServiceInterface)
+
 
 class ServiceScope(Enum):
     """Service scope enumeration"""
     SINGLETON = "singleton"
     TRANSIENT = "transient"
     SCOPED = "scoped"
+
 
 @dataclass
 class ServiceRegistration:
@@ -33,6 +35,7 @@ class ServiceRegistration:
     config: Optional[ServiceConfig] = None
     dependencies: List[str] = None
 
+
 class DependencyInjectionContainer:
     """Professional dependency injection container"""
 
@@ -43,28 +46,28 @@ class DependencyInjectionContainer:
         self._logger = logging.getLogger(__name__)
 
     def register_singleton(self, name: str, service_type: Type[T],
-                          implementation: Optional[Type[T]] = None,
-                          factory: Optional[Callable[[], T]] = None,
-                          config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
+                           implementation: Optional[Type[T]] = None,
+                           factory: Optional[Callable[[], T]] = None,
+                           config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
         """Register singleton service"""
         return self._register_service(name, service_type, implementation, factory,
-                                    ServiceScope.SINGLETON, config)
+                                      ServiceScope.SINGLETON, config)
 
     def register_transient(self, name: str, service_type: Type[T],
-                          implementation: Optional[Type[T]] = None,
-                          factory: Optional[Callable[[], T]] = None,
-                          config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
+                           implementation: Optional[Type[T]] = None,
+                           factory: Optional[Callable[[], T]] = None,
+                           config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
         """Register transient service"""
         return self._register_service(name, service_type, implementation, factory,
-                                    ServiceScope.TRANSIENT, config)
+                                      ServiceScope.TRANSIENT, config)
 
     def register_scoped(self, name: str, service_type: Type[T],
-                       implementation: Optional[Type[T]] = None,
-                       factory: Optional[Callable[[], T]] = None,
-                       config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
+                        implementation: Optional[Type[T]] = None,
+                        factory: Optional[Callable[[], T]] = None,
+                        config: Optional[ServiceConfig] = None) -> 'DependencyInjectionContainer':
         """Register scoped service"""
         return self._register_service(name, service_type, implementation, factory,
-                                    ServiceScope.SCOPED, config)
+                                      ServiceScope.SCOPED, config)
 
     def _register_service(self, name: str, service_type: Type[T],
                           implementation: Optional[Type[T]] = None,
@@ -289,9 +292,11 @@ class DependencyInjectionContainer:
                     except Exception as e:
                         self._logger.error(f"Error shutting down scoped service: {e}")
 
+
 # Global DI container instance
 _di_container: Optional[DependencyInjectionContainer] = None
 _container_lock = threading.Lock()
+
 
 def get_container() -> DependencyInjectionContainer:
     """Get global DI container instance"""
@@ -304,11 +309,12 @@ def get_container() -> DependencyInjectionContainer:
 
     return _di_container
 
+
 def register_service(name: str, service_type: Type[T],
-                    implementation: Optional[Type[T]] = None,
-                    factory: Optional[Callable[[], T]] = None,
-                    scope: ServiceScope = ServiceScope.SINGLETON,
-                    config: Optional[ServiceConfig] = None) -> DependencyInjectionContainer:
+                     implementation: Optional[Type[T]] = None,
+                     factory: Optional[Callable[[], T]] = None,
+                     scope: ServiceScope = ServiceScope.SINGLETON,
+                     config: Optional[ServiceConfig] = None) -> DependencyInjectionContainer:
     """Register service in global container"""
     container = get_container()
 
@@ -321,13 +327,16 @@ def register_service(name: str, service_type: Type[T],
     else:
         raise ValueError(f"Unknown scope: {scope}")
 
+
 def get_service(name: str) -> Optional[ServiceInterface]:
     """Get service from global container"""
     return get_container().get_service(name)
 
+
 def get_service_by_type(service_type: Type[T]) -> Optional[T]:
     """Get service by type from global container"""
     return get_container().get_service_by_type(service_type)
+
 
 def shutdown_container() -> None:
     """Shutdown global container"""

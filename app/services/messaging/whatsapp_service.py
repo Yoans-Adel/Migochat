@@ -1,17 +1,16 @@
 import logging
 import requests
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from Server.config import settings
-from datetime import datetime
-import json
-from app.services.core.base_service import APIService
+from app.services.messaging.platform_messaging_service import PlatformMessagingService
 
 logger = logging.getLogger(__name__)
 
-class WhatsAppService(APIService):
+
+class WhatsAppService(PlatformMessagingService):
     """Service for integrating with WhatsApp Business API"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.api_url = "https://graph.facebook.com/v24.0"
         self.access_token = settings.WHATSAPP_ACCESS_TOKEN
@@ -22,7 +21,7 @@ class WhatsAppService(APIService):
         # Initialize the service
         self.initialize()
 
-    def send_message(self, to: str, message: str, message_type: str = "text") -> Dict:
+    def send_message(self, to: str, message: str, message_type: str = "text") -> Dict[str, Any]:
         """Send a text message via WhatsApp Business API"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
@@ -49,7 +48,7 @@ class WhatsAppService(APIService):
             logger.error(f"Error sending WhatsApp message: {e}")
             raise
 
-    def send_template_message(self, to: str, template_name: str, template_params: List[str] = None) -> Dict:
+    def send_template_message(self, to: str, template_name: str, template_params: List[str] = None) -> Dict[str, Any]:
         """Send a template message via WhatsApp Business API"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
@@ -88,7 +87,7 @@ class WhatsAppService(APIService):
             raise
 
     def send_interactive_message(self, to: str, header_text: str, body_text: str,
-                               footer_text: str = None, buttons: List[Dict] = None) -> Dict:
+                                 footer_text: Optional[str] = None, buttons: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """Send an interactive message with buttons"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
@@ -125,7 +124,7 @@ class WhatsAppService(APIService):
             raise
 
     def send_list_message(self, to: str, header_text: str, body_text: str,
-                         button_text: str, sections: List[Dict]) -> Dict:
+                          button_text: str, sections: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Send a list message"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
@@ -157,7 +156,7 @@ class WhatsAppService(APIService):
             logger.error(f"Error sending WhatsApp list message: {e}")
             raise
 
-    def mark_message_as_read(self, message_id: str) -> Dict:
+    def mark_message_as_read(self, message_id: str) -> Dict[str, Any]:
         """Mark a message as read"""
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
@@ -213,20 +212,4 @@ class WhatsAppService(APIService):
 
     def verify_webhook(self, verify_token: str, challenge: str) -> Optional[str]:
         """Verify WhatsApp webhook subscription"""
-        if verify_token == self.verify_token:
-            return challenge
-        return None
-
-    def make_request(self, method: str, url: str, **kwargs) -> Dict:
-        """Make HTTP request"""
-        try:
-            response = requests.request(method, url, **kwargs)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Request failed: {e}")
-            raise
-
-    def _do_shutdown(self):
-        """Shutdown WhatsApp service"""
-        logger.info("WhatsApp service shutdown")
+        return super().verify_webhook(verify_token, challenge, self.verify_token)

@@ -7,7 +7,6 @@ BWW Assistant Chatbot - Environment Setup
 import os
 import sys
 import subprocess
-import logging
 from pathlib import Path
 
 # Add project root to Python path
@@ -16,11 +15,12 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger
+from config.logging_config import setup_logging, get_logger  # noqa: E402
 
 # Setup logging
 setup_logging()
 logger = get_logger(__name__)
+
 
 def create_virtual_environment():
     """إنشاء البيئة الافتراضية"""
@@ -32,6 +32,7 @@ def create_virtual_environment():
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ خطأ في إنشاء البيئة الافتراضية: {e}")
         return False
+
 
 def install_dependencies():
     """تثبيت التبعيات"""
@@ -50,6 +51,7 @@ def install_dependencies():
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ خطأ في تثبيت التبعيات: {e}")
         return False
+
 
 def create_directories():
     """إنشاء المجلدات المطلوبة"""
@@ -71,6 +73,7 @@ def create_directories():
     except Exception as e:
         logger.error(f"❌ خطأ في إنشاء المجلدات: {e}")
         return False
+
 
 def create_env_file():
     """إنشاء ملف .env"""
@@ -110,6 +113,7 @@ GEMINI_API_KEY=your_gemini_api_key
         logger.error(f"❌ خطأ في إنشاء ملف .env: {e}")
         return False
 
+
 def setup_environment():
     """إعداد البيئة الكاملة"""
     try:
@@ -138,6 +142,7 @@ def setup_environment():
     except Exception as e:
         logger.error(f"❌ خطأ في إعداد البيئة: {e}")
         return False
+
 
 if __name__ == "__main__":
     success = setup_environment()

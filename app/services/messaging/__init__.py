@@ -11,7 +11,7 @@ This module provides:
 Enables seamless communication across multiple messaging platforms.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Lazy imports for better performance
 if TYPE_CHECKING:
@@ -25,7 +25,8 @@ __all__ = [
     "MessageHandler",
 ]
 
-def __getattr__(name: str):
+
+def __getattr__(name: str) -> Any:
     """Lazy import mechanism for better performance."""
     if name == "MessengerService":
         from .messenger_service import MessengerService

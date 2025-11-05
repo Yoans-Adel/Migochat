@@ -1,8 +1,5 @@
 import logging
-from typing import Optional, Dict, Any, List, Union
-import json
-import mimetypes
-from pathlib import Path
+from typing import Optional, Dict, Any, List
 from Server.config import settings
 from app.services.core.base_service import AIService as BaseAIService
 
@@ -20,13 +17,14 @@ try:
 except ImportError as import_error:
     logger.info(f"Gemini package not available: {import_error}")
 
+
 class GeminiService(BaseAIService):
     """
     Advanced Gemini AI service with multimodal support
     Supports: Text, Images, Audio → Text responses
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.api_key = settings.GEMINI_API_KEY
 
@@ -41,7 +39,7 @@ class GeminiService(BaseAIService):
         # Initialize the service
         self.initialize()
 
-    def _initialize_models(self):
+    def _initialize_models(self) -> None:
         """Initialize multiple models for different use cases"""
         if not gemini_available:
             # Suppress warning on first initialization only
@@ -64,8 +62,8 @@ class GeminiService(BaseAIService):
             try:
                 self.models['text_fast'] = genai.GenerativeModel('gemma-3-27b-it')
                 logger.info("✅ Fast text model initialized: gemma-3-27b-it")
-            except Exception as e:
-                logger.warning(f"Gemma not available, using gemini-2.5-flash-lite as fallback")
+            except Exception:
+                logger.warning("Gemma not available, using gemini-2.5-flash-lite as fallback")
                 try:
                     self.models['text_fast'] = genai.GenerativeModel('gemini-2.5-flash-lite')
                     logger.info("✅ Fast text fallback: gemini-2.5-flash-lite")
@@ -76,7 +74,7 @@ class GeminiService(BaseAIService):
             try:
                 self.models['text_quality'] = genai.GenerativeModel('gemini-2.5-pro')
                 logger.info("✅ Quality text model initialized: gemini-2.5-pro")
-            except Exception as e:
+            except Exception:
                 # Fallback to flash if pro not available
                 self.models['text_quality'] = self.models['multimodal']
 
@@ -441,7 +439,7 @@ Respond naturally:"""
             "strategy": "Smart routing: text-only → Gemma (fast), multimodal → Gemini Flash"
         }
 
-    def _do_initialize(self):
+    def _do_initialize(self) -> None:
         """Initialize Gemini service"""
         self._initialize_models()
 
@@ -484,4 +482,3 @@ Respond naturally:"""
                 "error": str(e),
                 "model_used": "fallback"
             }
-

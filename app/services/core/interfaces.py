@@ -3,11 +3,11 @@ Service Interfaces for BWW Assistant Chatbot
 Defines contracts and interfaces for all services
 """
 
-from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, List, Protocol, runtime_checkable
 from dataclasses import dataclass
 from enum import Enum
 from datetime import datetime
+
 
 class ServiceStatus(Enum):
     """Service status enumeration"""
@@ -15,6 +15,7 @@ class ServiceStatus(Enum):
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
     UNKNOWN = "unknown"
+
 
 @dataclass
 class ServiceHealth:
@@ -25,6 +26,7 @@ class ServiceHealth:
     metrics: Dict[str, Any]
     dependencies: List[str]
 
+
 @dataclass
 class ServiceConfig:
     """Service configuration"""
@@ -34,6 +36,7 @@ class ServiceConfig:
     retry_count: int
     dependencies: List[str]
     config: Dict[str, Any]
+
 
 @runtime_checkable
 class ServiceInterface(Protocol):
@@ -58,6 +61,7 @@ class ServiceInterface(Protocol):
 # DatabaseServiceInterface removed - archived with database_service_professional.py
 # Database operations now handled directly through app.database module
 
+
 class AIServiceInterface(ServiceInterface, Protocol):
     """AI service interface"""
 
@@ -73,6 +77,7 @@ class AIServiceInterface(ServiceInterface, Protocol):
         """Extract entities from message"""
         ...
 
+
 class MessageServiceInterface(ServiceInterface, Protocol):
     """Message service interface"""
 
@@ -84,6 +89,7 @@ class MessageServiceInterface(ServiceInterface, Protocol):
         """Process incoming message"""
         ...
 
+
 class APIServiceInterface(ServiceInterface, Protocol):
     """API service interface"""
 
@@ -94,6 +100,7 @@ class APIServiceInterface(ServiceInterface, Protocol):
     def get_headers(self) -> Dict[str, str]:
         """Get API headers"""
         ...
+
 
 class LeadServiceInterface(ServiceInterface, Protocol):
     """Lead management service interface"""
@@ -110,6 +117,7 @@ class LeadServiceInterface(ServiceInterface, Protocol):
         """Update lead stage"""
         ...
 
+
 class ProductServiceInterface(ServiceInterface, Protocol):
     """Product service interface"""
 
@@ -125,6 +133,7 @@ class ProductServiceInterface(ServiceInterface, Protocol):
         """Get product recommendations"""
         ...
 
+
 class NotificationServiceInterface(ServiceInterface, Protocol):
     """Notification service interface"""
 
@@ -136,6 +145,7 @@ class NotificationServiceInterface(ServiceInterface, Protocol):
         """Schedule notification"""
         ...
 
+
 class AnalyticsServiceInterface(ServiceInterface, Protocol):
     """Analytics service interface"""
 
@@ -146,6 +156,7 @@ class AnalyticsServiceInterface(ServiceInterface, Protocol):
     def get_analytics(self, time_range: str) -> Dict[str, Any]:
         """Get analytics data"""
         ...
+
 
 class CacheServiceInterface(ServiceInterface, Protocol):
     """Cache service interface"""
@@ -166,6 +177,7 @@ class CacheServiceInterface(ServiceInterface, Protocol):
         """Clear all cache"""
         ...
 
+
 class SecurityServiceInterface(ServiceInterface, Protocol):
     """Security service interface"""
 
@@ -181,6 +193,7 @@ class SecurityServiceInterface(ServiceInterface, Protocol):
         """Decrypt data"""
         ...
 
+
 class ConfigurationServiceInterface(ServiceInterface, Protocol):
     """Configuration service interface"""
 
@@ -195,6 +208,7 @@ class ConfigurationServiceInterface(ServiceInterface, Protocol):
     def reload_config(self) -> bool:
         """Reload configuration"""
         ...
+
 
 class LoggingServiceInterface(ServiceInterface, Protocol):
     """Logging service interface"""
@@ -214,6 +228,7 @@ class LoggingServiceInterface(ServiceInterface, Protocol):
     def log_debug(self, message: str, **kwargs) -> None:
         """Log debug message"""
         ...
+
 
 class ServiceRegistryInterface(Protocol):
     """Service registry interface"""
@@ -238,6 +253,7 @@ class ServiceRegistryInterface(Protocol):
         """Get service dependencies"""
         ...
 
+
 class ServiceFactoryInterface(Protocol):
     """Service factory interface"""
 
@@ -248,6 +264,7 @@ class ServiceFactoryInterface(Protocol):
     def get_supported_services(self) -> List[str]:
         """Get list of supported service types"""
         ...
+
 
 class ServiceLifecycleInterface(Protocol):
     """Service lifecycle management interface"""

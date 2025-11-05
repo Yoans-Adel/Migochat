@@ -12,6 +12,7 @@ from database.engine import get_session
 
 logger = logging.getLogger(__name__)
 
+
 @contextmanager
 def get_db_session() -> Generator[Session, None, None]:
     """
@@ -46,6 +47,7 @@ def get_db_session() -> Generator[Session, None, None]:
     finally:
         if session:
             session.close()
+
 
 @contextmanager
 def get_db_session_with_commit() -> Generator[Session, None, None]:
@@ -83,6 +85,7 @@ def get_db_session_with_commit() -> Generator[Session, None, None]:
     finally:
         if session:
             session.close()
+
 
 class DatabaseSessionManager:
     """Enhanced database session manager with retry logic"""
@@ -165,8 +168,10 @@ class DatabaseSessionManager:
         if last_error:
             raise last_error
 
+
 # Global session manager instance
 _session_manager = DatabaseSessionManager()
+
 
 def get_safe_session(auto_commit: bool = False):
     """
@@ -179,6 +184,7 @@ def get_safe_session(auto_commit: bool = False):
         Context manager for database session
     """
     return _session_manager.get_session(auto_commit=auto_commit)
+
 
 def execute_db_operation(operation, *args, **kwargs):
     """

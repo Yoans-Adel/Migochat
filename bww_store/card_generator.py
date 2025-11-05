@@ -10,6 +10,7 @@ from typing import Any, Dict
 
 from .product_formatter import parse_product_data
 
+
 def _create_product_link(product: Dict[str, Any], language: str = "ar") -> str:
     """Create BWW Store product link matching their actual format.
 
@@ -45,6 +46,7 @@ def _create_product_link(product: Dict[str, Any], language: str = "ar") -> str:
     lang_prefix = "ar" if language == "ar" else "en"
     return f"https://bww-store.com/{lang_prefix}/product-details/{slug}/{product_id}"
 
+
 def _create_size_guide(product: Dict[str, Any], language: str) -> str:
     """Create size guide if sizes are available."""
     sizes = product.get("sizes", [])
@@ -59,6 +61,7 @@ def _create_size_guide(product: Dict[str, Any], language: str) -> str:
         size_list = [f"• {s}" for s in sizes[:5]]
 
     return "\n".join([title] + size_list)
+
 
 def _create_features(product: Dict[str, Any], language: str) -> str:
     """Create features list from product data."""
@@ -78,6 +81,7 @@ def _create_features(product: Dict[str, Any], language: str) -> str:
         features.append("• شحن مجاني 🚚" if language == "ar" else "• Free Delivery 🚚")
 
     return "\n".join(features) if features else ""
+
 
 def generate_product_card(product: Dict[str, Any], language: str = "ar") -> Dict[str, Any]:
     """Generate a complete product card for Messenger with BWW Store link.

@@ -1,17 +1,18 @@
 import logging
-from typing import Dict, List, Optional
-from database import User, Message, MessageSource, PostType, Post, AdCampaign, get_session, MessageDirection
+from typing import Dict, Optional, Any
+from database import Message, MessageSource, PostType, Post, AdCampaign, MessageDirection
 from database.context import get_db_session
 from datetime import datetime, timedelta, timezone
 import json
 
 logger = logging.getLogger(__name__)
 
+
 class MessageSourceTracker:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def detect_message_source(self, webhook_data: Dict, psid: str) -> MessageSource:
+    def detect_message_source(self, webhook_data: Dict[str, Any], psid: str) -> MessageSource:
         """Detect the source of incoming message"""
         try:
             # Check if message is from an ad
@@ -33,7 +34,7 @@ class MessageSourceTracker:
             logger.error(f"Error detecting message source: {e}")
             return MessageSource.DIRECT_MESSAGE
 
-    def _is_from_ad(self, webhook_data: Dict) -> bool:
+    def _is_from_ad(self, webhook_data: Dict[str, Any]) -> bool:
         """Check if message originated from an advertisement"""
         try:
             for entry in webhook_data.get("entry", []):
@@ -54,7 +55,7 @@ class MessageSourceTracker:
             logger.error(f"Error checking ad source: {e}")
             return False
 
-    def _is_from_comment(self, webhook_data: Dict) -> bool:
+    def _is_from_comment(self, webhook_data: Dict[str, Any]) -> bool:
         """Check if message originated from a comment"""
         try:
             for entry in webhook_data.get("entry", []):
@@ -92,7 +93,7 @@ class MessageSourceTracker:
             logger.error(f"Error checking existing customer: {e}")
             return False
 
-    def extract_post_data(self, webhook_data: Dict) -> Dict:
+    def extract_post_data(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
         """Extract post-related data from webhook"""
         try:
             post_data = {
@@ -126,7 +127,7 @@ class MessageSourceTracker:
             logger.error(f"Error extracting post data: {e}")
             return {}
 
-    def get_post_info(self, post_id: str) -> Optional[Dict]:
+    def get_post_info(self, post_id: str) -> Optional[Dict[str, Any]]:
         """Get post information from database"""
         try:
             with get_db_session() as db:
@@ -146,7 +147,7 @@ class MessageSourceTracker:
             logger.error(f"Error getting post info: {e}")
             return None
 
-    def get_ad_info(self, ad_id: str) -> Optional[Dict]:
+    def get_ad_info(self, ad_id: str) -> Optional[Dict[str, Any]]:
         """Get ad campaign information from database"""
         try:
             with get_db_session() as db:
@@ -168,7 +169,8 @@ class MessageSourceTracker:
             return None
 
     def create_post(self, facebook_post_id: str, post_type: PostType,
-                   content: str, price: str = None, data: Dict = None) -> Post:
+                    content: str, price: Optional[str] = None, 
+                    data: Optional[Dict[str, Any]] = None) -> Optional[Post]:
         """Create a new post record"""
         try:
             with get_db_session() as db:
@@ -193,8 +195,8 @@ class MessageSourceTracker:
             return None
 
     def create_ad_campaign(self, facebook_ad_id: str, campaign_name: str,
-                          content: str, target_audience: Dict = None,
-                          budget: str = None) -> AdCampaign:
+                           content: str, target_audience: Optional[Dict[str, Any]] = None,
+                           budget: Optional[str] = None) -> Optional[AdCampaign]:
         """Create a new ad campaign record"""
         try:
             with get_db_session() as db:
@@ -218,25 +220,25 @@ class MessageSourceTracker:
             logger.error(f"Error creating ad campaign: {e}")
             return None
 
-    def get_message_source_analytics(self) -> Dict:
+    def get_message_source_analytics(self) -> Dict[str, Any]:
         """Get analytics for message sources"""
         try:
             with get_db_session() as db:
                 # Count messages by source
-                source_counts = {}
+                source_counts: Dict[str, int] = {}
                 for source in MessageSource:
                     count = db.query(Message).filter(Message.message_source == source).count()
                     source_counts[source.value] = count
 
                 # Count messages by post type
-                post_type_counts = {}
+                post_type_counts: Dict[str, int] = {}
                 for post_type in PostType:
                     count = db.query(Message).filter(Message.post_type == post_type).count()
                     post_type_counts[post_type.value] = count
 
                 # Recent activity by source (last 24 hours)
                 yesterday = datetime.now(timezone.utc) - timedelta(days=1)
-                recent_by_source = {}
+                recent_by_source: Dict[str, int] = {}
                 for source in MessageSource:
                     count = db.query(Message).filter(
                         Message.message_source == source,

@@ -3,13 +3,11 @@ Database Manager Module
 High-level database operations and management
 """
 import logging
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
 
 from database.engine import (
     get_engine,
-    get_session,
     create_all_tables,
     drop_all_tables,
     get_database_path,
@@ -18,6 +16,7 @@ from database.engine import (
 from database.models import User, Message, Conversation, LeadActivity, Post, AdCampaign
 
 logger = logging.getLogger(__name__)
+
 
 class DatabaseManager:
     """Centralized database management"""
@@ -179,8 +178,10 @@ class DatabaseManager:
         except Exception as e:
             self.logger.error(f"Error closing database: {e}", exc_info=True)
 
+
 # Global database manager instance
 _db_manager = None
+
 
 def get_database_manager() -> DatabaseManager:
     """
@@ -197,17 +198,22 @@ def get_database_manager() -> DatabaseManager:
     return _db_manager
 
 # Convenience functions
+
+
 def initialize_database() -> bool:
     """Initialize database"""
     return get_database_manager().initialize()
+
 
 def rebuild_database() -> bool:
     """Rebuild database from scratch"""
     return get_database_manager().rebuild_database()
 
+
 def get_db_stats() -> Dict[str, Any]:
     """Get database statistics"""
     return get_database_manager().get_database_stats()
+
 
 def check_db_health() -> Dict[str, Any]:
     """Check database health"""

@@ -1,20 +1,20 @@
 import logging
 import requests
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Any
 from sqlalchemy import func
 from Server.config import settings
-from database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, get_session, Message, MessageDirection
+from database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, Message, MessageDirection, enum_to_value
 from database.context import get_db_session
 from app.services.messaging.messenger_service import MessengerService
-from datetime import datetime, timedelta, timezone
-import re
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
+
 
 class FacebookLeadCenterService:
     """Comprehensive service for Facebook Lead Center integration - نعتمد على Facebook Lead Center الموجود"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_url = settings.MESSENGER_API_URL
         # استخدام Page Access Token (يعمل بدون System User Token)
         self.page_access_token = settings.FB_PAGE_ACCESS_TOKEN
@@ -30,9 +30,9 @@ class FacebookLeadCenterService:
 
         logger.info("Facebook Lead Center Service initialized successfully")
 
-    def _initialize_customer_type_keywords(self):
+    def _initialize_customer_type_keywords(self) -> None:
         """Initialize customer type keywords for classification"""
-        self.type_keywords = {
+        self.customer_type_keywords: Dict[CustomerType, List[str]] = {
             CustomerType.SCARCITY_BUYER: [
                 "نادر", "محدود", "آخر قطعة", "آخر واحد", "مش متكرر", "خاص", "مميز",
                 "rare", "limited", "last piece", "exclusive", "unique"
@@ -64,7 +64,7 @@ class FacebookLeadCenterService:
         }
 
         # Label classification keywords
-        self.label_keywords = {
+        self.label_keywords: Dict[CustomerLabel, List[str]] = {
             CustomerLabel.JUMLA: ["جمله", "كمية", "كيلو", "كيلو جرام", "wholesale", "bulk"],
             CustomerLabel.QITAEI: ["قطاعي", "قطعة", "واحدة", "فردي", "retail", "single"],
             CustomerLabel.NEW_CUSTOMER: ["أول مرة", "جديد", "مش عارفكم", "new", "first time"],
@@ -105,7 +105,7 @@ class FacebookLeadCenterService:
                     return None
 
                 # Analyze patterns
-                message_texts = [msg.message_text.lower() for msg in messages if msg.message_text]
+                message_texts = [msg.message_text.lower() for msg in messages if msg.message_text is not None]
                 combined_text = " ".join(message_texts)
 
                 # Check for hesitation patterns
@@ -142,7 +142,7 @@ class FacebookLeadCenterService:
                         return label
 
             # Default classification based on user behavior
-            if not user.customer_label:
+            if user.customer_label is None:
                 # Check if user asks about quantities (wholesale)
                 if any(word in message_lower for word in ["كمية", "كيلو", "جمله"]):
                     return CustomerLabel.JUMLA
@@ -164,31 +164,33 @@ class FacebookLeadCenterService:
             score += 10
 
             # Customer type scoring
-            if user.customer_type == CustomerType.VALUE_SEEKER:
+            user_type = enum_to_value(user.customer_type)
+            if user_type == CustomerType.VALUE_SEEKER.value:
                 score += 25
-            elif user.customer_type == CustomerType.LOYAL_BUYER:
+            elif user_type == CustomerType.LOYAL_BUYER.value:
                 score += 20
-            elif user.customer_type == CustomerType.LOGICAL_BUYER:
+            elif user_type == CustomerType.LOGICAL_BUYER.value:
                 score += 15
-            elif user.customer_type == CustomerType.EMOTIONAL_BUYER:
+            elif user_type == CustomerType.EMOTIONAL_BUYER.value:
                 score += 10
-            elif user.customer_type == CustomerType.SCARCITY_BUYER:
+            elif user_type == CustomerType.SCARCITY_BUYER.value:
                 score += 15
-            elif user.customer_type == CustomerType.BARGAIN_HUNTER:
+            elif user_type == CustomerType.BARGAIN_HUNTER.value:
                 score += 5
-            elif user.customer_type == CustomerType.HESITANT_BUYER:
+            elif user_type == CustomerType.HESITANT_BUYER.value:
                 score -= 5
 
             # Label scoring
-            if user.customer_label == CustomerLabel.JUMLA:
+            user_label = enum_to_value(user.customer_label)
+            if user_label == CustomerLabel.JUMLA.value:
                 score += 20  # Wholesale customers are high value
-            elif user.customer_label == CustomerLabel.QITAEI:
+            elif user_label == CustomerLabel.QITAEI.value:
                 score += 10  # Retail customers
-            elif user.customer_label == CustomerLabel.NEW_CUSTOMER:
+            elif user_label == CustomerLabel.NEW_CUSTOMER.value:
                 score += 5   # New customers need nurturing
 
             # Activity scoring
-            if user.last_message_at:
+            if user.last_message_at is not None:
                 days_since_last_message = (datetime.now(timezone.utc) - user.last_message_at).days
                 if days_since_last_message <= 1:
                     score += 15  # Very recent activity
@@ -198,9 +200,10 @@ class FacebookLeadCenterService:
                     score += 5   # Somewhat recent
 
             # Governorate scoring (some governorates might be higher value)
-            if user.governorate:
+            if user.governorate is not None:
                 high_value_governorates = ["Cairo", "Giza", "Alexandria"]
-                if user.governorate.value in high_value_governorates:
+                gov_value = enum_to_value(user.governorate)
+                if gov_value and gov_value in high_value_governorates:
                     score += 5
 
             return max(0, min(100, score))  # Keep score between 0-100
@@ -212,7 +215,8 @@ class FacebookLeadCenterService:
     def determine_next_stage(self, user: User) -> LeadStage:
         """Determine the next appropriate lead stage based on current state and score"""
         try:
-            current_score = user.lead_score
+            # Get integer value - SQLAlchemy will return the actual int value, not Column
+            current_score: int = user.lead_score if user.lead_score else 0
 
             if current_score >= 80:
                 return LeadStage.CONVERTED
@@ -230,12 +234,18 @@ class FacebookLeadCenterService:
     def should_advance_stage(self, user: User) -> Tuple[bool, LeadStage]:
         """Check if user should advance to next stage"""
         try:
-            current_stage = user.lead_stage
+            # Get actual values from SQLAlchemy columns
+            current_stage_value = enum_to_value(user.lead_stage)
+            if current_stage_value is None:
+                current_stage = LeadStage.INTAKE
+            else:
+                current_stage = LeadStage(current_stage_value)
+                
             current_score = user.lead_score
             suggested_stage = self.determine_next_stage(user)
 
             # Define stage progression rules
-            stage_progression = {
+            stage_progression: Dict[LeadStage, Dict[str, Any]] = {
                 LeadStage.INTAKE: {
                     'min_score': 40,
                     'next_stage': LeadStage.QUALIFIED
@@ -266,10 +276,12 @@ class FacebookLeadCenterService:
 
         except Exception as e:
             logger.error(f"Error checking stage advancement: {e}")
-            return False, user.lead_stage
+            # Return current stage as enum, not Column
+            stage_value = enum_to_value(user.lead_stage)
+            return False, LeadStage(stage_value) if stage_value else LeadStage.INTAKE
 
     def log_lead_activity(self, user: User, activity_type: str, old_value: str,
-                         new_value: str, reason: str, automated: bool = True):
+                          new_value: str, reason: str, automated: bool = True):
         """Log lead activity changes"""
         try:
             with get_db_session() as db:
@@ -293,7 +305,7 @@ class FacebookLeadCenterService:
 
     # ==================== FACEBOOK LEAD CENTER API METHODS ====================
 
-    def get_leadgen_forms(self) -> Optional[List[Dict]]:
+    def get_leadgen_forms(self) -> Optional[List[Dict[str, Any]]]:
         """Get all leadgen forms for the page"""
         try:
             url = f"{self.api_url}/{self.page_id}/leadgen_forms"
@@ -318,7 +330,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting leadgen forms: {e}")
             return None
 
-    def get_leads_from_form(self, form_id: str) -> Optional[List[Dict]]:
+    def get_leads_from_form(self, form_id: str) -> Optional[List[Dict[str, Any]]]:
         """Get leads from a specific leadgen form"""
         try:
             url = f"{self.api_url}/{form_id}/leads"
@@ -343,7 +355,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting leads from form: {e}")
             return None
 
-    def get_lead_details(self, lead_id: str) -> Optional[Dict]:
+    def get_lead_details(self, lead_id: str) -> Optional[Dict[str, Any]]:
         """Get detailed information about a specific lead"""
         try:
             url = f"{self.api_url}/{lead_id}"
@@ -367,10 +379,10 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting lead details: {e}")
             return None
 
-    def process_leadgen_webhook(self, webhook_data: Dict) -> Dict:
+    def process_leadgen_webhook(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process incoming leadgen webhook from Facebook"""
         try:
-            results = {
+            results: Dict[str, Any] = {
                 "processed_leads": 0,
                 "created_users": 0,
                 "updated_users": 0,
@@ -407,7 +419,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error processing leadgen webhook: {e}")
             return {"error": str(e)}
 
-    def _process_facebook_lead(self, lead_details: Dict) -> Dict:
+    def _process_facebook_lead(self, lead_details: Dict[str, Any]) -> Dict[str, Any]:
         """Process a Facebook lead and create/update local user"""
         try:
             lead_id = lead_details.get("id")
@@ -430,9 +442,6 @@ class FacebookLeadCenterService:
                 if not user and lead_info.get("phone_number"):
                     user = db.query(User).filter(User.phone_number == lead_info["phone_number"]).first()
 
-                if not user and lead_info.get("email"):
-                    user = db.query(User).filter(User.email == lead_info["email"]).first()
-
                 created = False
                 if not user:
                     # Create new user
@@ -441,7 +450,6 @@ class FacebookLeadCenterService:
                         first_name=lead_info.get("first_name"),
                         last_name=lead_info.get("last_name"),
                         phone_number=lead_info.get("phone_number"),
-                        email=lead_info.get("email"),
                         lead_stage=LeadStage.INTAKE,
                         customer_type=CustomerType.EMOTIONAL_BUYER,  # Default
                         customer_label=CustomerLabel.NEW_CUSTOMER,
@@ -454,14 +462,12 @@ class FacebookLeadCenterService:
                     logger.info(f"Created new user from Facebook lead {lead_id}")
                 else:
                     # Update existing user with Facebook lead data
-                    if lead_info.get("first_name") and not user.first_name:
+                    if lead_info.get("first_name") and user.first_name is None:
                         user.first_name = lead_info["first_name"]
-                    if lead_info.get("last_name") and not user.last_name:
+                    if lead_info.get("last_name") and user.last_name is None:
                         user.last_name = lead_info["last_name"]
-                    if lead_info.get("phone_number") and not user.phone_number:
+                    if lead_info.get("phone_number") and user.phone_number is None:
                         user.phone_number = lead_info["phone_number"]
-                    if lead_info.get("email") and not user.email:
-                        user.email = lead_info["email"]
 
                     user.last_message_at = datetime.now(timezone.utc)
                     logger.info(f"Updated existing user {user.psid} from Facebook lead {lead_id}")
@@ -485,22 +491,22 @@ class FacebookLeadCenterService:
             logger.error(f"Error processing Facebook lead: {e}")
             return {"error": str(e)}
 
-    def _extract_lead_info(self, field_data: List[Dict]) -> Dict:
+    def _extract_lead_info(self, field_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Extract lead information from Facebook field data"""
         try:
-            lead_info = {}
+            lead_info: Dict[str, Any] = {}
 
             for field in field_data:
-                field_name = field.get("name", "").lower()
-                field_values = field.get("values", [])
+                field_name: str = field.get("name", "").lower()
+                field_values: List[Any] = field.get("values", [])
 
                 if field_values:
-                    value = field_values[0]  # Take first value
+                    value: str = field_values[0]  # Take first value
 
                     # Map Facebook fields to our user fields
                     if field_name in ["full_name", "name"]:
                         # Split full name into first and last
-                        name_parts = value.split(" ", 1)
+                        name_parts: List[str] = value.split(" ", 1)
                         lead_info["first_name"] = name_parts[0]
                         if len(name_parts) > 1:
                             lead_info["last_name"] = name_parts[1]
@@ -532,7 +538,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error extracting lead info: {e}")
             return {}
 
-    def update_lead_custom_fields(self, lead_id: str, custom_fields: Dict) -> bool:
+    def update_lead_custom_fields(self, lead_id: str, custom_fields: Dict[str, Any]) -> bool:
         """Update custom fields for a lead in Facebook Lead Center"""
         try:
             # Note: Facebook Lead Center API doesn't support direct lead updates
@@ -581,7 +587,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error syncing lead to Facebook: {e}")
             return False
 
-    def _lead_matches_user(self, lead: Dict, user: User) -> bool:
+    def _lead_matches_user(self, lead: Dict[str, Any], user: User) -> bool:
         """Check if a Facebook lead matches our local user - نعتمد على Facebook Lead Center الموجود"""
         try:
             # Extract field data from lead
@@ -598,12 +604,7 @@ class FacebookLeadCenterService:
 
                 # Check for phone number match
                 if field_name in ['phone_number', 'phone', 'mobile']:
-                    if hasattr(user, 'phone_number') and user.phone_number and user.phone_number in field_value:
-                        return True
-
-                # Check for email match
-                if field_name in ['email', 'email_address']:
-                    if hasattr(user, 'email') and user.email and user.email in field_value:
+                    if user.phone_number and user.phone_number in field_value:
                         return True
 
             return False
@@ -612,9 +613,9 @@ class FacebookLeadCenterService:
             logger.error(f"Error checking lead match: {e}")
             return False
 
-    def _prepare_lead_data(self, user: User) -> Dict:
+    def _prepare_lead_data(self, user: User) -> Dict[str, Any]:
         """Prepare lead data for Facebook Lead Center API - نعتمد على Facebook Lead Center الموجود"""
-        lead_data = {
+        lead_data: Dict[str, Any] = {
             "lead_id": user.psid,  # Use PSID as lead ID
             "custom_fields": {
                 "lead_stage": user.lead_stage.value if user.lead_stage else "Intake",
@@ -630,23 +631,21 @@ class FacebookLeadCenterService:
         }
 
         # Add contact information if available (with safe attribute access)
-        if hasattr(user, 'first_name') and user.first_name:
+        if user.first_name:
             lead_data["first_name"] = user.first_name
-        if hasattr(user, 'last_name') and user.last_name:
+        if user.last_name:
             lead_data["last_name"] = user.last_name
-        if hasattr(user, 'phone_number') and user.phone_number:
+        if user.phone_number:
             lead_data["phone_number"] = user.phone_number
-        if hasattr(user, 'email') and user.email:
-            lead_data["email"] = user.email
 
         return lead_data
 
-    def sync_all_leads_to_facebook(self) -> Dict:
+    def sync_all_leads_to_facebook(self) -> Dict[str, Any]:
         """Sync all local leads to Facebook Lead Center - نعتمد على Facebook Lead Center الموجود"""
         try:
             with get_db_session() as db:
                 users = db.query(User).all()
-                results = {
+                results: Dict[str, Any] = {
                     "total_users": len(users),
                     "successful_updates": 0,
                     "failed_updates": 0,
@@ -766,10 +765,10 @@ class FacebookLeadCenterService:
 
     # ==================== COMPREHENSIVE LEAD MANAGEMENT ====================
 
-    def process_lead_automation(self, user: User, message_text: str) -> Dict:
+    def process_lead_automation(self, user: User, message_text: str) -> Dict[str, Any]:
         """Process comprehensive lead automation including classification and Facebook sync"""
         try:
-            automation_results = {
+            automation_results: Dict[str, Any] = {
                 "customer_type_updated": False,
                 "customer_label_updated": False,
                 "lead_score_updated": False,
@@ -846,7 +845,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error in lead automation: {e}")
             return {"error": str(e)}
 
-    def get_lead_analytics(self) -> Dict:
+    def get_lead_analytics(self) -> Dict[str, Any]:
         """Get comprehensive lead analytics"""
         try:
             with get_db_session() as db:
@@ -882,7 +881,7 @@ class FacebookLeadCenterService:
                     LeadActivity.timestamp.desc()
                 ).limit(10).all()
 
-                analytics = {
+                analytics: Dict[str, Any] = {
                     "total_users": total_users,
                     "total_messages": total_messages,
                     "total_leads": total_users,  # For template compatibility
@@ -923,7 +922,7 @@ class FacebookLeadCenterService:
 
     # ==================== ASYNC WRAPPER METHODS (for backward compatibility) ====================
 
-    async def process_lead_automation_async(self, user: User, message_text: str) -> Dict:
+    async def process_lead_automation_async(self, user: User, message_text: str) -> Dict[str, Any]:
         """Async wrapper for process_lead_automation"""
         try:
             return self.process_lead_automation(user, message_text)
@@ -931,7 +930,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error in async lead automation: {e}")
             return {"error": str(e)}
 
-    async def classify_customer_async(self, user: User, message_text: str) -> Dict:
+    async def classify_customer_async(self, user: User, message_text: str) -> Dict[str, Any]:
         """Async wrapper for customer classification"""
         try:
             customer_type = self.classify_customer_type(message_text, user)
@@ -969,7 +968,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error checking stage advancement: {e}")
             return False, user.lead_stage
 
-    async def sync_all_leads_to_facebook_async(self) -> Dict:
+    async def sync_all_leads_to_facebook_async(self) -> Dict[str, Any]:
         """Async wrapper for sync_all_leads_to_facebook"""
         try:
             logger.info("Starting sync of all leads to Facebook Lead Center")
@@ -1008,7 +1007,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error syncing lead to Facebook Lead Center: {e}")
             return False
 
-    async def get_leadgen_forms_async(self) -> Optional[list]:
+    async def get_leadgen_forms_async(self) -> Optional[List[Dict[str, Any]]]:
         """Async wrapper for get_leadgen_forms"""
         try:
             forms = self.get_leadgen_forms()
@@ -1018,7 +1017,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting leadgen forms: {e}")
             return None
 
-    async def get_leads_from_form_async(self, form_id: str) -> Optional[list]:
+    async def get_leads_from_form_async(self, form_id: str) -> Optional[List[Dict[str, Any]]]:
         """Async wrapper for get_leads_from_form"""
         try:
             leads = self.get_leads_from_form(form_id)
@@ -1028,7 +1027,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting leads from form: {e}")
             return None
 
-    async def process_leadgen_webhook_async(self, webhook_data: Dict) -> Dict:
+    async def process_leadgen_webhook_async(self, webhook_data: Dict[str, Any]) -> Dict[str, Any]:
         """Async wrapper for process_leadgen_webhook"""
         try:
             logger.info("Processing leadgen webhook from Facebook")
@@ -1039,7 +1038,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error processing leadgen webhook: {e}")
             return {"error": str(e)}
 
-    async def get_lead_analytics_async(self) -> Dict:
+    async def get_lead_analytics_async(self) -> Dict[str, Any]:
         """Async wrapper for get_lead_analytics"""
         try:
             return self.get_lead_analytics()
@@ -1047,7 +1046,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error getting lead analytics: {e}")
             return {}
 
-    async def get_facebook_lead_center_status_async(self) -> Dict:
+    async def get_facebook_lead_center_status_async(self) -> Dict[str, Any]:
         """Async wrapper for Facebook Lead Center status"""
         try:
             forms = await self.get_leadgen_forms_async()
@@ -1091,7 +1090,7 @@ class FacebookLeadCenterService:
             logger.error(f"Error updating customer label: {e}")
             return False
 
-    async def health_check_async(self) -> Dict:
+    async def health_check_async(self) -> Dict[str, Any]:
         """Async wrapper for health_check"""
         try:
             return self.health_check()
@@ -1105,10 +1104,10 @@ class FacebookLeadCenterService:
 
     # ==================== HEALTH CHECK ====================
 
-    def health_check(self) -> Dict:
+    def health_check(self) -> Dict[str, Any]:
         """Comprehensive health check for Facebook Lead Center system - نعتمد على Facebook Lead Center الموجود"""
         try:
-            health_status = {
+            health_status: Dict[str, Any] = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "services": {},
                 "overall_status": "healthy",

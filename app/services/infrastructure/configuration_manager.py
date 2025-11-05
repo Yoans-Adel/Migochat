@@ -4,10 +4,9 @@ Professional configuration system with validation and hot-reloading
 """
 
 import logging
-import os
 import json
 import yaml
-from typing import Dict, Any, Optional, List, Union, Type
+from typing import Dict, Any, Optional, List, Union
 from dataclasses import dataclass, field
 from pathlib import Path
 from enum import Enum
@@ -27,12 +26,14 @@ from app.services.core.interfaces import ServiceConfig, ConfigurationServiceInte
 
 logger = logging.getLogger(__name__)
 
+
 class ConfigFormat(Enum):
     """Configuration format enumeration"""
     JSON = "json"
     YAML = "yaml"
     ENV = "env"
     INI = "ini"
+
 
 @dataclass
 class ServiceConfiguration:
@@ -74,6 +75,7 @@ class ServiceConfiguration:
             config=self.config
         )
 
+
 class ConfigurationValidator:
     """Configuration validation system"""
 
@@ -105,6 +107,7 @@ class ConfigurationValidator:
                 errors.append(f"Validation error: {e}")
 
         return errors
+
 
 class ConfigurationLoader:
     """Configuration loading system"""
@@ -171,6 +174,7 @@ class ConfigurationLoader:
 
         return result
 
+
 class ConfigurationWatcher:
     """Configuration file watcher for hot-reloading (requires watchdog package)"""
 
@@ -198,6 +202,7 @@ class ConfigurationWatcher:
     def get_handler(self):
         """Get the file system event handler"""
         return self.handler
+
 
 class ConfigurationManager(ConfigurationServiceInterface):
     """Professional configuration management system"""
@@ -447,9 +452,11 @@ class ConfigurationManager(ConfigurationServiceInterface):
                 "dependencies": []
             }
 
+
 # Global configuration manager instance
 _config_manager: Optional[ConfigurationManager] = None
 _config_lock = threading.Lock()
+
 
 def get_config_manager(config_dir: Optional[str] = None) -> ConfigurationManager:
     """Get global configuration manager"""
@@ -462,17 +469,21 @@ def get_config_manager(config_dir: Optional[str] = None) -> ConfigurationManager
 
     return _config_manager
 
+
 def get_config(key: str, default: Any = None) -> Any:
     """Get configuration value from global manager"""
     return get_config_manager().get_config(key, default)
+
 
 def set_config(key: str, value: Any) -> bool:
     """Set configuration value in global manager"""
     return get_config_manager().set_config(key, value)
 
+
 def get_service_config(service_name: str) -> Optional[ServiceConfiguration]:
     """Get service configuration from global manager"""
     return get_config_manager().get_service_config(service_name)
+
 
 def shutdown_config_manager() -> None:
     """Shutdown global configuration manager"""

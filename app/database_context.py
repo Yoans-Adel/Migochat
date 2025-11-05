@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 session_manager = DatabaseSessionManager()
 
 # Convenience functions (for backward compatibility)
+
+
 def get_safe_session(auto_commit: bool = False):
     """
     Get safe database session.
@@ -35,6 +37,7 @@ def get_safe_session(auto_commit: bool = False):
         return get_db_session_with_commit()
     else:
         return get_db_session()
+
 
 # Re-export for convenience
 __all__ = [

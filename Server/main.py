@@ -3,16 +3,12 @@ BWW Assistant FastAPI Server
 Main FastAPI application with lifecycle management
 """
 
-from fastapi import FastAPI, Request, HTTPException, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-import logging
 import uvicorn
-import asyncio
 from contextlib import asynccontextmanager
-import os
 from pathlib import Path
 
 # Import centralized logging configuration
@@ -23,9 +19,10 @@ setup_logging()
 logger = get_logger(__name__)
 
 # Import from app (services are still in app/ folder)
-from Server.config import settings
-from database import get_session, create_all_tables
-from Server.routes import dashboard, api, webhook
+from Server.config import settings  # noqa: E402
+from database import create_all_tables  # noqa: E402
+from Server.routes import dashboard, api, webhook  # noqa: E402
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -95,6 +92,7 @@ app.include_router(webhook.router, prefix="/webhook", tags=["webhook"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(api.router, prefix="/api", tags=["api"])
 
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Root endpoint - redirect to dashboard"""
@@ -112,6 +110,7 @@ async def root(request: Request):
     except Exception as e:
         logger.error(f"Error rendering root template: {e}")
         return HTMLResponse("<h1>Welcome to BWW Assistant</h1><p>Dashboard is loading...</p>", status_code=200)
+
 
 @app.get("/health")
 async def health_check():
@@ -131,6 +130,7 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
+
 
 @app.get("/info")
 async def server_info():

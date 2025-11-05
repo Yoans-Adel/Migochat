@@ -5,7 +5,7 @@ Professional service management and factory pattern implementation
 
 import logging
 import threading
-from typing import Dict, Any, Optional, Type, List, Callable, Union
+from typing import Dict, Any, Optional, Type, List, Callable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -17,12 +17,14 @@ from app.services.infrastructure.di_container import DependencyInjectionContaine
 
 logger = logging.getLogger(__name__)
 
+
 class ServicePriority(Enum):
     """Service priority enumeration"""
     CRITICAL = 1
     HIGH = 2
     NORMAL = 3
     LOW = 4
+
 
 @dataclass
 class ServiceDefinition:
@@ -39,6 +41,7 @@ class ServiceDefinition:
     health_check_interval: int = 30
     retry_count: int = 3
     timeout: int = 30
+
 
 class ServiceRegistry(ServiceRegistryInterface):
     """Professional service registry implementation"""
@@ -232,7 +235,7 @@ class ServiceRegistry(ServiceRegistryInterface):
         temp_visited = set()
         result = []
 
-        def visit(node):
+        def visit(node: str) -> None:
             if node in temp_visited:
                 raise ValueError(f"Circular dependency detected involving '{node}'")
             if node in visited:
@@ -264,6 +267,7 @@ class ServiceRegistry(ServiceRegistryInterface):
         """Get service shutdown order"""
         return self._shutdown_order.copy()
 
+
 class ServiceFactory(ServiceFactoryInterface):
     """Professional service factory implementation"""
 
@@ -293,6 +297,7 @@ class ServiceFactory(ServiceFactoryInterface):
     def get_supported_services(self) -> List[str]:
         """Get list of supported service types"""
         return list(self._creators.keys())
+
 
 class ServiceLifecycleManager(ServiceLifecycleInterface):
     """Professional service lifecycle management"""
@@ -423,11 +428,13 @@ class ServiceLifecycleManager(ServiceLifecycleInterface):
         with self._lock:
             return list(self._running_services)
 
+
 # Global service management instances
 _registry: Optional[ServiceRegistry] = None
 _factory: Optional[ServiceFactory] = None
 _lifecycle_manager: Optional[ServiceLifecycleManager] = None
 _lock = threading.Lock()
+
 
 def get_registry() -> ServiceRegistry:
     """Get global service registry"""
@@ -438,6 +445,7 @@ def get_registry() -> ServiceRegistry:
                 _registry = ServiceRegistry()
     return _registry
 
+
 def get_factory() -> ServiceFactory:
     """Get global service factory"""
     global _factory
@@ -446,6 +454,7 @@ def get_factory() -> ServiceFactory:
             if _factory is None:
                 _factory = ServiceFactory()
     return _factory
+
 
 def get_lifecycle_manager() -> ServiceLifecycleManager:
     """Get global service lifecycle manager"""
@@ -456,21 +465,26 @@ def get_lifecycle_manager() -> ServiceLifecycleManager:
                 _lifecycle_manager = ServiceLifecycleManager(get_registry())
     return _lifecycle_manager
 
+
 def register_service_definition(definition: ServiceDefinition) -> None:
     """Register service definition in global registry"""
     get_registry().register_service_definition(definition)
+
 
 def get_service(name: str) -> Optional[ServiceInterface]:
     """Get service from global registry"""
     return get_registry().get_service(name)
 
+
 def start_all_services() -> Dict[str, bool]:
     """Start all services"""
     return get_lifecycle_manager().start_all_services()
 
+
 def stop_all_services() -> Dict[str, bool]:
     """Stop all services"""
     return get_lifecycle_manager().stop_all_services()
+
 
 def shutdown_service_management() -> None:
     """Shutdown service management"""

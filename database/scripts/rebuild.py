@@ -11,14 +11,15 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from database.manager import get_database_manager
-from database.engine import get_database_path, database_exists
+from database.manager import get_database_manager  # noqa: E402
+from database.engine import get_database_path, database_exists  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
 
 def rebuild_database_cli():
     """Rebuild database from command line"""
@@ -57,6 +58,7 @@ def rebuild_database_cli():
     else:
         logger.error("\n❌ Database rebuild failed")
         return False
+
 
 if __name__ == "__main__":
     success = rebuild_database_cli()

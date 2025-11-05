@@ -18,6 +18,7 @@ from .models import APIResponse, CacheStrategy
 
 logger = logging.getLogger(__name__)
 
+
 class BWWStoreProductOperations:
     """Product operations for BWW Store API."""
 

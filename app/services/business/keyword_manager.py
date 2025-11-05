@@ -4,18 +4,17 @@ Centralized keyword management and NLP processing
 """
 
 import logging
-import re
 import unicodedata
 from typing import Dict, List, Optional, Tuple, Any
 from difflib import SequenceMatcher
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
+
 
 class KeywordManager:
     """Centralized keyword management"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.keywords: Dict[str, Dict[str, List[str]]] = {}
         self._initialized = False
         self.logger = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ class KeywordManager:
             self.logger.error(f"Failed to initialize keyword manager: {e}")
             return False
 
-    def _load_keyword_categories(self):
+    def _load_keyword_categories(self) -> None:
         """Load all keyword categories"""
         # Basic greeting keywords
         self.keywords["greeting"] = {
@@ -211,7 +210,7 @@ class KeywordManager:
 
             # Check each category
             for category, keywords_dict in self.keywords.items():
-                for keyword, variations in keywords_dict.items():
+                for _, variations in keywords_dict.items():
                     if self.fuzzy_match(normalized_text, variations, threshold=0.7):
                         return category
 
@@ -225,7 +224,7 @@ class KeywordManager:
         """Get keywords for a specific category"""
         return self.keywords.get(category, {})
 
-    def add_keywords(self, category: str, keywords: Dict[str, List[str]]):
+    def add_keywords(self, category: str, keywords: Dict[str, List[str]]) -> None:
         """Add keywords to a category"""
         if category not in self.keywords:
             self.keywords[category] = {}
@@ -239,7 +238,7 @@ class KeywordManager:
     def search_keywords(self, query: str, category: Optional[str] = None) -> List[Tuple[str, str, float]]:
         """Search for keywords matching a query"""
         try:
-            results = []
+            results: List[Tuple[str, str, float]] = []
             categories_to_search = [category] if category else self.keywords.keys()
 
             for cat in categories_to_search:
@@ -263,14 +262,14 @@ class KeywordManager:
     def get_keyword_stats(self) -> Dict[str, Any]:
         """Get keyword statistics"""
         try:
-            stats = {
+            stats: Dict[str, Any] = {
                 "total_categories": len(self.keywords),
                 "categories": {},
                 "total_keywords": 0
             }
 
             for category, keywords_dict in self.keywords.items():
-                category_stats = {
+                category_stats: Dict[str, Any] = {
                     "total_keywords": len(keywords_dict),
                     "total_variations": sum(len(variations) for variations in keywords_dict.values())
                 }
@@ -283,20 +282,25 @@ class KeywordManager:
             self.logger.error(f"Error getting keyword stats: {e}")
             return {"error": str(e)}
 
+
 # Global keyword manager instance
 keyword_manager = KeywordManager()
+
 
 def get_keyword_manager() -> KeywordManager:
     """Get the global keyword manager instance"""
     return keyword_manager
 
+
 def initialize_keywords() -> bool:
     """Initialize keyword manager"""
     return keyword_manager.initialize()
 
+
 def detect_text_category(text: str) -> Optional[str]:
     """Detect text category"""
     return keyword_manager.detect_category(text)
+
 
 def fuzzy_match_keywords(text: str, keywords: List[str], threshold: float = 0.8) -> Optional[str]:
     """Fuzzy match keywords"""

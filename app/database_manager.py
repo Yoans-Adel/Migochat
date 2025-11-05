@@ -9,7 +9,6 @@ New code should import directly from the database package:
 """
 
 import logging
-from typing import Dict, Any
 
 # Import everything from the new database module
 from database import (
@@ -25,6 +24,7 @@ logger = logging.getLogger(__name__)
 # For backward compatibility, expose the same interface
 db_manager = _get_database_manager()
 
+
 def get_database_manager() -> DatabaseManager:
     """
     Get the global database manager instance.
@@ -33,6 +33,7 @@ def get_database_manager() -> DatabaseManager:
         from database import get_database_manager
     """
     return _get_database_manager()
+
 
 def initialize_database() -> bool:
     """
@@ -43,6 +44,7 @@ def initialize_database() -> bool:
     """
     return _initialize_database()
 
+
 def get_session():
     """
     Get database session.
@@ -52,6 +54,7 @@ def get_session():
     """
     return _get_session()
 
+
 def get_session_context():
     """
     Get database session with context manager.
@@ -60,6 +63,7 @@ def get_session_context():
         from database import get_db_session_with_commit
     """
     return get_db_session_with_commit()
+
 
 # Re-export for convenience
 __all__ = [

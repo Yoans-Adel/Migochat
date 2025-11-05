@@ -21,6 +21,7 @@ from .product_ops import BWWStoreProductOperations
 from .search import BWWStoreSearchEngine
 from .utils import CompatibilityWrapper
 
+
 class BWWStoreAPIService:
     """Main BWW Store API Service - Unified interface combining all modules.
 
@@ -82,8 +83,8 @@ class BWWStoreAPIService:
         return await self.products.get_products_by_price_range(min_price, max_price, page=page, page_size=page_size)
 
     async def filter_products(self, *, search=None, product_code=None, colors=None, sizes=None,
-                            material=None, sku_code=None, category=None, min_price=None,
-                            max_price=None, page: int = 1, page_size: int = 10, cache_strategy=None):
+                              material=None, sku_code=None, category=None, min_price=None,
+                              max_price=None, page: int = 1, page_size: int = 10, cache_strategy=None):
         """Filter products with various criteria."""
         return await self.client.filter_products(
             search=search, product_code=product_code, colors=colors, sizes=sizes,

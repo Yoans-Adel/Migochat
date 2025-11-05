@@ -12,7 +12,7 @@
 
 The system now uses **3 different AI models** intelligently based on input type:
 
-```
+```route
 ┌─────────────────────────────────────────────────────┐
 │                  Smart Router                        │
 │                                                      │
@@ -31,6 +31,7 @@ The system now uses **3 different AI models** intelligently based on input type:
 ## 🔧 Models Configuration
 
 ### 1. **Gemini 2.5 Flash** (Multimodal Primary)
+
 ```yaml
 Model: gemini-2.5-flash
 Supports: 
@@ -44,6 +45,7 @@ Speed: Fast
 ```
 
 **Example Usage**:
+
 ```python
 # User sends image of clothing
 response = gemini_service.generate_response(
@@ -62,6 +64,7 @@ response = gemini_service.generate_response(
 ---
 
 ### 2. **Gemma 3 27B-IT** (Text-Only Fast Model)
+
 ```yaml
 Model: gemma-3-27b-it
 Supports:
@@ -75,12 +78,14 @@ Speed: Very Fast ⚡
 ```
 
 **When Used**:
+
 - Pure text messages
 - Simple Q&A
 - Product searches
 - Price inquiries
 
 **Example**:
+
 ```python
 # User sends text only
 response = gemini_service.generate_response(
@@ -95,6 +100,7 @@ response = gemini_service.generate_response(
 ---
 
 ### 3. **Gemini 2.5 Pro** (High-Quality Optional)
+
 ```yaml
 Model: gemini-2.5-pro
 Supports:
@@ -109,6 +115,7 @@ Quality: Best ⭐⭐⭐⭐⭐
 ```
 
 **When Used**:
+
 - Explicitly requested (`use_quality_model: true`)
 - Complex product comparisons
 - Detailed fashion advice
@@ -138,6 +145,7 @@ def choose_model(message, media_files, use_quality):
 ## 🎨 Supported Media Types
 
 ### Images
+
 ```python
 Supported Formats:
   - JPEG / JPG (.jpg, .jpeg)
@@ -158,6 +166,7 @@ Example:
 ```
 
 ### Audio
+
 ```python
 Supported Formats:
   - WAV (.wav)
@@ -183,6 +192,7 @@ Example:
 ## 🚀 API Usage Examples
 
 ### Example 1: Text-Only (Uses Gemma - Fast)
+
 ```bash
 curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
   -H "Content-Type: application/json" \
@@ -203,6 +213,7 @@ curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
 ---
 
 ### Example 2: With Image (Uses Gemini Flash - Multimodal)
+
 ```bash
 curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
   -H "Content-Type: application/json" \
@@ -230,6 +241,7 @@ curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
 ---
 
 ### Example 3: Voice Message (Uses Gemini Flash - Multimodal)
+
 ```bash
 curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
   -H "Content-Type: application/json" \
@@ -257,6 +269,7 @@ curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
 ---
 
 ### Example 4: High-Quality Analysis (Uses Gemini Pro)
+
 ```bash
 curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
   -H "Content-Type: application/json" \
@@ -291,7 +304,7 @@ curl -X POST https://migochat-production.up.railway.app/api/ai/respond \
 
 ### Smart Routing Savings
 
-```
+```route
 Before (using only Gemini 2.5 Flash for all):
   1000 text queries × $0.075 = $75
 
@@ -325,6 +338,7 @@ After (smart routing):
 ### File Updated: `app/services/ai/gemini_service.py`
 
 **Key Changes**:
+
 1. ✅ Multiple model initialization
 2. ✅ Smart model selection
 3. ✅ Multimodal content processing
@@ -333,6 +347,7 @@ After (smart routing):
 6. ✅ Error handling for each model type
 
 **Code Structure**:
+
 ```python
 class GeminiService:
     def __init__(self):
@@ -370,6 +385,7 @@ class GeminiService:
 ## 🧪 Testing Commands
 
 ### 1. Test Text-Only (Gemma)
+
 ```bash
 curl -X POST http://localhost:8080/api/ai/respond \
   -H "Content-Type: application/json" \
@@ -377,6 +393,7 @@ curl -X POST http://localhost:8080/api/ai/respond \
 ```
 
 ### 2. Test with Image
+
 ```python
 import requests
 import base64
@@ -401,6 +418,7 @@ print(response.json())
 ```
 
 ### 3. Check Model Status
+
 ```bash
 curl http://localhost:8080/api/ai/status
 
@@ -462,6 +480,7 @@ curl http://localhost:8080/api/ai/status
 ## 🔐 Security & Safety
 
 ### Content Safety Settings
+
 ```python
 safety_settings = {
     HARM_CATEGORY_HATE_SPEECH: BLOCK_NONE,
@@ -474,6 +493,7 @@ safety_settings = {
 **Why?**: Fashion retail context is safe, blocking prevents false positives
 
 ### Input Validation
+
 - ✅ File size limits enforced
 - ✅ MIME type validation
 - ✅ Maximum media count (16 images)
@@ -511,7 +531,7 @@ GEMINI_MODEL=gemini-2.5-flash
 
 ### Model Selection Summary
 
-```
+```summary
 📝 Text-only simple query
   → Gemma 3 27B (Fast & Cheap) ⚡
 

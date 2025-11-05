@@ -6,7 +6,6 @@ Bww-AI-Assistant - Database Management Utility
 
 import os
 import sys
-import logging
 from pathlib import Path
 from datetime import datetime
 
@@ -16,11 +15,12 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger
+from config.logging_config import setup_logging, get_logger  # noqa: E402
 
 # Setup logging
 setup_logging()
 logger = get_logger(__name__)
+
 
 def create_database():
     """Create a fresh database"""
@@ -42,6 +42,7 @@ def create_database():
         logger.error(f"❌ Error creating database: {e}")
         raise
 
+
 def backup_database():
     """Create a backup of the current database"""
     try:
@@ -54,6 +55,7 @@ def backup_database():
     except Exception as e:
         logger.error(f"❌ Error creating backup: {e}")
         raise
+
 
 def restore_database(backup_file):
     """Restore database from backup"""
@@ -72,6 +74,7 @@ def restore_database(backup_file):
         logger.error(f"❌ Error restoring database: {e}")
         raise
 
+
 def drop_database():
     """Drop all database tables"""
     try:
@@ -84,6 +87,7 @@ def drop_database():
     except Exception as e:
         logger.error(f"❌ Error dropping database: {e}")
         raise
+
 
 def check_database_health():
     """Check database health"""
@@ -106,6 +110,7 @@ def check_database_health():
         logger.error(f"❌ Error checking database health: {e}")
         return {"status": "unhealthy", "error": str(e)}
 
+
 def clean_database():
     """Clean database by dropping and recreating"""
     try:
@@ -123,6 +128,7 @@ def clean_database():
     except Exception as e:
         logger.error(f"❌ Error cleaning database: {e}")
         raise
+
 
 def show_database_status():
     """Show database status and information"""
@@ -161,6 +167,7 @@ def show_database_status():
 
     except Exception as e:
         logger.error(f"❌ Error showing database status: {e}")
+
 
 def main():
     """Main function"""
@@ -202,6 +209,7 @@ def main():
         logger.info("  python scripts/db_manager.py restore <file>  # Restore from backup")
         logger.info("  python scripts/db_manager.py clean      # Clean database")
         logger.info("  python scripts/db_manager.py health     # Check database health")
+
 
 if __name__ == "__main__":
     main()

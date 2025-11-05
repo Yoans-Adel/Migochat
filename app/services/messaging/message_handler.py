@@ -4,25 +4,23 @@ Completely independent implementation using the new architecture
 """
 
 import asyncio
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
-from sqlalchemy.orm import Session
 
 from app.services.core.base_service import MessageService
 from app.services.ai.ai_service import AIService
 from app.services.messaging.messenger_service import MessengerService
 from app.services.messaging.whatsapp_service import WhatsAppService
-from database import get_db_session, User, Message, Conversation, MessageDirection, MessageStatus, Governorate
-from Server.config import settings
+from database import get_db_session, User
 
 logger = logging.getLogger(__name__)
+
 
 class MessageHandler(MessageService):
     """Message handler using the new architecture"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.platform = "multi"
         self.ai_service = AIService()
@@ -30,7 +28,7 @@ class MessageHandler(MessageService):
         self.whatsapp_service = WhatsAppService()
         self._initialized = False
 
-    def _do_initialize(self):
+    def _do_initialize(self) -> None:
         """Initialize all services"""
         try:
             # Database accessed directly via app.database module
@@ -49,7 +47,6 @@ class MessageHandler(MessageService):
             # Extract message details
             user_id = message_data.get("user_id")
             message_text = message_data.get("text", "")
-            message_id = message_data.get("message_id")
 
             logger.info(f"Processing {platform} message from user {user_id}: {message_text}")
 
@@ -170,7 +167,7 @@ class MessageHandler(MessageService):
             # Database health - check if we can get a session
             db_healthy = True
             try:
-                with get_db_session() as session:
+                with get_db_session() as _:
                     # If we can get a session, database is healthy
                     pass
             except Exception as e:
@@ -202,7 +199,6 @@ class MessageHandler(MessageService):
 
     def process_message(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
         """Process incoming message (sync wrapper)"""
-        import asyncio
         try:
             return asyncio.run(self._process_message_impl(message_data, platform))
         except Exception as e:
@@ -211,14 +207,13 @@ class MessageHandler(MessageService):
 
     def send_message(self, user_id: str, message: str, platform: str = "facebook") -> bool:
         """Send message to user (sync wrapper)"""
-        import asyncio
         try:
             return asyncio.run(self._send_message_impl(user_id, message, platform))
         except Exception as e:
             logger.error(f"Error sending message: {e}")
             return False
 
-    def _do_shutdown(self):
+    def _do_shutdown(self) -> None:
         """Shutdown all services"""
         try:
             # No db_service to shutdown - database connections managed by get_session()
@@ -228,6 +223,7 @@ class MessageHandler(MessageService):
             logger.info("Professional Message Handler shutdown successfully")
         except Exception as e:
             logger.error(f"Error during shutdown: {e}")
+
 
 # Create global instance
 message_handler = MessageHandler()

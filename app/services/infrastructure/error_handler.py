@@ -7,7 +7,7 @@ import logging
 import time
 import asyncio
 import threading
-from typing import Dict, Any, Optional, List, Callable, Type, Union
+from typing import Dict, Any, Optional, List, Callable, Type, TypeVar, Tuple, cast
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
@@ -15,9 +15,12 @@ from functools import wraps
 import traceback
 from collections import defaultdict, deque
 
-from app.services.core.interfaces import ServiceInterface, ServiceHealth, ServiceStatus
-
 logger = logging.getLogger(__name__)
+
+# Type variables for generic decorators
+T = TypeVar('T')
+F = TypeVar('F', bound=Callable[..., Any])
+
 
 class ErrorSeverity(Enum):
     """Error severity levels"""
@@ -25,6 +28,7 @@ class ErrorSeverity(Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+
 
 class ErrorCategory(Enum):
     """Error categories"""
@@ -39,6 +43,7 @@ class ErrorCategory(Enum):
     AUTHENTICATION = "authentication"
     AUTHORIZATION = "authorization"
 
+
 @dataclass
 class ErrorContext:
     """Error context information"""
@@ -48,6 +53,7 @@ class ErrorContext:
     request_id: Optional[str] = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 @dataclass
 class ErrorRecord:
@@ -65,11 +71,13 @@ class ErrorRecord:
     last_occurrence: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     occurrence_count: int = 1
 
+
 class CircuitBreakerState(Enum):
     """Circuit breaker states"""
     CLOSED = "closed"      # Normal operation
     OPEN = "open"          # Circuit is open, failing fast
     HALF_OPEN = "half_open"  # Testing if service is back
+
 
 @dataclass
 class CircuitBreakerConfig:
@@ -78,6 +86,7 @@ class CircuitBreakerConfig:
     recovery_timeout: int = 60
     expected_exception: Type[Exception] = Exception
     success_threshold: int = 3
+
 
 class CircuitBreaker:
     """Circuit breaker implementation"""
@@ -92,7 +101,7 @@ class CircuitBreaker:
         self.logger = logging.getLogger(f"{__name__}.CircuitBreaker.{name}")
         self._lock = threading.Lock()
 
-    def call(self, func: Callable, *args, **kwargs):
+    def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute function with circuit breaker protection"""
         with self._lock:
             if self.state == CircuitBreakerState.OPEN:
@@ -118,7 +127,7 @@ class CircuitBreaker:
 
         return (datetime.now(timezone.utc) - self.last_failure_time).total_seconds() >= self.config.recovery_timeout
 
-    def _on_success(self):
+    def _on_success(self) -> None:
         """Handle successful operation"""
         if self.state == CircuitBreakerState.HALF_OPEN:
             self.success_count += 1
@@ -129,7 +138,7 @@ class CircuitBreaker:
         else:
             self.failure_count = 0
 
-    def _on_failure(self):
+    def _on_failure(self) -> None:
         """Handle failed operation"""
         self.failure_count += 1
         self.last_failure_time = datetime.now(timezone.utc)
@@ -141,6 +150,7 @@ class CircuitBreaker:
             self.state = CircuitBreakerState.OPEN
             self.logger.warning(f"Circuit breaker '{self.name}' moved to OPEN (failure threshold reached)")
 
+
 class RetryConfig:
     """Retry configuration"""
     def __init__(self, max_retries: int = 3, delay: float = 1.0,
@@ -150,17 +160,21 @@ class RetryConfig:
         self.backoff_factor = backoff_factor
         self.max_delay = max_delay
 
-def retry_on_error(config: RetryConfig = None, exceptions: tuple = (Exception,)):
+
+def retry_on_error(
+    config: Optional[RetryConfig] = None,
+    exceptions: Tuple[Type[Exception], ...] = (Exception,)
+) -> Callable[[F], F]:
     """Retry decorator with exponential backoff"""
     if config is None:
         config = RetryConfig()
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            last_exception = None
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            last_exception: Optional[Exception] = None
 
-            for attempt in range(config.max_retries + 1):
+            for attempt in range(config.max_retries + 1):  # type: ignore[union-attr]
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
@@ -171,23 +185,29 @@ def retry_on_error(config: RetryConfig = None, exceptions: tuple = (Exception,))
                         raise e
 
                     delay = min(config.delay * (config.backoff_factor ** attempt), config.max_delay)
-                    logger.warning(f"Function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")
+                    logger.warning(f"Function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")  # type: ignore[union-attr]
                     time.sleep(delay)
 
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RuntimeError("Retry logic failed unexpectedly")
 
-        return wrapper
+        return cast(F, wrapper)
     return decorator
 
-def async_retry_on_error(config: RetryConfig = None, exceptions: tuple = (Exception,)):
+
+def async_retry_on_error(
+    config: Optional[RetryConfig] = None,
+    exceptions: Tuple[Type[Exception], ...] = (Exception,)
+) -> Callable[[F], F]:
     """Async retry decorator with exponential backoff"""
     if config is None:
         config = RetryConfig()
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
-            last_exception = None
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            last_exception: Optional[Exception] = None
 
             for attempt in range(config.max_retries + 1):
                 try:
@@ -199,14 +219,17 @@ def async_retry_on_error(config: RetryConfig = None, exceptions: tuple = (Except
                         logger.error(f"Async function {func.__name__} failed after {config.max_retries} retries: {e}")
                         raise e
 
-                    delay = min(config.delay * (config.backoff_factor ** attempt), config.max_delay)
-                    logger.warning(f"Async function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")
+                    delay = min(config.delay * (config.backoff_factor ** attempt), config.max_delay)  # type: ignore[union-attr]
+                    logger.warning(f"Async function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")  # type: ignore[union-attr]
                     await asyncio.sleep(delay)
 
-            raise last_exception
+            if last_exception:
+                raise last_exception
+            raise RuntimeError("Async retry logic failed unexpectedly")
 
-        return wrapper
+        return cast(F, wrapper)
     return decorator
+
 
 class ErrorMonitor:
     """Error monitoring and analysis system"""
@@ -214,13 +237,13 @@ class ErrorMonitor:
     def __init__(self):
         self._errors: Dict[str, ErrorRecord] = {}
         self._error_counts: Dict[str, int] = defaultdict(int)
-        self._error_timeline: deque = deque(maxlen=1000)
+        self._error_timeline: deque[Dict[str, Any]] = deque(maxlen=1000)
         self._lock = threading.RLock()
         self._logger = logging.getLogger(__name__)
 
     def record_error(self, error: Exception, context: ErrorContext,
-                    severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-                    category: ErrorCategory = ErrorCategory.INTERNAL) -> str:
+                     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+                     category: ErrorCategory = ErrorCategory.INTERNAL) -> str:
         """Record error for monitoring"""
         with self._lock:
             error_id = f"{context.service_name}_{context.operation}_{int(time.time())}"
@@ -322,16 +345,17 @@ class ErrorMonitor:
                 return True
             return False
 
+
 class ErrorHandler:
     """Professional error handling system"""
 
     def __init__(self):
         self._monitor = ErrorMonitor()
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
-        self._error_handlers: Dict[ErrorCategory, List[Callable]] = defaultdict(list)
+        self._error_handlers: Dict[ErrorCategory, List[Callable[[Exception, ErrorContext], None]]] = defaultdict(list)
         self._logger = logging.getLogger(__name__)
 
-    def register_error_handler(self, category: ErrorCategory, handler: Callable) -> None:
+    def register_error_handler(self, category: ErrorCategory, handler: Callable[[Exception, ErrorContext], None]) -> None:
         """Register error handler for specific category"""
         self._error_handlers[category].append(handler)
         self._logger.info(f"Registered error handler for category {category.value}")
@@ -344,8 +368,8 @@ class ErrorHandler:
         return circuit_breaker
 
     def handle_error(self, error: Exception, context: ErrorContext,
-                    severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-                    category: ErrorCategory = ErrorCategory.INTERNAL) -> str:
+                     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+                     category: ErrorCategory = ErrorCategory.INTERNAL) -> str:
         """Handle error with monitoring and recovery"""
         # Record error
         error_key = self._monitor.record_error(error, context, severity, category)
@@ -391,10 +415,12 @@ class ErrorHandler:
         }
 
 # Service-specific error handlers
-def database_error_handler(func):
+
+
+def database_error_handler(func: F) -> F:
     """Database error handler decorator"""
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -405,12 +431,13 @@ def database_error_handler(func):
             error_handler = get_error_handler()
             error_handler.handle_error(e, context, ErrorSeverity.HIGH, ErrorCategory.DATABASE)
             raise
-    return wrapper
+    return cast(F, wrapper)
 
-def api_error_handler(func):
+
+def api_error_handler(func: F) -> F:
     """API error handler decorator"""
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -421,12 +448,13 @@ def api_error_handler(func):
             error_handler = get_error_handler()
             error_handler.handle_error(e, context, ErrorSeverity.MEDIUM, ErrorCategory.API)
             raise
-    return wrapper
+    return cast(F, wrapper)
 
-def ai_error_handler(func):
+
+def ai_error_handler(func: F) -> F:
     """AI service error handler decorator"""
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -437,11 +465,13 @@ def ai_error_handler(func):
             error_handler = get_error_handler()
             error_handler.handle_error(e, context, ErrorSeverity.MEDIUM, ErrorCategory.EXTERNAL_SERVICE)
             raise
-    return wrapper
+    return cast(F, wrapper)
+
 
 # Global error handler instance
 _error_handler: Optional[ErrorHandler] = None
 _error_handler_lock = threading.Lock()
+
 
 def get_error_handler() -> ErrorHandler:
     """Get global error handler"""
@@ -454,6 +484,7 @@ def get_error_handler() -> ErrorHandler:
 
     return _error_handler
 
+
 def create_circuit_breaker(name: str, config: CircuitBreakerConfig = None) -> CircuitBreaker:
     """Create circuit breaker in global error handler"""
     if config is None:
@@ -461,19 +492,20 @@ def create_circuit_breaker(name: str, config: CircuitBreakerConfig = None) -> Ci
 
     return get_error_handler().create_circuit_breaker(name, config)
 
-def circuit_breaker(name: str, config: CircuitBreakerConfig = None):
+
+def circuit_breaker(name: str, config: Optional[CircuitBreakerConfig] = None) -> Callable[[F], F]:
     """Circuit breaker decorator"""
     if config is None:
         config = CircuitBreakerConfig()
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         breaker = get_error_handler().get_circuit_breaker(name)
         if breaker is None:
             breaker = get_error_handler().create_circuit_breaker(name, config)
 
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return breaker.call(func, *args, **kwargs)
 
-        return wrapper
+        return cast(F, wrapper)
     return decorator
