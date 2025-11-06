@@ -1684,3 +1684,126 @@ async def send_bulk_messages(
         logger.error(f"Error sending bulk messages: {e}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Failed to send bulk messages")
+
+
+# ========================================
+# Test Connection Endpoints
+# ========================================
+
+@router.post("/test/ai")
+async def test_ai_connection(request: Request) -> Dict[str, Any]:
+    """Test AI/Gemini connection"""
+    try:
+        data = await request.json()
+        api_key = data.get("api_key")
+        
+        if not api_key:
+            return {"success": False, "message": "API key is required"}
+        
+        # Get AI service and test
+        ai_service = get_gemini_service()
+        if not ai_service:
+            return {"success": False, "message": "AI service unavailable"}
+        
+        # Test with simple prompt
+        try:
+            response = ai_service.generate_response("Hello, this is a test.", api_key=api_key)
+            return {
+                "success": True,
+                "message": "AI connection successful",
+                "test_response": response[:100] if response else "No response"
+            }
+        except Exception as e:
+            return {"success": False, "message": f"AI test failed: {str(e)}"}
+            
+    except Exception as e:
+        logger.error(f"Error testing AI connection: {e}")
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+
+@router.post("/test/messenger")
+async def test_messenger_connection(request: Request) -> Dict[str, Any]:
+    """Test Messenger connection"""
+    try:
+        data = await request.json()
+        access_token = data.get("access_token")
+        
+        if not access_token:
+            return {"success": False, "message": "Access token is required"}
+        
+        # Get Messenger service
+        messenger_service = get_messenger_service()
+        if not messenger_service:
+            return {"success": False, "message": "Messenger service unavailable"}
+        
+        # Test by getting page info
+        import requests
+        try:
+            url = f"https://graph.facebook.com/v18.0/me?access_token={access_token}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "success": True,
+                    "message": "Messenger connection successful",
+                    "page_name": data.get("name", "Unknown")
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Connection failed: {response.status_code}"
+                }
+        except Exception as e:
+            return {"success": False, "message": f"Test failed: {str(e)}"}
+            
+    except Exception as e:
+        logger.error(f"Error testing Messenger connection: {e}")
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+
+@router.post("/test/whatsapp")
+async def test_whatsapp_connection(request: Request) -> Dict[str, Any]:
+    """Test WhatsApp connection"""
+    try:
+        data = await request.json()
+        access_token = data.get("access_token")
+        phone_number_id = data.get("phone_number_id")
+        
+        if not access_token:
+            # Try to get from settings
+            access_token = settings.WHATSAPP_ACCESS_TOKEN
+            phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
+        
+        if not access_token or not phone_number_id:
+            return {"success": False, "message": "Access token and phone number ID required"}
+        
+        # Get WhatsApp service
+        whatsapp_service = get_whatsapp_service()
+        if not whatsapp_service:
+            return {"success": False, "message": "WhatsApp service unavailable"}
+        
+        # Test by getting phone number info
+        import requests
+        try:
+            url = f"https://graph.facebook.com/v18.0/{phone_number_id}?access_token={access_token}"
+            response = requests.get(url, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "success": True,
+                    "message": "WhatsApp connection successful",
+                    "phone_number": data.get("display_phone_number", "Unknown")
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"Connection failed: {response.status_code}"
+                }
+        except Exception as e:
+            return {"success": False, "message": f"Test failed: {str(e)}"}
+            
+    except Exception as e:
+        logger.error(f"Error testing WhatsApp connection: {e}")
+        return {"success": False, "message": f"Error: {str(e)}"}
