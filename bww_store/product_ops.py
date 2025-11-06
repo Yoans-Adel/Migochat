@@ -296,17 +296,23 @@ class BWWStoreProductOperations:
 
             logger.info(f"Successfully downloaded {len(products)} products to {len(saved_files)} files")
 
+            # Initialize with defaults for potentially unbound variables
+            categories_count = len(categories) if 'categories' in locals() else 0
+            price_stats = None
+            if 'prices' in locals() and prices:
+                price_stats = {
+                    "min": min(prices),
+                    "max": max(prices),
+                    "avg": sum(prices) / len(prices)
+                }
+
             return {
                 "success": True,
                 "downloaded": len(products),
                 "files": saved_files,
-                "categories_found": len(categories),
+                "categories_found": categories_count,
                 "timestamp": timestamp,
-                "price_range": {
-                    "min": min(prices) if prices else 0,
-                    "max": max(prices) if prices else 0,
-                    "avg": sum(prices) / len(prices) if prices else 0
-                } if prices else None
+                "price_range": price_stats
             }
 
         except Exception as exc:

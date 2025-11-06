@@ -4,7 +4,7 @@ Context managers for safe database session handling
 """
 import logging
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -186,7 +186,7 @@ def get_safe_session(auto_commit: bool = False):
     return _session_manager.get_session(auto_commit=auto_commit)
 
 
-def execute_db_operation(operation, *args, **kwargs):
+def execute_db_operation(operation: Any, *args: Any, **kwargs: Any) -> Any:
     """
     Execute database operation with retry logic
 

@@ -15,7 +15,10 @@ Usage:
     result = await client.search_and_format_products("طقم صيفي")
 """
 
+from typing import Optional
+
 from .client import BWWStoreAPIClient
+from .models import CacheStrategy
 from .product_formatter import format_product_for_messenger
 from .product_ops import BWWStoreProductOperations
 from .search import BWWStoreSearchEngine
@@ -62,9 +65,10 @@ class BWWStoreAPIService:
 
     # Product methods
 
-    async def get_product_details(self, product_id: int, *, cache_strategy=None):
+    async def get_product_details(self, product_id: int, *, cache_strategy: Optional[CacheStrategy] = None):
         """Get detailed information for a specific product."""
-        return await self.products.get_product_details(product_id, cache_strategy=cache_strategy or self.client._cache_ttl.keys().__iter__().__next__())
+        strategy = cache_strategy or CacheStrategy.MEDIUM_TERM
+        return await self.products.get_product_details(product_id, cache_strategy=strategy)
 
     async def search_products_by_text(self, search_text: str, *, page: int = 1, page_size: int = 10):
         """Search products by text query."""
@@ -82,15 +86,19 @@ class BWWStoreAPIService:
         """Get products within a price range."""
         return await self.products.get_products_by_price_range(min_price, max_price, page=page, page_size=page_size)
 
-    async def filter_products(self, *, search=None, product_code=None, colors=None, sizes=None,
-                              material=None, sku_code=None, category=None, min_price=None,
-                              max_price=None, page: int = 1, page_size: int = 10, cache_strategy=None):
+    async def filter_products(self, *, search: Optional[str] = None, product_code: Optional[str] = None, 
+                              colors: Optional[str] = None, sizes: Optional[str] = None,
+                              material: Optional[str] = None, sku_code: Optional[str] = None, 
+                              category: Optional[str] = None, min_price: Optional[float] = None,
+                              max_price: Optional[float] = None, page: int = 1, page_size: int = 10, 
+                              cache_strategy: Optional[CacheStrategy] = None):
         """Filter products with various criteria."""
+        strategy = cache_strategy or CacheStrategy.MEDIUM_TERM
         return await self.client.filter_products(
             search=search, product_code=product_code, colors=colors, sizes=sizes,
             material=material, sku_code=sku_code, category=category,
             min_price=min_price, max_price=max_price, page=page, page_size=page_size,
-            cache_strategy=cache_strategy or self.client._cache_ttl.keys().__iter__().__next__()
+            cache_strategy=strategy
         )
 
     async def generate_product_card(self, product: dict, *, language: str = "ar") -> dict:

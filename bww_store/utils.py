@@ -5,9 +5,12 @@ This module contains utility functions and helper methods for the BWW Store API 
 """
 
 import asyncio
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict
 
-from .models import APIResponse
+from .models import APIResponse, CacheStrategy
+
+if TYPE_CHECKING:
+    from .api_client import BWWStoreAPIClient
 
 
 def format_product_for_messenger(product: Any, language: str = "ar") -> str:
@@ -29,7 +32,7 @@ def format_product_for_messenger(product: Any, language: str = "ar") -> str:
 class CompatibilityWrapper:
     """Compatibility wrapper for existing API usage patterns."""
 
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         """Initialize compatibility wrapper.
 
         Args:
@@ -54,14 +57,14 @@ class CompatibilityWrapper:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        async def _async_request():
+        async def _async_request() -> Any:
             data = kwargs.get("data")
-            cache_strategy = kwargs.get("cache_strategy", self.client.client._cache_ttl.keys().__iter__().__next__())
-            result = await self.client.client._request(method, endpoint, data, cache_strategy)
+            cache_strategy: CacheStrategy = kwargs.get("cache_strategy", CacheStrategy.MEDIUM_TERM)
+            result: APIResponse = await self.client.client._request(method, endpoint, data, cache_strategy)  # type: ignore[attr-defined]
             return result.__dict__ if hasattr(result, "__dict__") else result
 
-        result = loop.run_until_complete(_async_request())
-        return result
+        result: Any = loop.run_until_complete(_async_request())
+        return result  # type: ignore[return-value]
 
 
 def create_error_response(error: str, status_code: int = 500) -> APIResponse:
@@ -165,7 +168,7 @@ def is_valid_product_url(url: str) -> bool:
     Returns:
         True if valid product URL, False otherwise
     """
-    if not url or not isinstance(url, str):
+    if not url:
         return False
 
     return "bww-store.com" in url and (
