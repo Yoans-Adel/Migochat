@@ -39,6 +39,19 @@ def handle_dashboard_error(error: Exception, view_name: str):
     raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.get("/crm", response_class=HTMLResponse)
+async def crm_view(request: Request):
+    """Unified CRM page for Leads, Users, and Bulk Operations"""
+    try:
+        return templates.TemplateResponse("crm.html", {
+            "request": request
+        })
+    except Exception as e:
+        logger.error(f"Error in CRM view: {e}")
+        logger.exception("CRM view exception details:")
+        handle_dashboard_error(e, "CRM view")
+
+
 @router.get("/", response_class=HTMLResponse)
 async def dashboard_home(request: Request):
     """Main dashboard page with lead analytics"""
@@ -84,68 +97,6 @@ async def dashboard_home(request: Request):
 
     except Exception as e:
         handle_dashboard_error(e, "dashboard")
-
-
-@router.get("/leads", response_class=HTMLResponse)
-async def leads_view(request: Request):
-    """Lead management page"""
-    try:
-        logger.info("Starting leads_view")
-
-        with get_db_session() as db:
-            # Get leads with pagination
-            leads = get_users_by_last_message(db, 100)
-            logger.info(f"Found {len(leads)} leads")
-
-            # Get lead analytics
-            lead_analytics = lead_automation.get_lead_analytics()
-            logger.info(f"Lead analytics: {lead_analytics}")
-
-            return templates.TemplateResponse("leads.html", {
-                "request": request,
-                "leads": leads,
-                "analytics": lead_analytics
-            })
-
-    except Exception as e:
-        logger.error(f"Error in leads_view: {e}", exc_info=True)
-        handle_dashboard_error(e, "leads view")
-
-
-@router.get("/messages", response_class=HTMLResponse)
-async def messages_view(request: Request):
-    """Messages management page"""
-    try:
-        with get_db_session() as db:
-            # Get conversations with user info
-            conversations = db.query(Conversation).join(User).filter(
-                Conversation.is_active.is_(True)
-            ).order_by(desc(Conversation.last_activity)).limit(50).all()
-
-            return templates.TemplateResponse("messages.html", {
-                "request": request,
-                "conversations": conversations
-            })
-
-    except Exception as e:
-        handle_dashboard_error(e, "messages view")
-
-
-@router.get("/users", response_class=HTMLResponse)
-async def users_view(request: Request):
-    """Users management page"""
-    try:
-        with get_db_session() as db:
-            # Get all users with message counts
-            users = get_users_by_last_message(db, 100)
-
-            return templates.TemplateResponse("users.html", {
-                "request": request,
-                "users": users
-            })
-
-    except Exception as e:
-        handle_dashboard_error(e, "users view")
 
 
 @router.get("/settings", response_class=HTMLResponse)

@@ -147,6 +147,98 @@ async def send_message(
             raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/messages/bulk")
+async def send_bulk_message(
+    request: Request,
+    db: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Send bulk message to multiple users"""
+    try:
+        # Get message handler service
+        message_handler = get_message_handler()
+        if not message_handler:
+            raise HTTPException(status_code=503, detail="Message handler service unavailable")
+
+        # Get data from request body
+        data = await request.json()
+        campaign_name = data.get("campaign_name", "")
+        audience = data.get("audience", "all")
+        message_text = data.get("message", "")
+        scheduled = data.get("scheduled", False)
+        scheduled_time = data.get("scheduled_time")
+
+        if not message_text:
+            raise HTTPException(status_code=400, detail="message is required")
+
+        # Get target users based on audience filter
+        query = db.query(User).filter(User.is_active.is_(True))
+        
+        if audience == "leads":
+            # Only users with lead stages
+            from database import LeadStage
+            query = query.filter(User.lead_stage.isnot(None))
+        elif audience == "active":
+            # Users with messages in last 7 days
+            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            query = query.filter(User.last_message_at >= seven_days_ago)
+        elif audience == "new":
+            # New leads in last 7 days
+            seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            query = query.filter(User.created_at >= seven_days_ago)
+        elif audience == "qualified":
+            from database import LeadStage
+            query = query.filter(User.lead_stage == LeadStage.QUALIFIED)
+
+        users = query.all()
+        
+        if len(users) == 0:
+            return {
+                "success": False,
+                "error": "No users found matching criteria",
+                "sent_count": 0
+            }
+
+        # Send messages
+        sent_count = 0
+        failed_count = 0
+        
+        for user in users:
+            try:
+                # Personalize message
+                personalized_message = message_text.replace("{name}", f"{user.first_name or ''} {user.last_name or ''}".strip())
+                personalized_message = personalized_message.replace("{first_name}", user.first_name or "")
+                personalized_message = personalized_message.replace("{last_name}", user.last_name or "")
+                
+                # Determine platform
+                platform = "facebook"  # Default to facebook
+                
+                # Send message
+                success = message_handler.send_message(user.psid, personalized_message, platform)
+                
+                if success:
+                    sent_count += 1
+                else:
+                    failed_count += 1
+                    
+            except Exception as e:
+                logger.error(f"Error sending bulk message to {user.psid}: {e}")
+                failed_count += 1
+
+        logger.info(f"Bulk message campaign '{campaign_name}': Sent {sent_count}/{len(users)}, Failed {failed_count}")
+
+        return {
+            "success": True,
+            "campaign_name": campaign_name,
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "total_users": len(users)
+        }
+
+    except Exception as e:
+        logger.error(f"Error sending bulk message: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/users")
 async def get_users(
     skip: int = 0,
@@ -1484,3 +1576,111 @@ async def initialize_settings() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error initializing settings: {e}")
         raise HTTPException(status_code=500, detail="Failed to initialize settings")
+
+
+@router.post("/messages/bulk")
+async def send_bulk_messages(
+    request: Request,
+    db: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Send bulk messages to multiple users"""
+    try:
+        data = await request.json()
+        message_text = data.get("message")
+        audience = data.get("audience", "all")
+        schedule_time = data.get("schedule_time")
+
+        if not message_text:
+            raise HTTPException(status_code=400, detail="Message text is required")
+
+        # Get message handler
+        message_handler = get_message_handler()
+        if not message_handler:
+            raise HTTPException(status_code=503, detail="Message handler service unavailable")
+
+        # Build query based on audience filter
+        query = db.query(User)
+
+        if audience == "leads":
+            query = query.filter(User.customer_type == CustomerType.LEAD)
+        elif audience == "active":
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            query = query.filter(User.last_message_at >= week_ago)
+        elif audience == "new":
+            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+            query = query.filter(User.created_at >= week_ago)
+        elif audience == "qualified":
+            query = query.filter(
+                User.customer_type == CustomerType.LEAD,
+                User.lead_stage.in_([LeadStage.QUALIFIED, LeadStage.HOT])
+            )
+
+        users = query.all()
+
+        if not users:
+            return {
+                "success": False,
+                "message": "No users found matching the criteria",
+                "sent_count": 0,
+                "failed_count": 0
+            }
+
+        # Send messages
+        sent_count = 0
+        failed_count = 0
+        failed_users = []
+
+        for user in users:
+            try:
+                # Personalize message
+                personalized_message = message_text
+                if "{name}" in personalized_message:
+                    personalized_message = personalized_message.replace("{name}", user.name or "")
+                if "{first_name}" in personalized_message:
+                    first_name = (user.name or "").split()[0] if user.name else ""
+                    personalized_message = personalized_message.replace("{first_name}", first_name)
+                if "{last_name}" in personalized_message:
+                    last_name = " ".join((user.name or "").split()[1:]) if user.name and len(user.name.split()) > 1 else ""
+                    personalized_message = personalized_message.replace("{last_name}", last_name)
+
+                # Send message based on platform
+                if user.platform_id:  # Facebook/Messenger
+                    messenger_service = get_messenger_service()
+                    if messenger_service:
+                        messenger_service.send_message(user.platform_id, personalized_message)
+                        sent_count += 1
+                    else:
+                        failed_count += 1
+                        failed_users.append({"user_id": user.id, "reason": "Messenger service unavailable"})
+                elif user.phone_number:  # WhatsApp
+                    whatsapp_service = get_whatsapp_service()
+                    if whatsapp_service:
+                        whatsapp_service.send_message(user.phone_number, personalized_message)
+                        sent_count += 1
+                    else:
+                        failed_count += 1
+                        failed_users.append({"user_id": user.id, "reason": "WhatsApp service unavailable"})
+                else:
+                    failed_count += 1
+                    failed_users.append({"user_id": user.id, "reason": "No platform ID or phone number"})
+
+            except Exception as e:
+                logger.error(f"Error sending message to user {user.id}: {e}")
+                failed_count += 1
+                failed_users.append({"user_id": user.id, "reason": str(e)})
+
+        return {
+            "success": True,
+            "message": f"Sent {sent_count} messages successfully, {failed_count} failed",
+            "sent_count": sent_count,
+            "failed_count": failed_count,
+            "total_users": len(users),
+            "failed_users": failed_users
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending bulk messages: {e}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="Failed to send bulk messages")

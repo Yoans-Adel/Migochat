@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM - Bww-Assistant-chatbot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/dashboard.css" rel="stylesheet">
+    <style>
+        .crm-tabs .nav-link {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        .crm-tabs .nav-link.active {
+            color: #0d6efd;
+            border-bottom: 3px solid #0d6efd;
+        }
+        .stat-card {
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .lead-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .action-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .bulk-actions-bar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: #fff;
+            border-bottom: 2px solid #dee2e6;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            padding-bottom: 1rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            bottom: -1rem;
+            width: 2px;
+            background: #dee2e6;
+        }
+        .timeline-icon {
+            position: absolute;
+            left: 0;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <i class="fab fa-facebook-messenger me-2"></i>
+                Bww-Assistant CRM
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard/crm">
+                            <i class="fas fa-briefcase me-1"></i>CRM
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-dark me-3" id="lastSync">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        <span id="syncTime">Syncing...</span>
+                    </span>
+                    <button class="btn btn-sm btn-outline-light" onclick="refreshAll()">
+                        <i class="fas fa-sync me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Stats Overview -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Total Leads</h6>
+                                <h3 class="mb-0" id="totalLeads">0</h3>
+                            </div>
+                            <div class="text-primary">
+                                <i class="fas fa-users fa-2x"></i>
+                            </div>
+                        </div>
+                        <small class="text-success" id="leadsChange">
+                            <i class="fas fa-arrow-up me-1"></i>0% this week
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Active Conversations</h6>
+                                <h3 class="mb-0" id="activeConversations">0</h3>
+                            </div>
+                            <div class="text-success">
+                                <i class="fas fa-comments fa-2x"></i>
+                            </div>
+                        </div>
+                        <small class="text-muted" id="conversationsChange">
+                            <i class="fas fa-minus me-1"></i>0% this week
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Hot Leads</h6>
+                                <h3 class="mb-0" id="hotLeads">0</h3>
+                            </div>
+                            <div class="text-danger">
+                                <i class="fas fa-fire fa-2x"></i>
+                            </div>
+                        </div>
+                        <small class="text-muted" id="hotLeadsChange">
+                            <i class="fas fa-arrow-up me-1"></i>0% this week
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-1">Response Rate</h6>
+                                <h3 class="mb-0" id="responseRate">0%</h3>
+                            </div>
+                            <div class="text-info">
+                                <i class="fas fa-chart-line fa-2x"></i>
+                            </div>
+                        </div>
+                        <small class="text-success" id="responseRateChange">
+                            <i class="fas fa-arrow-up me-1"></i>0% this week
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main CRM Tabs -->
+        <ul class="nav nav-tabs crm-tabs mb-4" id="crmTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="leads-tab" data-bs-toggle="tab" data-bs-target="#leads" type="button">
+                    <i class="fas fa-user-plus me-2"></i>Leads
+                    <span class="badge bg-primary ms-2" id="leadsCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                    <i class="fas fa-users me-2"></i>Users
+                    <span class="badge bg-secondary ms-2" id="usersCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="conversations-tab" data-bs-toggle="tab" data-bs-target="#conversations" type="button">
+                    <i class="fas fa-comments me-2"></i>Conversations
+                    <span class="badge bg-info ms-2" id="conversationsCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button">
+                    <i class="fas fa-paper-plane me-2"></i>Bulk Messages
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="crmTabsContent">
+            <!-- Leads Tab -->
+            <div class="tab-pane fade show active" id="leads" role="tabpanel">
+                <!-- Bulk Actions Bar -->
+                <div class="bulk-actions-bar d-none" id="leadsActionsBar">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="me-3">
+                                <i class="fas fa-check-square me-1"></i>
+                                <strong id="selectedLeadsCount">0</strong> selected
+                            </span>
+                            <button class="btn btn-sm btn-primary me-2" onclick="bulkSendMessage('leads')">
+                                <i class="fas fa-paper-plane me-1"></i>Send Message
+                            </button>
+                            <button class="btn btn-sm btn-success me-2" onclick="bulkChangeStage()">
+                                <i class="fas fa-exchange-alt me-1"></i>Change Stage
+                            </button>
+                            <button class="btn btn-sm btn-info me-2" onclick="bulkExport('leads')">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection('leads')">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Stage</label>
+                                <select class="form-select" id="leadStageFilter" onchange="loadLeads()">
+                                    <option value="">All Stages</option>
+                                    <option value="NEW">New</option>
+                                    <option value="CONTACTED">Contacted</option>
+                                    <option value="QUALIFIED">Qualified</option>
+                                    <option value="NEGOTIATING">Negotiating</option>
+                                    <option value="CONVERTED">Converted</option>
+                                    <option value="LOST">Lost</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Customer Type</label>
+                                <select class="form-select" id="customerTypeFilter" onchange="loadLeads()">
+                                    <option value="">All Types</option>
+                                    <option value="POTENTIAL">Potential</option>
+                                    <option value="ACTIVE">Active</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="CHURNED">Churned</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Search</label>
+                                <input type="text" class="form-control" id="leadSearchInput" placeholder="Search by name...">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary w-100" onclick="loadLeads()">
+                                    <i class="fas fa-search me-1"></i>Search
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leads Table -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" onchange="toggleSelectAll('leads', this.checked)"></th>
+                                        <th>Lead</th>
+                                        <th>Score</th>
+                                        <th>Stage</th>
+                                        <th>Type</th>
+                                        <th>Last Contact</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leadsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div class="tab-pane fade" id="users" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" onchange="toggleSelectAll('users', this.checked)"></th>
+                                        <th>User</th>
+                                        <th>Platform</th>
+                                        <th>Status</th>
+                                        <th>Messages</th>
+                                        <th>Last Active</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conversations Tab -->
+            <div class="tab-pane fade" id="conversations" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card" style="height: 600px; overflow-y: auto;">
+                            <div class="card-header">
+                                <h6 class="mb-0">Active Conversations</h6>
+                            </div>
+                            <div class="list-group list-group-flush" id="conversationsList">
+                                <div class="text-center p-4">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card" style="height: 600px;">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <div id="conversationHeader">
+                                    <h6 class="mb-0">Select a conversation</h6>
+                                </div>
+                                <button class="btn btn-sm btn-primary d-none" id="sendMessageBtn" onclick="showMessageComposer()">
+                                    <i class="fas fa-paper-plane me-1"></i>Send Message
+                                </button>
+                            </div>
+                            <div class="card-body" style="overflow-y: auto; height: 480px;" id="messagesContainer">
+                                <div class="text-center text-muted p-5">
+                                    <i class="fas fa-comments fa-3x mb-3"></i>
+                                    <p>Select a conversation to view messages</p>
+                                </div>
+                            </div>
+                            <div class="card-footer d-none" id="messageComposer">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="messageInput" placeholder="Type a message...">
+                                    <button class="btn btn-primary" onclick="sendMessage()">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bulk Messages Tab -->
+            <div class="tab-pane fade" id="bulk" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    Bulk Message Campaign
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Campaign Name</label>
+                                    <input type="text" class="form-control" id="campaignName" placeholder="Enter campaign name">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Target Audience</label>
+                                    <select class="form-select" id="bulkAudience">
+                                        <option value="all">All Users</option>
+                                        <option value="leads">All Leads</option>
+                                        <option value="active">Active Users Only</option>
+                                        <option value="new">New Leads (Last 7 days)</option>
+                                        <option value="qualified">Qualified Leads</option>
+                                        <option value="custom">Custom Selection</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Message Template</label>
+                                    <select class="form-select mb-2" id="messageTemplate" onchange="loadTemplate()">
+                                        <option value="">Select a template...</option>
+                                        <option value="welcome">Welcome Message</option>
+                                        <option value="followup">Follow-up</option>
+                                        <option value="promotion">Promotion</option>
+                                        <option value="reminder">Reminder</option>
+                                        <option value="custom">Custom Message</option>
+                                    </select>
+                                    <textarea class="form-control" id="bulkMessage" rows="6" placeholder="Type your message here... Use {name} for personalization"></textarea>
+                                    <small class="text-muted">Available variables: {name}, {first_name}, {last_name}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="scheduleMessage">
+                                        <label class="form-check-label" for="scheduleMessage">
+                                            Schedule for later
+                                        </label>
+                                    </div>
+                                    <input type="datetime-local" class="form-control mt-2 d-none" id="scheduleTime">
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary btn-lg" onclick="sendBulkMessage()">
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        Send Bulk Message
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="previewBulkMessage()">
+                                        <i class="fas fa-eye me-2"></i>
+                                        Preview
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h6 class="mb-0">Campaign Stats</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Recipients:</span>
+                                    <strong id="recipientsCount">0</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Estimated Cost:</span>
+                                    <strong id="estimatedCost">$0.00</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Character Count:</span>
+                                    <strong id="charCount">0</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Recent Campaigns</h6>
+                            </div>
+                            <div class="list-group list-group-flush" id="recentCampaigns">
+                                <div class="list-group-item text-center text-muted">
+                                    No campaigns yet
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Detail Modal -->
+    <div class="modal fade" id="userDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="userDetailTitle">User Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="userDetailBody">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="notificationToast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/crm.js"></script>
+</body>
+</html>
