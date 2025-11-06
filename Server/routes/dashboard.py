@@ -204,7 +204,7 @@ async def settings_view(request: Request):
             "timezone": settings.TIMEZONE or "UTC"
         }
 
-        return templates.TemplateResponse("settings_new.html", {
+        return templates.TemplateResponse("settings.html", {
             "request": request,
             "settings": settings_info
         })
