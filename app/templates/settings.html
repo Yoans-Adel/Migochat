@@ -195,27 +195,27 @@
                             </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fas fa-robot me-2" id="aiStatusIcon"></i>AI Service ({{ settings.ai_model }})
+                            <span><i class="fas fa-robot me-2"></i>AI Service ({{ settings.ai_model }})</span>
+                            {% if settings.ai_available %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Active
                             </span>
-                            <span class="badge bg-secondary" id="aiStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
+                            {% else %}
+                            <span class="badge bg-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Not Configured
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span><i class="fab fa-whatsapp me-2"></i>WhatsApp Integration</span>
+                            <span class="badge bg-success" id="whatsappSystemStatus">
+                                <i class="fas fa-check-circle me-1"></i>Active
                             </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fab fa-whatsapp me-2" id="whatsappStatusIcon"></i>WhatsApp Integration
-                            </span>
-                            <span class="badge bg-secondary" id="whatsappStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fab fa-facebook-messenger me-2" id="messengerStatusIcon"></i>Messenger Integration
-                            </span>
-                            <span class="badge bg-secondary" id="messengerStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
+                            <span><i class="fab fa-facebook-messenger me-2"></i>Messenger Integration</span>
+                            <span class="badge bg-success">
+                                <i class="fas fa-check-circle me-1"></i>Active
                             </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -356,15 +356,6 @@
                                     </div>
                                     <small class="text-muted">Custom verification token for webhook security</small>
                                 </div>
-                                
-                                <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testMessengerConnection()">
-                                        <i class="fas fa-vial me-1"></i> Test Messenger Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
-                                    </button>
-                                </div>
                             </div>
                             
                             <!-- WhatsApp Settings Tab -->
@@ -404,11 +395,8 @@
                                 </div>
                                 
                                 <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testWhatsAppConnection()">
+                                    <button class="btn btn-outline-primary" onclick="testWhatsAppConnection()">
                                         <i class="fas fa-vial me-1"></i> Test WhatsApp Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
                                     </button>
                                 </div>
                             </div>
@@ -440,14 +428,8 @@
                                 </div>
                                 
                                 <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testAIConnection()">
+                                    <button class="btn btn-outline-primary" onclick="testAIConnection()">
                                         <i class="fas fa-vial me-1"></i> Test AI Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
-                                    </button>
-                                    <button class="btn btn-outline-info" onclick="viewLogs()">
-                                        <i class="fas fa-file-alt me-1"></i> View Logs
                                     </button>
                                 </div>
                             </div>
@@ -468,6 +450,169 @@
                             <button class="btn btn-outline-info" onclick="initializeDefaultSettings()">
                                 <i class="fas fa-download me-1"></i> Initialize from Environment
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Configuration -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-robot me-2"></i>
+                            AI Model Information
+                        </h5>
+                        {% if settings.ai_available %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-check-circle me-1"></i>Active
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-times-circle me-1"></i>Not Configured
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="mb-3">
+                                    <i class="fab fa-google me-2"></i>
+                                    Current AI Provider
+                                </h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Provider</label>
+                                    <input type="text" class="form-control" value="{{ settings.ai_provider }}" readonly>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Current Model</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" value="{{ settings.ai_model }}" readonly>
+                                        <span class="input-group-text">
+                                            <i class="fas fa-sparkles text-warning"></i>
+                                        </span>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Latest Gemini model - Best price-performance ratio
+                                    </small>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Gemini API Key</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="geminiApiKey" value="{{ settings.gemini_api_key }}" readonly>
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('geminiApiKey')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    {% if settings.ai_available %}
+                                    <small class="form-text text-success">
+                                        <i class="fas fa-check-circle me-1"></i>API key configured and working
+                                    </small>
+                                    {% else %}
+                                    <small class="form-text text-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>API key not configured in environment
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                
+                                <h6 class="mb-3 mt-4">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Available Models
+                                </h6>
+                                {% for model in settings.available_models %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="aiModel" id="model{{ loop.index }}" 
+                                           value="{{ model.id }}" {% if model.id == settings.ai_model %}checked{% endif %} disabled>
+                                    <label class="form-check-label" for="model{{ loop.index }}">
+                                        <strong>{{ model.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ model.description }}</small>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                                
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>
+                                        To change models, update <code>GEMINI_API_KEY</code> in Railway environment variables and restart the service.
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    AI Features & Capabilities
+                                </h6>
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-check-circle me-2"></i>Active Features:</h6>
+                                    <ul class="mb-0">
+                                        <li><strong>Multilingual Support:</strong> Arabic & English</li>
+                                        <li><strong>Product Search:</strong> BWW store integration</li>
+                                        <li><strong>Smart Responses:</strong> Context-aware replies with emojis</li>
+                                        <li><strong>Order Tracking:</strong> Help with orders and shipping</li>
+                                        <li><strong>Customer Support:</strong> 24/7 assistance</li>
+                                        <li><strong>Intelligent Fallbacks:</strong> Smart responses when uncertain</li>
+                                    </ul>
+                                </div>
+                                
+                                <h6 class="mb-3 mt-4">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Model Information
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Provider:</strong></td>
+                                                <td>Google Gemini</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Model Version:</strong></td>
+                                                <td>{{ settings.ai_model }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Generation:</strong></td>
+                                                <td>Gemini 2.5 (Latest)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Max Tokens:</strong></td>
+                                                <td>8,192 (output)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Context Window:</strong></td>
+                                                <td>1M tokens</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Multimodal:</strong></td>
+                                                <td><i class="fas fa-check text-success"></i> Yes</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-warning mt-3">
+                                    <h6><i class="fas fa-lightbulb me-2"></i>Coming Soon:</h6>
+                                    <ul class="mb-0">
+                                        <li><strong>OpenAI Integration:</strong> GPT-4 support</li>
+                                        <li><strong>Anthropic Claude:</strong> Alternative AI provider</li>
+                                        <li><strong>Custom Models:</strong> Fine-tuned models</li>
+                                        <li><strong>A/B Testing:</strong> Compare model performance</li>
+                                        <li><strong>Model Analytics:</strong> Response quality tracking</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-3">
+                                    <button class="btn btn-outline-primary" onclick="testAIConnection()">
+                                        <i class="fas fa-vial me-2"></i>Test AI Connection
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="viewAILogs()">
+                                        <i class="fas fa-file-alt me-2"></i>View AI Logs
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -506,34 +651,15 @@
                             </div>
                         </div>
                         <div class="mt-3">
-                            <button class="btn btn-primary me-2" onclick="refreshSystemStatus()">
-                                <i class="fas fa-sync me-2"></i>Refresh All Status
+                            <button class="btn btn-outline-primary" onclick="refreshLogs()">
+                                <i class="fas fa-sync me-2"></i>Refresh Logs
                             </button>
-                            <button class="btn btn-outline-info me-2" onclick="viewLogs()">
-                                <i class="fas fa-file-alt me-2"></i>View Logs
-                            </button>
-                            <button class="btn btn-outline-secondary me-2" onclick="downloadConfig()">
-                                <i class="fas fa-download me-2"></i>Export Config
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="clearCache()">
-                                <i class="fas fa-trash me-2"></i>Clear Cache
+                            <button class="btn btn-outline-secondary" onclick="downloadLogs()">
+                                <i class="fas fa-download me-2"></i>Download Logs
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body" id="toastMessage">
-                <!-- Message will be inserted here -->
             </div>
         </div>
     </div>
