@@ -150,7 +150,7 @@ async def users_view(request: Request):
 
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_view(request: Request):
-    """Settings page with AI model configuration"""
+    """Unified settings page with comprehensive configuration management"""
     try:
         # Get Railway production URL
         railway_url = "https://migochat-production.up.railway.app"
@@ -169,17 +169,23 @@ async def settings_view(request: Request):
         except Exception:
             gemini_model = "gemini-2.5-flash"
 
+        # Mask sensitive tokens for display
+        def mask_token(token: str) -> str:
+            if not token or len(token) < 20:
+                return "Not configured"
+            return token[:20] + "..." if len(token) > 20 else token
+
         settings_info = {
             # Facebook Settings
             "fb_app_id": settings.FB_APP_ID or "",
             "fb_page_id": settings.FB_PAGE_ID or "",
             "fb_verify_token": settings.FB_VERIFY_TOKEN or "",
-            "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN[:20] + "..." if settings.FB_PAGE_ACCESS_TOKEN else "Not configured",
+            "fb_page_access_token": mask_token(settings.FB_PAGE_ACCESS_TOKEN),
 
             # WhatsApp Settings
             "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID or "",
             "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN or "",
-            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN[:20] + "..." if settings.WHATSAPP_ACCESS_TOKEN else "Not configured",
+            "whatsapp_access_token": mask_token(settings.WHATSAPP_ACCESS_TOKEN),
 
             # Webhook URLs (Railway)
             "messenger_webhook_url": f"{railway_url}/webhook/messenger",
@@ -190,15 +196,7 @@ async def settings_view(request: Request):
             "ai_provider": "Gemini",
             "ai_model": gemini_model,
             "ai_available": gemini_available,
-            "gemini_api_key": gemini_key[:20] + "..." if gemini_key else "Not configured",
-
-            # Available AI Models
-            "available_models": [
-                {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash", "description": "Best price-performance (Recommended)"},
-                {"id": "gemini-2.5-pro", "name": "Gemini 2.5 Pro", "description": "Most powerful, for complex tasks"},
-                {"id": "gemini-2.5-flash-lite", "name": "Gemini 2.5 Flash-Lite", "description": "Fastest, most cost-efficient"},
-                {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash", "description": "Previous generation"},
-            ],
+            "gemini_api_key": mask_token(gemini_key),
 
             # System Info
             "environment": settings.ENVIRONMENT or "production",
@@ -206,7 +204,7 @@ async def settings_view(request: Request):
             "timezone": settings.TIMEZONE or "UTC"
         }
 
-        return templates.TemplateResponse("settings.html", {
+        return templates.TemplateResponse("settings_new.html", {
             "request": request,
             "settings": settings_info
         })
