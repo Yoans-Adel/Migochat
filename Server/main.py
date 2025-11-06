@@ -3,6 +3,8 @@ BWW Assistant FastAPI Server
 Main FastAPI application with lifecycle management
 """
 
+from typing import Any, Dict
+
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -133,7 +135,7 @@ async def health_check():
 
 
 @app.get("/info")
-async def server_info():
+async def server_info() -> Dict[str, Any]:
     """Server information endpoint"""
     return {
         "name": "BWW Assistant Server",

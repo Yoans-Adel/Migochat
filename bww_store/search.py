@@ -407,7 +407,7 @@ class BWWStoreSearchEngine:
                     unique_products: List[Dict[str, Any]] = []
                     seen_ids: Set[Any] = set()
                     for product_tuple in scored_products[:limit]:
-                        product = cast(Dict[str, Any], product_tuple[0])
+                        product: Dict[str, Any] = product_tuple[0]
                         product_id = product.get('id')
                         if product_id and product_id not in seen_ids:
                             seen_ids.add(product_id)
@@ -433,7 +433,7 @@ class BWWStoreSearchEngine:
         seen_ids: Set[Any] = set()
         unique_products: List[Dict[str, Any]] = []
         for product_tuple in all_candidates:
-            product = cast(Dict[str, Any], product_tuple[0])
+            product: Dict[str, Any] = product_tuple[0]
             product_id = product.get('id')
             if product_id and product_id not in seen_ids:
                 seen_ids.add(product_id)

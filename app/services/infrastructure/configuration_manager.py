@@ -95,11 +95,6 @@ class ConfigurationValidator:
         """Validate service configuration"""
         errors: List[str] = []
 
-        # Basic validation
-        if not isinstance(config, dict):
-            errors.append("Configuration must be a dictionary")
-            return errors
-
         # Service-specific validation
         if service_type in self._validators:
             try:

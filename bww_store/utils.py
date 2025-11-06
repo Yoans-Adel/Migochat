@@ -5,12 +5,9 @@ This module contains utility functions and helper methods for the BWW Store API 
 """
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Dict
+from typing import Any, Dict
 
 from .models import APIResponse, CacheStrategy
-
-if TYPE_CHECKING:
-    from .api_client import BWWStoreAPIClient
 
 
 def format_product_for_messenger(product: Any, language: str = "ar") -> str:

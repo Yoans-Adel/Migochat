@@ -15,7 +15,7 @@ Usage:
     result = await client.search_and_format_products("طقم صيفي")
 """
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from .client import BWWStoreAPIClient
 from .models import CacheStrategy
@@ -87,7 +87,7 @@ class BWWStoreAPIService:
         return await self.products.get_products_by_price_range(min_price, max_price, page=page, page_size=page_size)
 
     async def filter_products(self, *, search: Optional[str] = None, product_code: Optional[str] = None, 
-                              colors: Optional[str] = None, sizes: Optional[str] = None,
+                              colors: Optional[List[str]] = None, sizes: Optional[List[str]] = None,
                               material: Optional[str] = None, sku_code: Optional[str] = None, 
                               category: Optional[str] = None, min_price: Optional[float] = None,
                               max_price: Optional[float] = None, page: int = 1, page_size: int = 10, 
@@ -101,36 +101,36 @@ class BWWStoreAPIService:
             cache_strategy=strategy
         )
 
-    async def generate_product_card(self, product: dict, *, language: str = "ar") -> dict:
+    async def generate_product_card(self, product: Dict[str, Any], *, language: str = "ar") -> Dict[str, Any]:
         """Generate a product card for Messenger display."""
         return await self.products.generate_product_card(product, language=language)
 
-    async def compare_products(self, product_ids: list[int], *, language: str = "ar") -> str:
+    async def compare_products(self, product_ids: List[int], *, language: str = "ar") -> str:
         """Compare multiple products side by side."""
         return await self.products.compare_products(product_ids, language=language)
 
-    async def download_products_for_comparison(self, *, limit: int = 100, save_to_temp: bool = True) -> dict:
+    async def download_products_for_comparison(self, *, limit: int = 100, save_to_temp: bool = True) -> Dict[str, Any]:
         """Download products for offline comparison."""
         return await self.products.download_products_for_comparison(limit=limit, save_to_temp=save_to_temp)
 
-    async def load_products_from_temp(self, filename: str):
+    async def load_products_from_temp(self, filename: str) -> Optional[Dict[str, Any]]:
         """Load products from temp directory."""
         return await self.products.load_products_from_temp(filename)
 
-    async def find_product_by_input(self, input_text: str):
+    async def find_product_by_input(self, input_text: str) -> Optional[Dict[str, Any]]:
         """Find product by ID or search term."""
         return await self.products.find_product_by_input(input_text)
 
     # Utility methods
-    def format_product_for_messenger(self, product, language: str = "ar") -> str:
+    def format_product_for_messenger(self, product: Any, language: str = "ar") -> str:
         """Format product for Messenger display."""
         return format_product_for_messenger(product, language)
 
-    def get_service_status(self) -> dict:
+    def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status."""
         return self.client.get_service_status()
 
     # Compatibility methods
-    def make_request(self, method: str, endpoint: str, **kwargs):
+    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make HTTP request (synchronous compatibility)."""
         return self.compatibility.make_request(method, endpoint, **kwargs)

@@ -4,7 +4,7 @@ Context managers for safe database session handling
 """
 import logging
 from contextlib import contextmanager
-from typing import Any, Generator
+from typing import Any, Callable, Generator
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -130,7 +130,12 @@ class DatabaseSessionManager:
             if session:
                 session.close()
 
-    def execute_with_retry(self, operation, *args, **kwargs):
+    def execute_with_retry(
+        self, 
+        operation: Callable[..., Any], 
+        *args: Any, 
+        **kwargs: Any
+    ) -> Any:
         """
         Execute database operation with retry logic
 

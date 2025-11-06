@@ -226,6 +226,10 @@ class BWWStoreProductOperations:
 
             saved_files: List[str] = []
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Initialize for final stats
+            categories: Dict[str, List[Dict[str, Any]]] = {}
+            prices: List[float] = []
 
             if save_to_temp:
                 # Save all products to a single file
@@ -243,7 +247,7 @@ class BWWStoreProductOperations:
                 saved_files.append(str(all_products_file))
 
                 # Save products by category
-                categories: Dict[str, List[Dict[str, Any]]] = {}
+                categories = {}
                 for product in products:
                     category_name = str(product.get("category", {}).get("name", "unknown")).lower().replace(" ", "_")
                     if category_name not in categories:
@@ -266,7 +270,7 @@ class BWWStoreProductOperations:
                         saved_files.append(str(category_file))
 
                 # Save price analysis data
-                prices: List[float] = [p.get("final_price", 0) for p in products if p.get("final_price", 0) > 0]
+                prices = [p.get("final_price", 0) for p in products if p.get("final_price", 0) > 0]
                 if prices:
                     price_analysis: Dict[str, Any] = {
                         "metadata": {
@@ -296,10 +300,10 @@ class BWWStoreProductOperations:
 
             logger.info(f"Successfully downloaded {len(products)} products to {len(saved_files)} files")
 
-            # Initialize with defaults for potentially unbound variables
-            categories_count = len(categories) if 'categories' in locals() else 0
+            # Calculate final stats
+            categories_count = len(categories)
             price_stats = None
-            if 'prices' in locals() and prices:
+            if prices:
                 price_stats = {
                     "min": min(prices),
                     "max": max(prices),
