@@ -1,11 +1,21 @@
-// Settings page JavaScript functionality
+// Unified Settings Manager - Migochat Dashboard
+// Author: Copilot AI Assistant
+// Version: 2.0 - Consolidated & Enhanced
+
+// ========================================
+// Configuration State Management
+// ========================================
 const configState = {
     ai: {},
     messenger: {},
     whatsapp: {},
+    webhooks: {},
     isDirty: false
 };
 
+// ========================================
+// Initialization
+// ========================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Settings Manager Initialized');
     refreshSystemStatus();
@@ -13,16 +23,22 @@ document.addEventListener('DOMContentLoaded', function() {
     setupAutoSave();
 });
 
+// ========================================
+// System Status Check
+// ========================================
 async function refreshSystemStatus() {
     showLoading('Checking system status...');
     
     try {
+        // Check AI Status
         const aiStatus = await checkAIStatus();
         updateStatusIndicator('ai', aiStatus);
         
+        // Check Messenger Status
         const messengerStatus = await checkMessengerStatus();
         updateStatusIndicator('messenger', messengerStatus);
         
+        // Check WhatsApp Status
         const whatsappStatus = await checkWhatsAppStatus();
         updateStatusIndicator('whatsapp', whatsappStatus);
         
@@ -83,7 +99,6 @@ async function checkMessengerStatus() {
     }
 }
 
-// Check WhatsApp service status
 async function checkWhatsAppStatus() {
     const token = document.getElementById('whatsapp_access_token')?.value;
     
@@ -99,42 +114,11 @@ async function checkWhatsAppStatus() {
         });
         
         const result = await response.json();
-        
-        // Update legacy status elements
-        const statusElements = [
-            document.getElementById('whatsappStatusBadge'),
-            document.getElementById('whatsappSystemStatus')
-        ];
-        
-        statusElements.forEach(element => {
-            if (element) {
-                if (result.success) {
-                    element.className = 'badge bg-success';
-                    element.innerHTML = '<i class="fas fa-check-circle me-1"></i> Active';
-                } else {
-                    element.className = 'badge bg-danger';
-                    element.innerHTML = '<i class="fas fa-times-circle me-1"></i> Inactive';
-                }
-            }
-        });
-        
         return {
             active: result.success,
             message: result.success ? 'Active' : 'Connection Failed'
         };
     } catch (error) {
-        console.error('Error checking WhatsApp status:', error);
-        const statusElements = [
-            document.getElementById('whatsappStatusBadge'),
-            document.getElementById('whatsappSystemStatus')
-        ];
-        
-        statusElements.forEach(element => {
-            if (element) {
-                element.className = 'badge bg-warning';
-                element.textContent = 'Unknown';
-            }
-        });
         return { active: false, message: 'Error' };
     }
 }
@@ -156,8 +140,14 @@ function updateStatusIndicator(service, status) {
     }
 }
 
+// ========================================
+// Configuration Management
+// ========================================
 function loadCurrentConfig() {
     console.log('📥 Loading current configuration...');
+    
+    // This would typically fetch from the server
+    // For now, we use the values already in the form
     configState.isDirty = false;
 }
 
@@ -200,6 +190,8 @@ async function saveAllSettings() {
         if (result.success) {
             showToast('✅ Configuration saved successfully!', 'success');
             configState.isDirty = false;
+            
+            // Refresh status after save
             setTimeout(() => refreshSystemStatus(), 1000);
         } else {
             showToast('❌ Failed to save configuration: ' + result.error, 'error');
@@ -211,6 +203,9 @@ async function saveAllSettings() {
     }
 }
 
+// ========================================
+// Connection Testing
+// ========================================
 async function testAIConnection() {
     const apiKey = document.getElementById('gemini_api_key')?.value;
     
@@ -320,37 +315,26 @@ async function testWhatsAppConnection() {
     }
 }
 
-// Toggle password visibility
-function togglePasswordField(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
+// ========================================
+// Utility Functions
+// ========================================
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling;
+    const icon = button.querySelector('i');
     
-    const button = input.parentElement.querySelector('button');
-    const icon = button ? button.querySelector('i') : null;
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        if (icon) {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        }
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
     } else {
-        input.type = 'password';
-        if (icon) {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
     }
 }
 
-function togglePassword(fieldId) {
-    togglePasswordField(fieldId);
-}
-
-// Copy to clipboard function
-function copyToClipboard(elementIdOrText) {
-    const element = document.getElementById(elementIdOrText);
-    const text = element ? element.textContent : elementIdOrText;
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
     
     navigator.clipboard.writeText(text).then(() => {
         showToast('✅ Copied to clipboard!', 'success');
@@ -369,6 +353,7 @@ function generateToken(fieldId) {
 }
 
 function setupAutoSave() {
+    // Track form changes
     const forms = document.querySelectorAll('input, select, textarea');
     forms.forEach(field => {
         field.addEventListener('change', () => {
@@ -376,6 +361,7 @@ function setupAutoSave() {
         });
     });
     
+    // Warn before leaving if unsaved changes
     window.addEventListener('beforeunload', (e) => {
         if (configState.isDirty) {
             e.preventDefault();
@@ -384,6 +370,9 @@ function setupAutoSave() {
     });
 }
 
+// ========================================
+// System Tools
+// ========================================
 async function viewLogs() {
     window.open('/api/logs/view', '_blank');
 }
@@ -417,7 +406,33 @@ async function clearCache() {
     }
 }
 
+// ========================================
+// UI Helpers
+// ========================================
+function showToast(message, type = 'info') {
+    const toastElement = document.getElementById('notificationToast');
+    const toastBody = document.getElementById('toastMessage');
+    const toast = new bootstrap.Toast(toastElement);
+    
+    // Set message
+    toastBody.textContent = message;
+    
+    // Set style based on type
+    toastElement.className = 'toast';
+    if (type === 'success') {
+        toastElement.classList.add('bg-success', 'text-white');
+    } else if (type === 'error') {
+        toastElement.classList.add('bg-danger', 'text-white');
+    } else if (type === 'warning') {
+        toastElement.classList.add('bg-warning');
+    }
+    
+    // Show toast
+    toast.show();
+}
+
 function showLoading(message = 'Loading...') {
+    // Show loading overlay
     const overlay = document.createElement('div');
     overlay.id = 'loadingOverlay';
     overlay.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
@@ -438,58 +453,19 @@ function hideLoading() {
     }
 }
 
-// Refresh logs
-function refreshLogs() {
-    showToast('Refreshing logs...', 'info');
-    viewLogs();
-}
-
-// Download logs
-function downloadLogs() {
-    showToast('Preparing logs for download...', 'info');
-    downloadConfig();
-}
-
-// Show toast notification
-function showToast(message, type = 'info') {
-    const toastElement = document.getElementById('notificationToast');
-    
-    if (!toastElement) {
-        // Fallback to creating toast if element doesn't exist
-        const toast = document.createElement('div');
-        toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} border-0`;
-        toast.setAttribute('role', 'alert');
-        toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999;';
-        toast.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        `;
-        
-        document.body.appendChild(toast);
-        const bsToast = new bootstrap.Toast(toast);
-        bsToast.show();
-        
-        toast.addEventListener('hidden.bs.toast', function() {
-            document.body.removeChild(toast);
-        });
-        return;
-    }
-    
-    const toastBody = document.getElementById('toastMessage');
-    const toast = new bootstrap.Toast(toastElement);
-    
-    toastBody.textContent = message;
-    
-    toastElement.className = 'toast';
-    if (type === 'success') {
-        toastElement.classList.add('bg-success', 'text-white');
-    } else if (type === 'error') {
-        toastElement.classList.add('bg-danger', 'text-white');
-    } else if (type === 'warning') {
-        toastElement.classList.add('bg-warning');
-    }
-    
-    toast.show();
-}
+// ========================================
+// Export for global access
+// ========================================
+window.settingsManager = {
+    refreshSystemStatus,
+    saveAllSettings,
+    testAIConnection,
+    testMessengerConnection,
+    testWhatsAppConnection,
+    togglePassword,
+    copyToClipboard,
+    generateToken,
+    viewLogs,
+    downloadConfig,
+    clearCache
+};

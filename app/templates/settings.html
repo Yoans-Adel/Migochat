@@ -3,17 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Bww-Assistant-chatbot Dashboard</title>
+    <title>Settings - Migochat Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="/static/css/dashboard.css" rel="stylesheet">
+    <style>
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-active { background-color: #28a745; }
+        .status-inactive { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .config-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .config-card.active {
+            border-left-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .config-card.error {
+            border-left-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .webhook-url-box {
+            background-color: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .quick-actions {
+            position: sticky;
+            top: 20px;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="/dashboard">
                 <i class="fab fa-facebook-messenger me-2"></i>
-                Bww-Assistant-chatbot
+                Migochat
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -37,487 +76,409 @@
                     </li>
                 </ul>
             </div>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard/settings">
+                            <i class="fas fa-cog me-1"></i>Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
     <div class="container-fluid mt-4">
-        <div class="row">
+        <!-- Header -->
+        <div class="row mb-4">
             <div class="col-12">
-                <h1 class="mb-4">
-                    <i class="fas fa-cog me-2"></i>
-                    Settings
+                <h1 class="mb-2">
+                    <i class="fas fa-cog me-2 text-gradient"></i>
+                    System Configuration
                 </h1>
+                <p class="text-muted">Manage all integrations, AI settings, and webhooks in one place</p>
             </div>
         </div>
 
         <div class="row">
-            <!-- Facebook Configuration -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
+            <!-- Main Configuration Area -->
+            <div class="col-lg-8">
+                <!-- System Status Overview -->
+                <div class="card config-card mb-4" id="systemStatusCard">
+                    <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">
-                            <i class="fab fa-facebook me-2"></i>
-                            Facebook Configuration
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">App ID</label>
-                            <input type="text" class="form-control" value="{{ settings.fb_app_id }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Page ID</label>
-                            <input type="text" class="form-control" value="{{ settings.fb_page_id }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Page Access Token</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="fbPageToken" value="{{ settings.fb_page_access_token }}" readonly>
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('fbPageToken')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Verify Token</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="verifyToken" value="{{ settings.fb_verify_token }}" readonly>
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('verifyToken')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Messenger Webhook URL</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{ settings.messenger_webhook_url }}" readonly>
-                                <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('{{ settings.messenger_webhook_url }}')">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <small class="form-text text-muted">
-                                Copy this URL and paste it in your Facebook App's webhook settings.
-                            </small>
-                        </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Setup Instructions:</strong>
-                            <ol class="mb-0 mt-2">
-                                <li>Go to <a href="https://developers.facebook.com/" target="_blank">Facebook Developers</a></li>
-                                <li>Select your app (ID: {{ settings.fb_app_id }})</li>
-                                <li>Go to Messenger → Settings</li>
-                                <li>Add the webhook URL above</li>
-                                <li>Set verify token to: <code>{{ settings.fb_verify_token }}</code></li>
-                                <li>Subscribe to: <code>messages</code>, <code>messaging_postbacks</code>, <code>messaging_optins</code></li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- WhatsApp Configuration -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fab fa-whatsapp me-2"></i>
-                            WhatsApp Configuration
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Phone Number ID</label>
-                            <input type="text" class="form-control" value="{{ settings.whatsapp_phone_number_id }}" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Access Token</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="whatsappToken" value="{{ settings.whatsapp_access_token }}" readonly>
-                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordField('whatsappToken')">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">WhatsApp Webhook URL</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{ settings.whatsapp_webhook_url }}" readonly>
-                                <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('{{ settings.whatsapp_webhook_url }}')">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <small class="form-text text-muted">
-                                Copy this URL and paste it in your WhatsApp Business API webhook settings.
-                            </small>
-                        </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>WhatsApp Setup Instructions:</strong>
-                            <ol class="mb-0 mt-2">
-                                <li>Go to <a href="https://business.whatsapp.com/" target="_blank">WhatsApp Business</a></li>
-                                <li>Access your Business Account</li>
-                                <li>Go to API Setup → Configuration</li>
-                                <li>Add the webhook URL above</li>
-                                <li>Set verify token to: <code>{{ settings.whatsapp_verify_token }}</code></li>
-                                <li>Subscribe to: <code>messages</code>, <code>message_deliveries</code>, <code>message_reads</code></li>
-                            </ol>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>WhatsApp Status</span>
-                            <span class="badge bg-success" id="whatsappStatusBadge">Active</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mt-4">
-            <!-- System Status -->
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-server me-2"></i>
+                            <i class="fas fa-heartbeat me-2"></i>
                             System Status
                         </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshSystemStatus()">
+                            <i class="fas fa-sync-alt me-1"></i> Refresh
+                        </button>
                     </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span><i class="fas fa-plug me-2"></i>Webhook Status</span>
-                            <span class="badge bg-success">
-                                <i class="fas fa-check-circle me-1"></i>Active
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span><i class="fas fa-database me-2"></i>Database</span>
-                            <span class="badge bg-success">
-                                <i class="fas fa-check-circle me-1"></i>Connected
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fas fa-robot me-2" id="aiStatusIcon"></i>AI Service ({{ settings.ai_model }})
-                            </span>
-                            <span class="badge bg-secondary" id="aiStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fab fa-whatsapp me-2" id="whatsappStatusIcon"></i>WhatsApp Integration
-                            </span>
-                            <span class="badge bg-secondary" id="whatsappStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span>
-                                <i class="fab fa-facebook-messenger me-2" id="messengerStatusIcon"></i>Messenger Integration
-                            </span>
-                            <span class="badge bg-secondary" id="messengerStatusBadge">
-                                <i class="fas fa-sync fa-spin me-1"></i>Checking...
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span><i class="fas fa-globe me-2"></i>Environment</span>
-                            <span class="badge bg-primary">{{ settings.environment }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-clock me-2"></i>Timezone</span>
-                            <span class="badge bg-secondary">{{ settings.timezone }}</span>
-                        </div>
-                        
-                        <hr class="my-3">
-                        
-                        <div class="alert alert-success mb-0">
-                            <i class="fas fa-rocket me-2"></i>
-                            <strong>Railway Production:</strong>
-                            <br>
-                            <small class="text-muted">Deployed and running</small>
-                            <br>
-                            <a href="https://migochat-production.up.railway.app" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                <i class="fas fa-external-link-alt me-1"></i>Open App
-                            </a>
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="status-box p-3">
+                                    <i class="fas fa-robot fa-2x mb-2" id="aiStatusIcon"></i>
+                                    <h6 class="mb-1">AI Service</h6>
+                                    <span class="badge" id="aiStatusBadge">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="status-box p-3">
+                                    <i class="fab fa-facebook-messenger fa-2x mb-2" id="messengerStatusIcon"></i>
+                                    <h6 class="mb-1">Messenger</h6>
+                                    <span class="badge" id="messengerStatusBadge">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="status-box p-3">
+                                    <i class="fab fa-whatsapp fa-2x mb-2" id="whatsappStatusIcon"></i>
+                                    <h6 class="mb-1">WhatsApp</h6>
+                                    <span class="badge" id="whatsappStatusBadge">Checking...</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="status-box p-3">
+                                    <i class="fas fa-database fa-2x mb-2 text-success"></i>
+                                    <h6 class="mb-1">Database</h6>
+                                    <span class="badge bg-success">Connected</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Lead Center Webhook -->
-            <div class="col-md-6">
+
+                <!-- Unified Configuration Tabs -->
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="fas fa-user-plus me-2"></i>
-                            Lead Center Configuration
+                            <i class="fas fa-sliders-h me-2"></i>
+                            Configuration Manager
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Lead Center Webhook URL</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="{{ settings.leadcenter_webhook_url }}" readonly>
-                                <button class="btn btn-outline-primary" type="button" onclick="copyToClipboard('{{ settings.leadcenter_webhook_url }}')">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <small class="form-text text-muted">
-                                Use this URL to receive leads from Facebook Lead Ads
-                            </small>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Lead Center Setup:</strong>
-                            <ol class="mb-0 mt-2">
-                                <li>Go to Facebook Business Manager</li>
-                                <li>Navigate to Lead Center</li>
-                                <li>Add webhook with the URL above</li>
-                                <li>Subscribe to lead events</li>
-                                <li>Test the connection</li>
-                            </ol>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Configuration -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-user-shield me-2"></i>
-                            ⚙️ Admin Settings Manager
-                        </h5>
-                        <span class="badge bg-light text-dark">
-                            <i class="fas fa-edit me-1"></i>Editable
-                        </span>
-                    </div>
-                    <div class="card-body">
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Important:</strong> Changes will affect the running application. Click "Save All Settings" to apply.
-                        </div>
-                        
-                        <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+                        <ul class="nav nav-pills mb-4" id="configTabs" role="tablist">
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="facebook-tab" data-bs-toggle="tab" data-bs-target="#facebook-settings" type="button">
-                                    <i class="fab fa-facebook me-1"></i> Facebook
+                                <button class="nav-link active" id="ai-tab" data-bs-toggle="pill" data-bs-target="#ai-config" type="button">
+                                    <i class="fas fa-robot me-1"></i> AI / Gemini
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="whatsapp-tab" data-bs-toggle="tab" data-bs-target="#whatsapp-settings" type="button">
+                                <button class="nav-link" id="messenger-tab" data-bs-toggle="pill" data-bs-target="#messenger-config" type="button">
+                                    <i class="fab fa-facebook-messenger me-1"></i> Messenger
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="whatsapp-tab" data-bs-toggle="pill" data-bs-target="#whatsapp-config" type="button">
                                     <i class="fab fa-whatsapp me-1"></i> WhatsApp
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="ai-tab" data-bs-toggle="tab" data-bs-target="#ai-settings" type="button">
-                                    <i class="fas fa-robot me-1"></i> AI / Gemini
+                                <button class="nav-link" id="webhooks-tab" data-bs-toggle="pill" data-bs-target="#webhooks-config" type="button">
+                                    <i class="fas fa-plug me-1"></i> Webhooks
                                 </button>
                             </li>
                         </ul>
-                        
-                        <div class="tab-content border-start border-end border-bottom p-4" id="settingsTabsContent">
-                            <!-- Facebook Settings Tab -->
-                            <div class="tab-pane fade show active" id="facebook-settings" role="tabpanel">
-                                <h6 class="mb-3"><i class="fab fa-facebook me-2"></i> Facebook API Configuration</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">FB_PAGE_ACCESS_TOKEN <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="fb_page_access_token" placeholder="Enter Facebook Page Access Token">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordFieldEdit('fb_page_access_token')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">Get this from Facebook Developer Console → App → Messenger → Page Access Token</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">FB_APP_ID</label>
-                                    <input type="text" class="form-control" id="fb_app_id" placeholder="Enter Facebook App ID">
-                                    <small class="text-muted">Your Facebook App ID from developers.facebook.com</small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">FB_PAGE_ID</label>
-                                    <input type="text" class="form-control" id="fb_page_id" placeholder="Enter Facebook Page ID">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">FB_VERIFY_TOKEN</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="fb_verify_token" placeholder="Enter Webhook Verify Token">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordFieldEdit('fb_verify_token')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <small class="text-muted">Custom verification token for webhook security</small>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testMessengerConnection()">
-                                        <i class="fas fa-vial me-1"></i> Test Messenger Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- WhatsApp Settings Tab -->
-                            <div class="tab-pane fade" id="whatsapp-settings" role="tabpanel">
-                                <h6 class="mb-3"><i class="fab fa-whatsapp me-2"></i> WhatsApp Business API Configuration</h6>
-                                
+
+                        <div class="tab-content" id="configTabsContent">
+                            <!-- AI Configuration -->
+                            <div class="tab-pane fade show active" id="ai-config" role="tabpanel">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
-                                    <strong>Fix WhatsApp 401 Error:</strong> Update your access token here. Get a new token from Meta Business Settings → System Users.
+                                    <strong>Google Gemini AI:</strong> Enable intelligent responses with context-aware replies
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label class="form-label">WHATSAPP_ACCESS_TOKEN <span class="text-danger">*</span></label>
+                                    <label class="form-label">
+                                        <i class="fas fa-key me-1"></i> Gemini API Key
+                                        <span class="badge bg-danger ms-2">Required</span>
+                                    </label>
                                     <div class="input-group">
-                                        <input type="password" class="form-control" id="whatsapp_access_token" placeholder="Enter WhatsApp Access Token">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordFieldEdit('whatsapp_access_token')">
+                                        <input type="password" class="form-control" id="gemini_api_key" 
+                                               placeholder="AIzaSy..." value="{{ settings.gemini_api_key }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('gemini_api_key')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
-                                    <small class="text-muted">Permanent access token from Meta Business Account</small>
+                                    <small class="text-muted">
+                                        Get free API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>
+                                    </small>
                                 </div>
-                                
+
                                 <div class="mb-3">
-                                    <label class="form-label">WHATSAPP_PHONE_NUMBER_ID</label>
-                                    <input type="text" class="form-control" id="whatsapp_phone_number_id" placeholder="Enter Phone Number ID">
-                                    <small class="text-muted">From WhatsApp Business API → API Setup</small>
+                                    <label class="form-label">
+                                        <i class="fas fa-microchip me-1"></i> Model
+                                    </label>
+                                    <select class="form-select" id="gemini_model">
+                                        <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash (Recommended)</option>
+                                        <option value="gemini-2.5-pro">Gemini 2.5 Pro (Most Powerful)</option>
+                                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Fastest)</option>
+                                    </select>
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">WHATSAPP_VERIFY_TOKEN</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="whatsapp_verify_token" placeholder="Enter Webhook Verify Token">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordFieldEdit('whatsapp_verify_token')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testWhatsAppConnection()">
-                                        <i class="fas fa-vial me-1"></i> Test WhatsApp Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
+
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" onclick="testAIConnection()">
+                                        <i class="fas fa-vial me-2"></i> Test Connection
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- AI Settings Tab -->
-                            <div class="tab-pane fade" id="ai-settings" role="tabpanel">
-                                <h6 class="mb-3"><i class="fas fa-robot me-2"></i> Google Gemini AI Configuration</h6>
-                                
+
+                            <!-- Messenger Configuration -->
+                            <div class="tab-pane fade" id="messenger-config" role="tabpanel">
+                                <div class="alert alert-info">
+                                    <i class="fab fa-facebook me-2"></i>
+                                    <strong>Facebook Messenger Integration:</strong> Connect your Facebook page
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-key me-1"></i> Page Access Token
+                                        <span class="badge bg-danger ms-2">Required</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="fb_page_access_token" 
+                                               placeholder="Enter Facebook Page Access Token" value="{{ settings.fb_page_access_token }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('fb_page_access_token')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-id-card me-1"></i> App ID
+                                        </label>
+                                        <input type="text" class="form-control" id="fb_app_id" 
+                                               placeholder="Facebook App ID" value="{{ settings.fb_app_id }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-hashtag me-1"></i> Page ID
+                                        </label>
+                                        <input type="text" class="form-control" id="fb_page_id" 
+                                               placeholder="Facebook Page ID" value="{{ settings.fb_page_id }}">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-shield-alt me-1"></i> Verify Token
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="fb_verify_token" 
+                                               placeholder="Custom verification token" value="{{ settings.fb_verify_token }}">
+                                        <button class="btn btn-outline-primary" type="button" onclick="generateToken('fb_verify_token')">
+                                            <i class="fas fa-random me-1"></i> Generate
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" onclick="testMessengerConnection()">
+                                        <i class="fas fa-vial me-2"></i> Test Connection
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- WhatsApp Configuration -->
+                            <div class="tab-pane fade" id="whatsapp-config" role="tabpanel">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>WhatsApp Business API:</strong> Enterprise integration requires approval
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-key me-1"></i> Access Token
+                                        <span class="badge bg-danger ms-2">Required</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="whatsapp_access_token" 
+                                               placeholder="WhatsApp Business Access Token" value="{{ settings.whatsapp_access_token }}">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('whatsapp_access_token')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-phone me-1"></i> Phone Number ID
+                                        </label>
+                                        <input type="text" class="form-control" id="whatsapp_phone_number_id" 
+                                               placeholder="Phone Number ID" value="{{ settings.whatsapp_phone_number_id }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-shield-alt me-1"></i> Verify Token
+                                        </label>
+                                        <input type="text" class="form-control" id="whatsapp_verify_token" 
+                                               placeholder="Webhook verify token" value="{{ settings.whatsapp_verify_token }}">
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-primary" onclick="testWhatsAppConnection()">
+                                        <i class="fas fa-vial me-2"></i> Test Connection
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Webhooks Configuration -->
+                            <div class="tab-pane fade" id="webhooks-config" role="tabpanel">
                                 <div class="alert alert-success">
-                                    <i class="fas fa-lightbulb me-2"></i>
-                                    <strong>Fix Gemini AI:</strong> Add your API key here to enable intelligent responses.
+                                    <i class="fas fa-rocket me-2"></i>
+                                    <strong>Railway Production URLs:</strong> Copy these URLs to your platform webhook settings
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">GEMINI_API_KEY <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="gemini_api_key" placeholder="Enter Google Gemini API Key (AIzaSy...)">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordFieldEdit('gemini_api_key')">
-                                            <i class="fas fa-eye"></i>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="fab fa-facebook-messenger me-1"></i> Messenger Webhook
+                                    </label>
+                                    <div class="webhook-url-box">
+                                        <code id="messenger_webhook_url">{{ settings.messenger_webhook_url }}</code>
+                                        <button class="btn btn-sm btn-outline-primary float-end" onclick="copyToClipboard('messenger_webhook_url')">
+                                            <i class="fas fa-copy me-1"></i> Copy
                                         </button>
                                     </div>
-                                    <small class="text-muted">Get free API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a></small>
                                 </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Current Model</label>
-                                    <input type="text" class="form-control" value="{{ settings.ai_model }}" readonly>
-                                    <small class="text-muted">Model: gemini-2.5-flash (fast and cost-effective)</small>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="fab fa-whatsapp me-1"></i> WhatsApp Webhook
+                                    </label>
+                                    <div class="webhook-url-box">
+                                        <code id="whatsapp_webhook_url">{{ settings.whatsapp_webhook_url }}</code>
+                                        <button class="btn btn-sm btn-outline-primary float-end" onclick="copyToClipboard('whatsapp_webhook_url')">
+                                            <i class="fas fa-copy me-1"></i> Copy
+                                        </button>
+                                    </div>
                                 </div>
-                                
-                                <div class="mt-3">
-                                    <button class="btn btn-primary me-2" onclick="testAIConnection()">
-                                        <i class="fas fa-vial me-1"></i> Test AI Connection
-                                    </button>
-                                    <button class="btn btn-outline-secondary" onclick="refreshSystemStatus()">
-                                        <i class="fas fa-sync me-1"></i> Refresh Status
-                                    </button>
-                                    <button class="btn btn-outline-info" onclick="viewLogs()">
-                                        <i class="fas fa-file-alt me-1"></i> View Logs
-                                    </button>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">
+                                        <i class="fas fa-user-plus me-1"></i> Lead Center Webhook
+                                    </label>
+                                    <div class="webhook-url-box">
+                                        <code id="leadcenter_webhook_url">{{ settings.leadcenter_webhook_url }}</code>
+                                        <button class="btn btn-sm btn-outline-primary float-end" onclick="copyToClipboard('leadcenter_webhook_url')">
+                                            <i class="fas fa-copy me-1"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-book me-2"></i>Quick Setup Guide:</h6>
+                                    <ol class="mb-0">
+                                        <li>Copy the webhook URL for your platform</li>
+                                        <li>Go to your platform's developer console</li>
+                                        <li>Paste the URL in webhook settings</li>
+                                        <li>Use the verify token from the configuration tab</li>
+                                        <li>Subscribe to required events (messages, postbacks, etc.)</li>
+                                        <li>Test the webhook connection</li>
+                                    </ol>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Save Button -->
-                        <div class="d-grid gap-2 mt-4">
-                            <button class="btn btn-success btn-lg" onclick="saveAllSettings()">
-                                <i class="fas fa-save me-2"></i>
-                                💾 Save All Settings
-                            </button>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <button class="btn btn-outline-secondary" onclick="loadCurrentSettings()">
-                                <i class="fas fa-sync me-1"></i> Load Current Values
-                            </button>
-                            <button class="btn btn-outline-info" onclick="initializeDefaultSettings()">
-                                <i class="fas fa-download me-1"></i> Initialize from Environment
-                            </button>
+
+                        <!-- Save All Button -->
+                        <div class="mt-4">
+                            <hr>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success btn-lg" onclick="saveAllSettings()">
+                                    <i class="fas fa-save me-2"></i>
+                                    Save All Configuration
+                                </button>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Changes will be applied immediately and may require service restart
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Logs and Monitoring -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Logs & Monitoring
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h4 class="text-primary">0</h4>
-                                    <p class="text-muted">Errors Today</p>
-                                </div>
+            <!-- Quick Actions Sidebar -->
+            <div class="col-lg-4">
+                <div class="quick-actions">
+                    <!-- Environment Info -->
+                    <div class="card mb-3">
+                        <div class="card-header bg-gradient">
+                            <h6 class="mb-0 text-white">
+                                <i class="fas fa-server me-2"></i>
+                                Environment
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><i class="fas fa-code-branch me-2"></i>Environment:</span>
+                                <span class="badge bg-primary">{{ settings.environment }}</span>
                             </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h4 class="text-success">0</h4>
-                                    <p class="text-muted">Messages Processed</p>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><i class="fas fa-clock me-2"></i>Timezone:</span>
+                                <span class="badge bg-secondary">{{ settings.timezone }}</span>
                             </div>
-                            <div class="col-md-4">
-                                <div class="text-center">
-                                    <h4 class="text-info">0</h4>
-                                    <p class="text-muted">API Calls Made</p>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><i class="fas fa-bug me-2"></i>Debug Mode:</span>
+                                <span class="badge {% if settings.debug_mode %}bg-warning{% else %}bg-success{% endif %}">
+                                    {% if settings.debug_mode %}Enabled{% else %}Disabled{% endif %}
+                                </span>
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <button class="btn btn-primary me-2" onclick="refreshSystemStatus()">
-                                <i class="fas fa-sync me-2"></i>Refresh All Status
-                            </button>
-                            <button class="btn btn-outline-info me-2" onclick="viewLogs()">
-                                <i class="fas fa-file-alt me-2"></i>View Logs
-                            </button>
-                            <button class="btn btn-outline-secondary me-2" onclick="downloadConfig()">
-                                <i class="fas fa-download me-2"></i>Export Config
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="clearCache()">
-                                <i class="fas fa-trash me-2"></i>Clear Cache
-                            </button>
+                    </div>
+
+                    <!-- Quick Links -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-external-link-alt me-2"></i>
+                                Quick Links
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="https://developers.facebook.com/" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fab fa-facebook me-2"></i>Facebook Developers
+                                </a>
+                                <a href="https://business.whatsapp.com/" target="_blank" class="btn btn-outline-success btn-sm">
+                                    <i class="fab fa-whatsapp me-2"></i>WhatsApp Business
+                                </a>
+                                <a href="https://aistudio.google.com/apikey" target="_blank" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-robot me-2"></i>Google AI Studio
+                                </a>
+                                <a href="https://railway.app" target="_blank" class="btn btn-outline-dark btn-sm">
+                                    <i class="fas fa-train me-2"></i>Railway Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Tools -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-tools me-2"></i>
+                                System Tools
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary btn-sm" onclick="refreshSystemStatus()">
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh Status
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="viewLogs()">
+                                    <i class="fas fa-file-alt me-2"></i>View Logs
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="downloadConfig()">
+                                    <i class="fas fa-download me-2"></i>Export Config
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="clearCache()">
+                                    <i class="fas fa-broom me-2"></i>Clear Cache
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -525,20 +486,19 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast Notifications -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div id="notificationToast" class="toast" role="alert">
             <div class="toast-header">
+                <i class="fas fa-bell me-2"></i>
                 <strong class="me-auto">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
-            <div class="toast-body" id="toastMessage">
-                <!-- Message will be inserted here -->
-            </div>
+            <div class="toast-body" id="toastMessage"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/settings.js"></script>
+    <script src="/static/js/settings-unified.js"></script>
 </body>
 </html>
