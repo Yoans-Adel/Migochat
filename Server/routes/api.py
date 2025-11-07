@@ -307,7 +307,7 @@ async def get_user_profile(psid: str, db: Session = Depends(get_session)) -> Dic
                 "customer_type": enum_to_value(user.customer_type),
                 "customer_label": enum_to_value(user.customer_label),
                 "lead_score": user.lead_score,
-                "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change is not None else None
+                "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
             },
             "messages": [
                 {
@@ -561,7 +561,7 @@ async def get_leads(
                     "customer_type": enum_to_value(user.customer_type),
                     "customer_label": enum_to_value(user.customer_label),
                     "lead_score": user.lead_score,
-                    "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change is not None else None
+                    "last_stage_change": user.last_stage_change.isoformat() if user.last_stage_change else None
                 }
                 for user in leads
             ],
@@ -787,7 +787,7 @@ async def trigger_ai_response(
 
         logger.info("Generating AI response...")
         ai_response = ai_service.generate_response(message_text, user)
-        logger.info(f"AI response generated: {ai_response is not None}")
+        logger.info(f"AI response generated: {bool(ai_response)}")
 
         if ai_response:
             logger.info("Sending message to user...")

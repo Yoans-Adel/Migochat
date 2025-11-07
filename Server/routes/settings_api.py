@@ -4,7 +4,7 @@ Handles configuration testing, updates, and system tools
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, List
 import logging
 import os
 
@@ -149,7 +149,7 @@ async def test_whatsapp_connection(request: WhatsAppTestRequest):
 async def update_settings(request: ConfigUpdateRequest):
     """Update configuration settings"""
     try:
-        updated = []
+        updated: List[str] = []
         
         # Update AI settings
         if request.ai:
