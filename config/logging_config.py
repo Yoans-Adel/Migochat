@@ -3,9 +3,10 @@ import logging
 import logging.handlers
 from pathlib import Path
 from datetime import datetime
+from typing import Dict, Tuple
 
 
-def setup_logging():
+def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     """Setup centralized logging configuration"""
 
     # Create logs directory if it doesn't exist
@@ -29,7 +30,7 @@ def setup_logging():
     }
 
     # Create rotating file handlers for each log type
-    handlers = {}
+    handlers: Dict[str, logging.Handler] = {}
 
     # Main application log handler
     handlers['app'] = logging.handlers.RotatingFileHandler(

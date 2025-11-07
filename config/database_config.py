@@ -173,7 +173,7 @@ class Message(Base):
     response_time_ms = Column(Integer)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     sent_at = Column(DateTime)
     delivered_at = Column(DateTime)
     read_at = Column(DateTime)
@@ -195,8 +195,8 @@ class Conversation(Base):
     last_message_at = Column(DateTime)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user = relationship("User", back_populates="conversations")
@@ -218,7 +218,7 @@ class LeadActivity(Base):
     score_change = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationships
     user = relationship("User", back_populates="lead_activities")
@@ -241,7 +241,7 @@ class Post(Base):
     shares_count = Column(Integer, default=0)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     posted_at = Column(DateTime)
 
 
@@ -263,7 +263,7 @@ class AdCampaign(Base):
     spend = Column(Integer, default=0)  # in cents
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime)
     ended_at = Column(DateTime)
 
@@ -319,12 +319,14 @@ def backup_database():
         raise
 
 
-def restore_database(backup_file):
+def restore_database(backup_file: str) -> None:
     """Restore database from backup"""
     try:
         import shutil
+        from pathlib import Path
 
-        shutil.copy2(backup_file, DATABASE_DIR / "bww_ai_assistant.db")
+        backup_path = Path(backup_file)
+        shutil.copy2(backup_path, DATABASE_DIR / "bww_ai_assistant.db")
         print(f"✅ Database restored from: {backup_file}")
     except Exception as e:
         print(f"❌ Error restoring database: {e}")
@@ -333,11 +335,13 @@ def restore_database(backup_file):
 # Database health check
 
 
-def check_database_health():
+def check_database_health() -> dict[str, str | list[str]]:
     """Check database health and connectivity"""
     try:
+        from sqlalchemy import text
+        
         with engine.connect() as connection:
-            result = connection.execute("SELECT 1")
+            result = connection.execute(text("SELECT 1"))
             result.fetchone()
 
         # Check if all tables exist
@@ -358,7 +362,7 @@ def check_database_health():
 
         return {
             "status": "healthy",
-            "tables": tables,
+            "tables": str(tables),
             "connection": "ok"
         }
     except Exception as e:
