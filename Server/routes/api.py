@@ -110,7 +110,8 @@ async def send_message(
             raise HTTPException(status_code=400, detail="recipient_id and message_text are required")
 
         # Send message via appropriate service
-        success = message_handler.send_message(recipient_id, message_text, platform)
+        result = message_handler.send_message(recipient_id, message_text, platform=platform)
+        success = result.get("success", False)
 
         if success:
             return {
@@ -214,7 +215,8 @@ async def send_bulk_message(
                 platform = "facebook"  # Default to facebook
                 
                 # Send message
-                success = message_handler.send_message(user.psid, personalized_message, platform)
+                result = message_handler.send_message(user.psid, personalized_message, platform=platform)
+                success = result.get("success", False)
                 
                 if success:
                     sent_count += 1
@@ -785,8 +787,19 @@ async def trigger_ai_response(
         if not ai_service:
             raise HTTPException(status_code=503, detail="AI service unavailable")
 
+        # Prepare user context for AI
+        user_context = {
+            "user_id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "psid": user.psid,
+            "platform": user.platform,
+            "customer_type": user.customer_type,
+            "lead_stage": user.lead_stage
+        } if user else None
+
         logger.info("Generating AI response...")
-        ai_response = ai_service.generate_response(message_text, user)
+        ai_response = ai_service.generate_response(message_text, user_context)
         logger.info(f"AI response generated: {bool(ai_response)}")
 
         if ai_response:
@@ -1010,6 +1023,10 @@ async def bww_store_status() -> Dict[str, Any]:
 async def sync_leads_to_facebook() -> Dict[str, Any]:
     """Sync all leads to Facebook Lead Center"""
     try:
+        lead_automation = get_facebook_lead_center_service()
+        if not lead_automation:
+            raise HTTPException(status_code=503, detail="Lead automation service unavailable")
+            
         results = lead_automation.sync_all_leads_to_facebook()
 
         return {
@@ -1027,6 +1044,10 @@ async def sync_leads_to_facebook() -> Dict[str, Any]:
 async def get_lead_analytics() -> Dict[str, Any]:
     """Get comprehensive lead analytics"""
     try:
+        lead_automation = get_facebook_lead_center_service()
+        if not lead_automation:
+            raise HTTPException(status_code=503, detail="Lead automation service unavailable")
+            
         analytics = lead_automation.get_lead_analytics()
 
         return {
@@ -1048,6 +1069,10 @@ async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session))
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        lead_automation = get_facebook_lead_center_service()
+        if not lead_automation:
+            raise HTTPException(status_code=503, detail="Lead automation service unavailable")
+            
         success = lead_automation.create_lead_in_facebook(user)
 
         return {
