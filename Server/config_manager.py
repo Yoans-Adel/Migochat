@@ -5,7 +5,7 @@ Centralized configuration management with validation
 
 import os
 import logging
-from typing import Dict, Any, List, Optional, overload
+from typing import Dict, Any, List, Optional, overload, cast
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -97,20 +97,20 @@ class ConfigurationManager:
 
     def validate_configuration(self) -> List[str]:
         """Validate configuration and return missing required fields"""
-        missing_fields = []
+        missing_fields: List[str] = []
 
         if not self._loaded:
             missing_fields.append("Configuration not loaded")
             return missing_fields
 
         # Required Facebook fields
-        required_facebook = ["app_id", "app_secret", "page_access_token", "page_id", "verify_token"]
+        required_facebook: List[str] = ["app_id", "app_secret", "page_access_token", "page_id", "verify_token"]
         for field in required_facebook:
             if not self.config["facebook"][field]:
                 missing_fields.append(f"facebook.{field}")
 
         # Required WhatsApp fields
-        required_whatsapp = ["access_token", "phone_number_id", "verify_token"]
+        required_whatsapp: List[str] = ["access_token", "phone_number_id", "verify_token"]
         for field in required_whatsapp:
             if not self.config["whatsapp"][field]:
                 missing_fields.append(f"whatsapp.{field}")
@@ -217,17 +217,28 @@ class ConfigurationManager:
         if not self._loaded:
             return {"status": "not_loaded"}
 
-        summary = {
+        summary: Dict[str, Any] = {
             "status": "loaded",
             "validated": self._validated,
             "sections": {}
         }
 
-        for section, config in self.config.items():
-            summary["sections"][section] = {
-                "keys": list(config.keys()),
-                "has_values": {k: bool(v) for k, v in config.items()}
-            }
+        for section in self.config:
+            section_config = self.config[section]
+            if isinstance(section_config, dict):
+                keys_list: List[str] = []
+                has_values_dict: Dict[str, bool] = {}
+                
+                # Cast to proper types for type checking
+                config_dict = cast(Dict[str, Any], section_config)
+                for key, value in config_dict.items():
+                    keys_list.append(key)
+                    has_values_dict[key] = bool(value)
+                
+                summary["sections"][section] = {
+                    "keys": keys_list,
+                    "has_values": has_values_dict
+                }
 
         return summary
 
@@ -251,6 +262,10 @@ def validate_configuration() -> List[str]:
     return config_manager.validate_configuration()
 
 
-def get_config(section: str = None, key: str = None) -> Any:
+def get_config(section: Optional[str] = None, key: Optional[str] = None) -> Any:
     """Get configuration value"""
+    if section is None:
+        return config_manager.config
+    if key is None:
+        return config_manager.get_config(section)
     return config_manager.get_config(section, key)
