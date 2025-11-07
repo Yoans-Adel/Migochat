@@ -2,11 +2,11 @@
 Database Utility Functions
 Helper functions for working with database models and enums
 """
-from typing import Optional, Any
+from typing import Any, Union
 from enum import Enum
 
 
-def enum_to_value(enum_obj: Optional[Enum], default: Any = None) -> Any:
+def enum_to_value(enum_obj: Union[Enum, Any, None], default: Any = None) -> Any:
     """
     Safely convert an enum to its value.
     
@@ -38,7 +38,7 @@ def enum_to_value(enum_obj: Optional[Enum], default: Any = None) -> Any:
     return enum_obj.value
 
 
-def enum_to_name(enum_obj: Optional[Enum], default: str = "") -> str:
+def enum_to_name(enum_obj: Union[Enum, Any, None], default: str = "") -> str:
     """
     Safely get the name of an enum.
     
@@ -64,7 +64,7 @@ def enum_to_name(enum_obj: Optional[Enum], default: str = "") -> str:
     return enum_obj.name
 
 
-def safe_enum_comparison(enum_obj: Optional[Enum], value: Any) -> bool:
+def safe_enum_comparison(enum_obj: Union[Enum, Any, None], value: Any) -> bool:
     """
     Safely compare an enum to a value.
     
