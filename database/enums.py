@@ -26,6 +26,7 @@ class LeadStage(enum.Enum):
     """Lead progression stages"""
     INTAKE = "Intake"
     QUALIFIED = "Qualified"
+    HOT = "Hot"
     IN_PROGRESS = "In-Progress"
     CONVERTED = "Converted"
 
@@ -40,6 +41,7 @@ class CustomerLabel(enum.Enum):
 
 class CustomerType(enum.Enum):
     """Customer behavioral types"""
+    LEAD = "Lead"  # Lead/Prospect
     SCARCITY_BUYER = "عميل الندرة"  # The Scarcity Buyer
     EMOTIONAL_BUYER = "عميل العاطفة"  # The Emotional Buyer
     VALUE_SEEKER = "عميل القيمة"  # The Value Seeker

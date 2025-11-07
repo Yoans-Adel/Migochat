@@ -164,8 +164,9 @@ async def send_bulk_message(
         campaign_name = data.get("campaign_name", "")
         audience = data.get("audience", "all")
         message_text = data.get("message", "")
-        scheduled = data.get("scheduled", False)
-        scheduled_time = data.get("scheduled_time")
+        # TODO: Implement scheduled messaging feature
+        # scheduled = data.get("scheduled", False)
+        # scheduled_time = data.get("scheduled_time")
 
         if not message_text:
             raise HTTPException(status_code=400, detail="message is required")
@@ -797,6 +798,7 @@ async def trigger_ai_response(
                     message_handler = get_message_handler()
                     if not message_handler:
                         logger.warning("Message handler unavailable")
+                        response = {"message_id": "no_handler"}
                     else:
                         # Use correct method name: send_message instead of send_message_to_user
                         success = message_handler.send_message(user_psid, ai_response, platform="facebook")
@@ -1492,7 +1494,7 @@ async def bulk_update_settings(request: Request) -> Dict[str, Any]:
             raise HTTPException(status_code=400, detail="No settings provided")
 
         success_count = 0
-        failed_settings = []
+        failed_settings: List[Dict[str, Any]] = []
 
         for setting in settings_list:
             key = setting.get("key")
@@ -1588,7 +1590,8 @@ async def send_bulk_messages(
         data = await request.json()
         message_text = data.get("message")
         audience = data.get("audience", "all")
-        schedule_time = data.get("schedule_time")
+        # TODO: Implement scheduled messaging
+        # schedule_time = data.get("schedule_time")
 
         if not message_text:
             raise HTTPException(status_code=400, detail="Message text is required")
@@ -1644,10 +1647,10 @@ async def send_bulk_messages(
                     personalized_message = personalized_message.replace("{last_name}", user.last_name or "")
 
                 # Send message based on platform
-                if user.platform_id:  # Facebook/Messenger
+                if user.psid:  # Facebook/Messenger
                     messenger_service = get_messenger_service()
                     if messenger_service:
-                        messenger_service.send_message(user.platform_id, personalized_message)
+                        messenger_service.send_message(user.psid, personalized_message)
                         sent_count += 1
                     else:
                         failed_count += 1
@@ -1662,7 +1665,7 @@ async def send_bulk_messages(
                         failed_users.append({"user_id": user.id, "reason": "WhatsApp service unavailable"})
                 else:
                     failed_count += 1
-                    failed_users.append({"user_id": user.id, "reason": "No platform ID or phone number"})
+                    failed_users.append({"user_id": user.id, "reason": "No PSID or phone number"})
 
             except Exception as e:
                 logger.error(f"Error sending message to user {user.id}: {e}")
@@ -1691,11 +1694,11 @@ async def send_bulk_messages(
 # ========================================
 
 @router.post("/test/ai")
-async def test_ai_connection(request: Request) -> Dict[str, Any]:
-    """Test AI/Gemini connection"""
+async def test_ai_connection_v2(request: Request) -> Dict[str, Any]:
+    """Test AI/Gemini connection (newer version with API key parameter)"""
     try:
         data = await request.json()
-        api_key = data.get("api_key")
+        api_key = data.get("api_key") or settings.GEMINI_API_KEY
         
         if not api_key:
             return {"success": False, "message": "API key is required"}
@@ -1707,7 +1710,7 @@ async def test_ai_connection(request: Request) -> Dict[str, Any]:
         
         # Test with simple prompt
         try:
-            response = ai_service.generate_response("Hello, this is a test.", api_key=api_key)
+            response = ai_service.generate_response("Hello, this is a test.")
             return {
                 "success": True,
                 "message": "AI connection successful",
