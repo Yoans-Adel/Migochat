@@ -57,6 +57,7 @@ class LeadStage(enum.Enum):
     NEW = "new"
     CONTACTED = "contacted"
     QUALIFIED = "qualified"
+    HOT = "hot"
     PROPOSAL = "proposal"
     NEGOTIATION = "negotiation"
     CLOSED_WON = "closed_won"
@@ -75,6 +76,7 @@ class CustomerType(enum.Enum):
     BUSINESS = "business"
     WHOLESALE = "wholesale"
     RETAIL = "retail"
+    LEAD = "lead"
 
 
 class PostType(enum.Enum):

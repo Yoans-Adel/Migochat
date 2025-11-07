@@ -1628,20 +1628,20 @@ async def send_bulk_messages(
         # Send messages
         sent_count = 0
         failed_count = 0
-        failed_users = []
+        failed_users: List[Dict[str, Any]] = []
 
         for user in users:
             try:
                 # Personalize message
                 personalized_message = message_text
+                user_full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+                
                 if "{name}" in personalized_message:
-                    personalized_message = personalized_message.replace("{name}", user.name or "")
+                    personalized_message = personalized_message.replace("{name}", user_full_name)
                 if "{first_name}" in personalized_message:
-                    first_name = (user.name or "").split()[0] if user.name else ""
-                    personalized_message = personalized_message.replace("{first_name}", first_name)
+                    personalized_message = personalized_message.replace("{first_name}", user.first_name or "")
                 if "{last_name}" in personalized_message:
-                    last_name = " ".join((user.name or "").split()[1:]) if user.name and len(user.name.split()) > 1 else ""
-                    personalized_message = personalized_message.replace("{last_name}", last_name)
+                    personalized_message = personalized_message.replace("{last_name}", user.last_name or "")
 
                 # Send message based on platform
                 if user.platform_id:  # Facebook/Messenger
