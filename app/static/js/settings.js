@@ -334,10 +334,19 @@ function togglePassword(fieldId) {
 
 function copyToClipboard(elementId) {
     const element = document.getElementById(elementId);
-    const text = element.textContent;
+    // Check if it's an input element or regular element
+    const text = element.value || element.textContent || element.innerText;
     
     navigator.clipboard.writeText(text).then(() => {
         showToast('✅ Copied to clipboard!', 'success');
+        
+        // Select the text briefly to show it was copied
+        if (element.select) {
+            element.select();
+            setTimeout(() => {
+                element.setSelectionRange(0, 0);
+            }, 500);
+        }
     }).catch(err => {
         console.error('Failed to copy:', err);
         showToast('❌ Failed to copy', 'error');
