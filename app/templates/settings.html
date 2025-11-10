@@ -36,41 +36,40 @@
         .webhook-url-box {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            padding: 1rem;
-            border-radius: 0.5rem;
+            padding: 1.25rem 1rem;
+            border-radius: 0.75rem;
             position: relative;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-            min-height: 60px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+            min-height: 70px;
             display: flex;
             align-items: center;
+            overflow: hidden;
+        }
+        .webhook-url-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.05);
+            pointer-events: none;
         }
         .webhook-url-box code {
             flex: 1;
             word-break: break-all;
-            padding-right: 80px;
-            color: #ffffff;
+            padding-right: 100px;
+            color: #ffffff !important;
             font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            font-weight: 500;
-            line-height: 1.4;
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1.5;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
         }
         .webhook-url-box button {
-            position: absolute;
-            top: 50%;
-            right: 0.75rem;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.25);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: #ffffff;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s ease;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
-        }
-        .webhook-url-box button:hover {
-            background: rgba(255, 255, 255, 0.35);
-            border-color: rgba(255, 255, 255, 0.6);
-            transform: translateY(-50%) scale(1.05);
+            z-index: 2;
         }
         .card.shadow-sm {
             transition: all 0.3s ease;
@@ -405,22 +404,21 @@
                                                     Facebook Platform
                                                 </h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="card-body p-4" style="background: #f8f9fa;">
                                                 <p class="text-muted small mb-3">
                                                     <i class="fas fa-info-circle me-1"></i>
                                                     For Messenger & Lead Ads
                                                 </p>
-                                                <div class="webhook-url-box">
-                                                    <code id="messenger_webhook_url">{{ settings.messenger_webhook_url }}</code>
-                                                    <button class="btn btn-sm" onclick="copyToClipboard('messenger_webhook_url')">
+                                                <div class="webhook-url-box mb-3">
+                                                    <code id="messenger_webhook_url" class="d-block text-white">{{ settings.messenger_webhook_url }}</code>
+                                                    <button class="btn btn-sm btn-light shadow-sm" onclick="copyToClipboard('messenger_webhook_url')" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%);">
                                                         <i class="fas fa-copy me-1"></i> Copy
                                                     </button>
                                                 </div>
-                                                <div class="mt-3">
-                                                    <small class="text-muted">
-                                                        <strong>Verify Token:</strong> Use from Messenger config tab
-                                                    </small>
-                                                </div>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-key me-1"></i>
+                                                    <strong>Verify Token:</strong> Use from Messenger config tab
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
@@ -434,22 +432,21 @@
                                                     WhatsApp Business
                                                 </h6>
                                             </div>
-                                            <div class="card-body">
+                                            <div class="card-body p-4" style="background: #f8f9fa;">
                                                 <p class="text-muted small mb-3">
                                                     <i class="fas fa-info-circle me-1"></i>
                                                     For Business API
                                                 </p>
-                                                <div class="webhook-url-box">
-                                                    <code id="whatsapp_webhook_url">{{ settings.whatsapp_webhook_url }}</code>
-                                                    <button class="btn btn-sm" onclick="copyToClipboard('whatsapp_webhook_url')">
+                                                <div class="webhook-url-box mb-3">
+                                                    <code id="whatsapp_webhook_url" class="d-block text-white">{{ settings.whatsapp_webhook_url }}</code>
+                                                    <button class="btn btn-sm btn-light shadow-sm" onclick="copyToClipboard('whatsapp_webhook_url')" style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%);">
                                                         <i class="fas fa-copy me-1"></i> Copy
                                                     </button>
                                                 </div>
-                                                <div class="mt-3">
-                                                    <small class="text-muted">
-                                                        <strong>Verify Token:</strong> Use from WhatsApp config tab
-                                                    </small>
-                                                </div>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-key me-1"></i>
+                                                    <strong>Verify Token:</strong> Use from WhatsApp config tab
+                                                </small>
                                             </div>
                                         </div>
                                     </div>
