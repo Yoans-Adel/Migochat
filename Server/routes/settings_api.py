@@ -147,10 +147,10 @@ async def test_whatsapp_connection(request: WhatsAppTestRequest):
 # ========================================
 @router.post("/settings/update")
 async def update_settings(request: ConfigUpdateRequest):
-    """Update configuration settings"""
+    """Update configuration (writes to environment/config)"""
     try:
-        updated: List[str] = []
-        
+        updated: List[str] = []  # Track what was updated
+
         # Update AI settings
         if request.ai:
             if 'gemini_api_key' in request.ai:

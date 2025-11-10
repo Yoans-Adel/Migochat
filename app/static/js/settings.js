@@ -1,409 +1,471 @@
-// Settings page JavaScript functionality
+// Unified Settings Manager - Migochat Dashboard
+// Author: Copilot AI Assistant
+// Version: 2.0 - Consolidated & Enhanced
+
+// ========================================
+// Configuration State Management
+// ========================================
+const configState = {
+    ai: {},
+    messenger: {},
+    whatsapp: {},
+    webhooks: {},
+    isDirty: false
+};
+
+// ========================================
+// Initialization
+// ========================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-refresh settings every 60 seconds
-    setInterval(function() {
-        if (window.location.pathname === '/dashboard/settings') {
-            location.reload();
-        }
-    }, 60000);
-    
-    // Check WhatsApp status
-    checkWhatsAppStatus();
+    console.log('🚀 Settings Manager Initialized');
+    refreshSystemStatus();
+    loadCurrentConfig();
+    setupAutoSave();
 });
 
-// Check WhatsApp service status
-async function checkWhatsAppStatus() {
+// ========================================
+// System Status Check
+// ========================================
+async function refreshSystemStatus() {
+    showLoading('Checking system status...');
+    
     try {
-        const response = await fetch('/api/whatsapp/status');
-        const data = await response.json();
+        // Check AI Status
+        const aiStatus = await checkAIStatus();
+        updateStatusIndicator('ai', aiStatus);
         
-        const statusElements = [
-            document.getElementById('whatsappStatusBadge'),
-            document.getElementById('whatsappSystemStatus')
-        ];
+        // Check Messenger Status
+        const messengerStatus = await checkMessengerStatus();
+        updateStatusIndicator('messenger', messengerStatus);
         
-        statusElements.forEach(element => {
-            if (element) {
-                if (data.whatsapp_available) {
-                    element.className = 'badge bg-success';
-                    element.textContent = 'Active';
-                } else {
-                    element.className = 'badge bg-danger';
-                    element.textContent = 'Inactive';
-                }
-            }
-        });
+        // Check WhatsApp Status
+        const whatsappStatus = await checkWhatsAppStatus();
+        updateStatusIndicator('whatsapp', whatsappStatus);
+        
+        hideLoading();
+        showToast('System status refreshed', 'success');
     } catch (error) {
-        console.error('Error checking WhatsApp status:', error);
-        const statusElements = [
-            document.getElementById('whatsappStatusBadge'),
-            document.getElementById('whatsappSystemStatus')
-        ];
-        
-        statusElements.forEach(element => {
-            if (element) {
-                element.className = 'badge bg-warning';
-                element.textContent = 'Unknown';
-            }
-        });
+        console.error('Status check failed:', error);
+        hideLoading();
+        showToast('Failed to refresh status', 'error');
     }
 }
 
-// Toggle password visibility
-function togglePasswordField(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) {
-        console.error(`Input with ID ${inputId} not found`);
+async function checkAIStatus() {
+    const apiKey = document.getElementById('gemini_api_key')?.value;
+    
+    if (!apiKey || apiKey.length < 20) {
+        return { active: false, message: 'Not Configured' };
+    }
+    
+    try {
+        const response = await fetch('/api/test/ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: apiKey })
+        });
+        
+        const result = await response.json();
+        return {
+            active: result.success,
+            message: result.success ? 'Active' : 'Connection Failed'
+        };
+    } catch (error) {
+        return { active: false, message: 'Error' };
+    }
+}
+
+async function checkMessengerStatus() {
+    const token = document.getElementById('fb_page_access_token')?.value;
+    
+    if (!token || token.includes('...')) {
+        return { active: false, message: 'Not Configured' };
+    }
+    
+    try {
+        const response = await fetch('/api/test/messenger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: token })
+        });
+        
+        const result = await response.json();
+        return {
+            active: result.success,
+            message: result.success ? 'Active' : 'Connection Failed'
+        };
+    } catch (error) {
+        return { active: false, message: 'Error' };
+    }
+}
+
+async function checkWhatsAppStatus() {
+    const token = document.getElementById('whatsapp_access_token')?.value;
+    
+    if (!token || token.includes('...')) {
+        return { active: false, message: 'Not Configured' };
+    }
+    
+    try {
+        const response = await fetch('/api/test/whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: token })
+        });
+        
+        const result = await response.json();
+        return {
+            active: result.success,
+            message: result.success ? 'Active' : 'Connection Failed'
+        };
+    } catch (error) {
+        return { active: false, message: 'Error' };
+    }
+}
+
+function updateStatusIndicator(service, status) {
+    const iconElement = document.getElementById(`${service}StatusIcon`);
+    const badgeElement = document.getElementById(`${service}StatusBadge`);
+    
+    if (!badgeElement) return;
+    
+    if (status.active) {
+        badgeElement.className = 'badge bg-success';
+        badgeElement.innerHTML = '<i class="fas fa-check-circle me-1"></i> ' + status.message;
+        if (iconElement) iconElement.style.color = '#28a745';
+    } else {
+        badgeElement.className = 'badge bg-danger';
+        badgeElement.innerHTML = '<i class="fas fa-times-circle me-1"></i> ' + status.message;
+        if (iconElement) iconElement.style.color = '#dc3545';
+    }
+}
+
+// ========================================
+// Configuration Management
+// ========================================
+function loadCurrentConfig() {
+    console.log('📥 Loading current configuration...');
+    
+    // This would typically fetch from the server
+    // For now, we use the values already in the form
+    configState.isDirty = false;
+}
+
+async function saveAllSettings() {
+    if (!confirm('Save all configuration changes? This will update the environment variables.')) {
         return;
     }
     
-    const button = input.parentElement.querySelector('button');
-    const icon = button ? button.querySelector('i') : null;
+    showLoading('Saving configuration...');
     
-    if (input.type === 'password') {
-        input.type = 'text';
-        if (icon) {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        }
-    } else {
-        input.type = 'password';
-        if (icon) {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    }
-}
-
-// Copy to clipboard function
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(function() {
-        showToast('Copied to clipboard!', 'success');
-    }).catch(function(err) {
-        console.error('Could not copy text: ', err);
-        showToast('Failed to copy to clipboard', 'error');
-    });
-}
-
-// Refresh logs
-function refreshLogs() {
-    showToast('Refreshing logs...', 'info');
-    // In a real implementation, this would fetch log data from the server
-    setTimeout(() => {
-        showToast('Logs refreshed!', 'success');
-    }, 1000);
-}
-
-// Download logs
-function downloadLogs() {
-    showToast('Preparing logs for download...', 'info');
-    // In a real implementation, this would generate and download log files
-    setTimeout(() => {
-        showToast('Log download started!', 'success');
-    }, 1000);
-}
-
-// Test webhook connection
-async function testWebhook() {
     try {
-        showToast('Testing webhook connection...', 'info');
-        
-        const response = await fetch('/webhook', {
-            method: 'GET',
-            headers: {
-                'hub.mode': 'subscribe',
-                'hub.verify_token': 'your_verify_token_here',
-                'hub.challenge': 'test_challenge'
+        const config = {
+            ai: {
+                gemini_api_key: document.getElementById('gemini_api_key')?.value,
+                gemini_model: document.getElementById('gemini_model')?.value
+            },
+            messenger: {
+                fb_page_access_token: document.getElementById('fb_page_access_token')?.value,
+                fb_app_id: document.getElementById('fb_app_id')?.value,
+                fb_page_id: document.getElementById('fb_page_id')?.value,
+                fb_verify_token: document.getElementById('fb_verify_token')?.value
+            },
+            whatsapp: {
+                whatsapp_access_token: document.getElementById('whatsapp_access_token')?.value,
+                whatsapp_phone_number_id: document.getElementById('whatsapp_phone_number_id')?.value,
+                whatsapp_verify_token: document.getElementById('whatsapp_verify_token')?.value
             }
+        };
+        
+        const response = await fetch('/api/settings/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
         });
         
-        if (response.ok) {
-            showToast('Webhook test successful!', 'success');
+        const result = await response.json();
+        
+        hideLoading();
+        
+        if (result.success) {
+            showToast('✅ Configuration saved successfully!', 'success');
+            configState.isDirty = false;
+            
+            // Refresh status after save
+            setTimeout(() => refreshSystemStatus(), 1000);
         } else {
-            showToast('Webhook test failed', 'error');
+            showToast('❌ Failed to save configuration: ' + result.error, 'error');
         }
     } catch (error) {
-        console.error('Error testing webhook:', error);
-        showToast('Error testing webhook', 'error');
+        console.error('Save failed:', error);
+        hideLoading();
+        showToast('❌ Error saving configuration', 'error');
     }
 }
 
-// Show toast notification
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
-    document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    
-    toast.addEventListener('hidden.bs.toast', function() {
-        document.body.removeChild(toast);
-    });
-}
-
-// Test AI connection
+// ========================================
+// Connection Testing
+// ========================================
 async function testAIConnection() {
+    const apiKey = document.getElementById('gemini_api_key')?.value;
+    
+    if (!apiKey) {
+        showToast('Please enter a Gemini API key first', 'warning');
+        return;
+    }
+    
+    showLoading('Testing AI connection...');
+    
     try {
-        showToast('Testing AI connection...', 'info');
-        
-        const response = await fetch('/api/ai/test', {
+        const response = await fetch('/api/test/ai', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                message: 'Hello, this is a test message'
+                api_key: apiKey,
+                test_message: 'Hello, this is a test message.'
             })
         });
         
-        if (response.ok) {
-            const data = await response.json();
-            showToast('✅ AI connection successful! Model: ' + data.model, 'success');
+        const result = await response.json();
+        hideLoading();
+        
+        if (result.success) {
+            showToast('✅ AI Connection successful!', 'success');
+            updateStatusIndicator('ai', { active: true, message: 'Active' });
         } else {
-            const error = await response.json();
-            showToast('❌ AI test failed: ' + (error.detail || 'Unknown error'), 'error');
+            showToast('❌ AI Connection failed: ' + result.error, 'error');
+            updateStatusIndicator('ai', { active: false, message: 'Failed' });
         }
     } catch (error) {
-        console.error('Error testing AI connection:', error);
+        console.error('AI test failed:', error);
+        hideLoading();
         showToast('❌ Error testing AI connection', 'error');
     }
 }
 
-// View AI logs
-function viewAILogs() {
-    showToast('Opening AI logs...', 'info');
-    // Open logs in new window or modal
-    window.open('/dashboard/logs?filter=ai', '_blank');
-}
-
-// Initialize tooltips
-document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+async function testMessengerConnection() {
+    const token = document.getElementById('fb_page_access_token')?.value;
     
-    // Load current settings when page loads
-    loadCurrentSettings();
-});
-
-
-// ============================================================
-// Admin Settings Manager Functions
-// ============================================================
-
-// Load current settings from database
-async function loadCurrentSettings() {
-    try {
-        showToast('Loading settings...', 'info');
-        
-        const response = await fetch('/api/settings');
-        if (!response.ok) {
-            throw new Error('Failed to load settings');
-        }
-        
-        const data = await response.json();
-        
-        // Populate form fields
-        data.settings.forEach(setting => {
-            const input = document.getElementById(setting.key.toLowerCase());
-            if (input) {
-                input.value = setting.value_full || '';
-            }
-        });
-        
-        showToast('✅ Settings loaded successfully', 'success');
-    } catch (error) {
-        console.error('Error loading settings:', error);
-        showToast('❌ Failed to load settings', 'error');
-    }
-}
-
-// Save all settings
-async function saveAllSettings() {
-    try {
-        showToast('Saving settings...', 'info');
-        
-        // Collect all settings from form
-        const settings = [
-            // Facebook
-            {
-                key: 'FB_PAGE_ACCESS_TOKEN',
-                value: document.getElementById('fb_page_access_token').value,
-                category: 'facebook',
-                is_sensitive: true,
-                description: 'Facebook Page Access Token'
-            },
-            {
-                key: 'FB_APP_ID',
-                value: document.getElementById('fb_app_id').value,
-                category: 'facebook',
-                is_sensitive: false,
-                description: 'Facebook App ID'
-            },
-            {
-                key: 'FB_PAGE_ID',
-                value: document.getElementById('fb_page_id').value,
-                category: 'facebook',
-                is_sensitive: false,
-                description: 'Facebook Page ID'
-            },
-            {
-                key: 'FB_VERIFY_TOKEN',
-                value: document.getElementById('fb_verify_token').value,
-                category: 'facebook',
-                is_sensitive: true,
-                description: 'Facebook Webhook Verify Token'
-            },
-            
-            // WhatsApp
-            {
-                key: 'WHATSAPP_ACCESS_TOKEN',
-                value: document.getElementById('whatsapp_access_token').value,
-                category: 'whatsapp',
-                is_sensitive: true,
-                description: 'WhatsApp Business API Access Token'
-            },
-            {
-                key: 'WHATSAPP_PHONE_NUMBER_ID',
-                value: document.getElementById('whatsapp_phone_number_id').value,
-                category: 'whatsapp',
-                is_sensitive: false,
-                description: 'WhatsApp Phone Number ID'
-            },
-            {
-                key: 'WHATSAPP_VERIFY_TOKEN',
-                value: document.getElementById('whatsapp_verify_token').value,
-                category: 'whatsapp',
-                is_sensitive: true,
-                description: 'WhatsApp Webhook Verify Token'
-            },
-            
-            // AI
-            {
-                key: 'GEMINI_API_KEY',
-                value: document.getElementById('gemini_api_key').value,
-                category: 'ai',
-                is_sensitive: true,
-                description: 'Google Gemini API Key'
-            }
-        ];
-        
-        // Filter out empty values
-        const validSettings = settings.filter(s => s.value && s.value.trim() !== '');
-        
-        if (validSettings.length === 0) {
-            showToast('⚠️ No settings to save', 'warning');
-            return;
-        }
-        
-        // Send to API
-        const response = await fetch('/api/settings/bulk', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ settings: validSettings })
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to save settings');
-        }
-        
-        const result = await response.json();
-        
-        showToast(`✅ Saved ${result.updated_count} settings successfully!`, 'success');
-        
-        // Show confirmation dialog
-        if (confirm('Settings saved! Reload page to see changes?')) {
-            location.reload();
-        }
-        
-    } catch (error) {
-        console.error('Error saving settings:', error);
-        showToast('❌ Failed to save settings', 'error');
-    }
-}
-
-// Initialize default settings from environment
-async function initializeDefaultSettings() {
-    try {
-        if (!confirm('This will initialize settings from environment variables. Continue?')) {
-            return;
-        }
-        
-        showToast('Initializing settings...', 'info');
-        
-        const response = await fetch('/api/settings/initialize', {
-            method: 'POST'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to initialize settings');
-        }
-        
-        showToast('✅ Settings initialized from environment', 'success');
-        
-        // Reload settings
-        setTimeout(() => loadCurrentSettings(), 1000);
-        
-    } catch (error) {
-        console.error('Error initializing settings:', error);
-        showToast('❌ Failed to initialize settings', 'error');
-    }
-}
-
-// Toggle password visibility for editable fields
-function togglePasswordFieldEdit(inputId) {
-    const input = document.getElementById(inputId);
-    if (!input) {
-        console.error(`Input with ID ${inputId} not found`);
+    if (!token) {
+        showToast('Please enter a Page Access Token first', 'warning');
         return;
     }
     
-    const button = input.parentElement.querySelector('button');
-    const icon = button ? button.querySelector('i') : null;
+    showLoading('Testing Messenger connection...');
     
-    if (input.type === 'password') {
-        input.type = 'text';
-        if (icon) {
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
+    try {
+        const response = await fetch('/api/test/messenger', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: token })
+        });
+        
+        const result = await response.json();
+        hideLoading();
+        
+        if (result.success) {
+            showToast('✅ Messenger Connection successful!', 'success');
+            updateStatusIndicator('messenger', { active: true, message: 'Active' });
+        } else {
+            showToast('❌ Messenger Connection failed: ' + result.error, 'error');
+            updateStatusIndicator('messenger', { active: false, message: 'Failed' });
         }
-    } else {
-        input.type = 'password';
-        if (icon) {
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
+    } catch (error) {
+        console.error('Messenger test failed:', error);
+        hideLoading();
+        showToast('❌ Error testing Messenger connection', 'error');
     }
 }
 
-// Test WhatsApp connection
 async function testWhatsAppConnection() {
+    const token = document.getElementById('whatsapp_access_token')?.value;
+    const phoneNumberId = document.getElementById('whatsapp_phone_number_id')?.value;
+    
+    if (!token) {
+        showToast('Please enter an Access Token first', 'warning');
+        return;
+    }
+    
+    showLoading('Testing WhatsApp connection...');
+    
     try {
-        showToast('Testing WhatsApp connection...', 'info');
+        const response = await fetch('/api/test/whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                access_token: token,
+                phone_number_id: phoneNumberId
+            })
+        });
         
-        const response = await fetch('/api/whatsapp/status');
-        const data = await response.json();
+        const result = await response.json();
+        hideLoading();
         
-        if (data.whatsapp_available) {
-            showToast('✅ WhatsApp connection successful!', 'success');
+        if (result.success) {
+            showToast('✅ WhatsApp Connection successful!', 'success');
+            updateStatusIndicator('whatsapp', { active: true, message: 'Active' });
         } else {
-            showToast('❌ WhatsApp not available: ' + (data.error || 'Check access token'), 'error');
+            showToast('❌ WhatsApp Connection failed: ' + result.error, 'error');
+            updateStatusIndicator('whatsapp', { active: false, message: 'Failed' });
         }
     } catch (error) {
-        console.error('Error testing WhatsApp:', error);
-        showToast('❌ Failed to test WhatsApp connection', 'error');
+        console.error('WhatsApp test failed:', error);
+        hideLoading();
+        showToast('❌ Error testing WhatsApp connection', 'error');
     }
 }
+
+// ========================================
+// Utility Functions
+// ========================================
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ Copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('❌ Failed to copy', 'error');
+    });
+}
+
+function generateToken(fieldId) {
+    const randomToken = 'migochat_' + Math.random().toString(36).substring(2, 15) + 
+                       Math.random().toString(36).substring(2, 15);
+    document.getElementById(fieldId).value = randomToken;
+    configState.isDirty = true;
+    showToast('✅ Token generated', 'success');
+}
+
+function setupAutoSave() {
+    // Track form changes
+    const forms = document.querySelectorAll('input, select, textarea');
+    forms.forEach(field => {
+        field.addEventListener('change', () => {
+            configState.isDirty = true;
+        });
+    });
+    
+    // Warn before leaving if unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+        if (configState.isDirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+}
+
+// ========================================
+// System Tools
+// ========================================
+async function viewLogs() {
+    window.open('/api/logs/view', '_blank');
+}
+
+async function downloadConfig() {
+    window.location.href = '/api/settings/export';
+}
+
+async function clearCache() {
+    if (!confirm('Clear application cache? This may temporarily slow down responses.')) {
+        return;
+    }
+    
+    showLoading('Clearing cache...');
+    
+    try {
+        const response = await fetch('/api/cache/clear', { method: 'POST' });
+        const result = await response.json();
+        
+        hideLoading();
+        
+        if (result.success) {
+            showToast('✅ Cache cleared successfully', 'success');
+        } else {
+            showToast('❌ Failed to clear cache', 'error');
+        }
+    } catch (error) {
+        console.error('Clear cache failed:', error);
+        hideLoading();
+        showToast('❌ Error clearing cache', 'error');
+    }
+}
+
+// ========================================
+// UI Helpers
+// ========================================
+function showToast(message, type = 'info') {
+    const toastElement = document.getElementById('notificationToast');
+    const toastBody = document.getElementById('toastMessage');
+    const toast = new bootstrap.Toast(toastElement);
+    
+    // Set message
+    toastBody.textContent = message;
+    
+    // Set style based on type
+    toastElement.className = 'toast';
+    if (type === 'success') {
+        toastElement.classList.add('bg-success', 'text-white');
+    } else if (type === 'error') {
+        toastElement.classList.add('bg-danger', 'text-white');
+    } else if (type === 'warning') {
+        toastElement.classList.add('bg-warning');
+    }
+    
+    // Show toast
+    toast.show();
+}
+
+function showLoading(message = 'Loading...') {
+    // Show loading overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
+    overlay.style.cssText = 'background: rgba(0,0,0,0.5); z-index: 9999;';
+    overlay.innerHTML = `
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3" role="status"></div>
+            <div>${message}</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
+// ========================================
+// Export for global access
+// ========================================
+window.settingsManager = {
+    refreshSystemStatus,
+    saveAllSettings,
+    testAIConnection,
+    testMessengerConnection,
+    testWhatsAppConnection,
+    togglePassword,
+    copyToClipboard,
+    generateToken,
+    viewLogs,
+    downloadConfig,
+    clearCache
+};
