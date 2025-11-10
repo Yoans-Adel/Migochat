@@ -54,7 +54,7 @@ async function refreshSystemStatus() {
 async function checkAIStatus() {
     const apiKey = document.getElementById('gemini_api_key')?.value;
     
-    if (!apiKey || apiKey.length < 20) {
+    if (!apiKey || apiKey.trim() === '' || apiKey.length < 20) {
         return { active: false, message: 'Not Configured' };
     }
     
@@ -62,15 +62,23 @@ async function checkAIStatus() {
         const response = await fetch('/api/test/ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ api_key: apiKey })
+            body: JSON.stringify({ 
+                api_key: apiKey,
+                test_message: 'Quick status check'
+            })
         });
+        
+        if (!response.ok) {
+            return { active: false, message: 'Error' };
+        }
         
         const result = await response.json();
         return {
-            active: result.success,
-            message: result.success ? 'Active' : 'Connection Failed'
+            active: result.success === true,
+            message: result.success ? 'Active' : 'Failed'
         };
     } catch (error) {
+        console.error('AI status check error:', error);
         return { active: false, message: 'Error' };
     }
 }
@@ -78,7 +86,7 @@ async function checkAIStatus() {
 async function checkMessengerStatus() {
     const token = document.getElementById('fb_page_access_token')?.value;
     
-    if (!token || token.includes('...')) {
+    if (!token || token.trim() === '' || token.includes('...')) {
         return { active: false, message: 'Not Configured' };
     }
     
@@ -86,23 +94,29 @@ async function checkMessengerStatus() {
         const response = await fetch('/api/test/messenger', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: token })
+            body: JSON.stringify({ page_access_token: token })
         });
+        
+        if (!response.ok) {
+            return { active: false, message: 'Error' };
+        }
         
         const result = await response.json();
         return {
-            active: result.success,
-            message: result.success ? 'Active' : 'Connection Failed'
+            active: result.success === true,
+            message: result.success ? 'Active' : 'Failed'
         };
     } catch (error) {
+        console.error('Messenger status check error:', error);
         return { active: false, message: 'Error' };
     }
 }
 
 async function checkWhatsAppStatus() {
     const token = document.getElementById('whatsapp_access_token')?.value;
+    const phoneNumberId = document.getElementById('whatsapp_phone_number_id')?.value;
     
-    if (!token || token.includes('...')) {
+    if (!token || token.trim() === '' || token.includes('...')) {
         return { active: false, message: 'Not Configured' };
     }
     
@@ -110,15 +124,23 @@ async function checkWhatsAppStatus() {
         const response = await fetch('/api/test/whatsapp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: token })
+            body: JSON.stringify({ 
+                access_token: token,
+                phone_number_id: phoneNumberId || ''
+            })
         });
+        
+        if (!response.ok) {
+            return { active: false, message: 'Error' };
+        }
         
         const result = await response.json();
         return {
-            active: result.success,
-            message: result.success ? 'Active' : 'Connection Failed'
+            active: result.success === true,
+            message: result.success ? 'Active' : 'Failed'
         };
     } catch (error) {
+        console.error('WhatsApp status check error:', error);
         return { active: false, message: 'Error' };
     }
 }
@@ -209,8 +231,13 @@ async function saveAllSettings() {
 async function testAIConnection() {
     const apiKey = document.getElementById('gemini_api_key')?.value;
     
-    if (!apiKey) {
-        showToast('Please enter a Gemini API key first', 'warning');
+    if (!apiKey || apiKey.trim() === '') {
+        showToast('⚠️ Please enter a Gemini API key first', 'warning');
+        return;
+    }
+    
+    if (apiKey.length < 30) {
+        showToast('⚠️ API key seems too short. Please verify.', 'warning');
         return;
     }
     
@@ -222,32 +249,43 @@ async function testAIConnection() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 api_key: apiKey,
-                test_message: 'Hello, this is a test message.'
+                test_message: 'Hello, this is a test message from Migochat.'
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const result = await response.json();
         hideLoading();
         
         if (result.success) {
-            showToast('✅ AI Connection successful!', 'success');
+            showToast('✅ AI Connection successful! Response: ' + (result.response || 'OK'), 'success');
             updateStatusIndicator('ai', { active: true, message: 'Active' });
         } else {
-            showToast('❌ AI Connection failed: ' + result.error, 'error');
+            const errorMsg = result.error || result.message || 'Unknown error';
+            showToast('❌ AI Connection failed: ' + errorMsg, 'error');
             updateStatusIndicator('ai', { active: false, message: 'Failed' });
         }
     } catch (error) {
         console.error('AI test failed:', error);
         hideLoading();
-        showToast('❌ Error testing AI connection', 'error');
+        showToast('❌ Error testing AI connection: ' + error.message, 'error');
+        updateStatusIndicator('ai', { active: false, message: 'Error' });
     }
 }
 
 async function testMessengerConnection() {
-    const token = document.getElementById('fb_page_access_token')?.value;
+    const pageAccessToken = document.getElementById('fb_page_access_token')?.value;
     
-    if (!token) {
-        showToast('Please enter a Page Access Token first', 'warning');
+    if (!pageAccessToken || pageAccessToken.trim() === '') {
+        showToast('⚠️ Please enter a Facebook Page Access Token first', 'warning');
+        return;
+    }
+    
+    if (pageAccessToken.length < 50) {
+        showToast('⚠️ Token seems too short. Please verify.', 'warning');
         return;
     }
     
@@ -257,32 +295,47 @@ async function testMessengerConnection() {
         const response = await fetch('/api/test/messenger', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ access_token: token })
+            body: JSON.stringify({
+                page_access_token: pageAccessToken
+            })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const result = await response.json();
         hideLoading();
         
         if (result.success) {
-            showToast('✅ Messenger Connection successful!', 'success');
+            const pageInfo = result.page_info || {};
+            const pageName = pageInfo.name || 'Unknown';
+            showToast(`✅ Messenger Connected! Page: ${pageName}`, 'success');
             updateStatusIndicator('messenger', { active: true, message: 'Active' });
         } else {
-            showToast('❌ Messenger Connection failed: ' + result.error, 'error');
+            const errorMsg = result.error || result.message || 'Unknown error';
+            showToast('❌ Messenger Connection failed: ' + errorMsg, 'error');
             updateStatusIndicator('messenger', { active: false, message: 'Failed' });
         }
     } catch (error) {
         console.error('Messenger test failed:', error);
         hideLoading();
-        showToast('❌ Error testing Messenger connection', 'error');
+        showToast('❌ Error testing Messenger connection: ' + error.message, 'error');
+        updateStatusIndicator('messenger', { active: false, message: 'Error' });
     }
 }
 
 async function testWhatsAppConnection() {
-    const token = document.getElementById('whatsapp_access_token')?.value;
+    const accessToken = document.getElementById('whatsapp_access_token')?.value;
     const phoneNumberId = document.getElementById('whatsapp_phone_number_id')?.value;
     
-    if (!token) {
-        showToast('Please enter an Access Token first', 'warning');
+    if (!accessToken || accessToken.trim() === '') {
+        showToast('⚠️ Please enter a WhatsApp Access Token first', 'warning');
+        return;
+    }
+    
+    if (accessToken.length < 50) {
+        showToast('⚠️ Token seems too short. Please verify.', 'warning');
         return;
     }
     
@@ -293,25 +346,33 @@ async function testWhatsAppConnection() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                access_token: token,
-                phone_number_id: phoneNumberId
+                access_token: accessToken,
+                phone_number_id: phoneNumberId || ''
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const result = await response.json();
         hideLoading();
         
         if (result.success) {
-            showToast('✅ WhatsApp Connection successful!', 'success');
+            const phoneInfo = result.phone_info || {};
+            const displayPhone = phoneInfo.display_phone_number || 'Connected';
+            showToast(`✅ WhatsApp Connected! Number: ${displayPhone}`, 'success');
             updateStatusIndicator('whatsapp', { active: true, message: 'Active' });
         } else {
-            showToast('❌ WhatsApp Connection failed: ' + result.error, 'error');
+            const errorMsg = result.error || result.message || 'Unknown error';
+            showToast('❌ WhatsApp Connection failed: ' + errorMsg, 'error');
             updateStatusIndicator('whatsapp', { active: false, message: 'Failed' });
         }
     } catch (error) {
         console.error('WhatsApp test failed:', error);
         hideLoading();
-        showToast('❌ Error testing WhatsApp connection', 'error');
+        showToast('❌ Error testing WhatsApp connection: ' + error.message, 'error');
+        updateStatusIndicator('whatsapp', { active: false, message: 'Error' });
     }
 }
 

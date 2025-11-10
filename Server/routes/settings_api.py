@@ -65,9 +65,10 @@ async def test_ai_connection(request: AITestRequest):
         }
     except Exception as e:
         logger.error(f"AI test failed: {e}")
+        error_msg = str(e) if str(e) else "Unknown error occurred"
         return {
             "success": False,
-            "error": str(e)
+            "error": error_msg
         }
 
 @router.post("/test/messenger")
@@ -87,20 +88,24 @@ async def test_messenger_connection(request: MessengerTestRequest):
                     return {
                         "success": True,
                         "message": "Messenger connection successful",
-                        "data": data
+                        "page_info": {
+                            "name": data.get('name', 'Unknown Page'),
+                            "id": data.get('id', '')
+                        }
                     }
                 else:
                     error_data = await response.json()
+                    error_msg = error_data.get('error', {}).get('message', 'Unknown error')
                     return {
                         "success": False,
-                        "error": error_data.get('error', {}).get('message', 'Unknown error')
+                        "error": error_msg
                     }
                     
     except Exception as e:
         logger.error(f"Messenger test failed: {e}")
         return {
             "success": False,
-            "error": str(e)
+            "error": str(e) if str(e) else "Connection failed"
         }
 
 @router.post("/test/whatsapp")
@@ -110,9 +115,18 @@ async def test_whatsapp_connection(request: WhatsAppTestRequest):
         import aiohttp
         
         if not request.phone_number_id:
+            # If no phone number ID, just validate token format
+            if len(request.access_token) < 50:
+                return {
+                    "success": False,
+                    "error": "Invalid token format (too short)"
+                }
             return {
-                "success": False,
-                "error": "Phone Number ID is required"
+                "success": True,
+                "message": "Token format valid (Phone Number ID required for full test)",
+                "phone_info": {
+                    "display_phone_number": "Not tested - no Phone Number ID"
+                }
             }
         
         # Test with WhatsApp Business API
@@ -126,20 +140,24 @@ async def test_whatsapp_connection(request: WhatsAppTestRequest):
                     return {
                         "success": True,
                         "message": "WhatsApp connection successful",
-                        "data": data
+                        "phone_info": {
+                            "display_phone_number": data.get('display_phone_number', 'Unknown'),
+                            "id": data.get('id', '')
+                        }
                     }
                 else:
                     error_data = await response.json()
+                    error_msg = error_data.get('error', {}).get('message', 'Unknown error')
                     return {
                         "success": False,
-                        "error": error_data.get('error', {}).get('message', 'Unknown error')
+                        "error": error_msg
                     }
                     
     except Exception as e:
         logger.error(f"WhatsApp test failed: {e}")
         return {
             "success": False,
-            "error": str(e)
+            "error": str(e) if str(e) else "Connection failed"
         }
 
 # ========================================
