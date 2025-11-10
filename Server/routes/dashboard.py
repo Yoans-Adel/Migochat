@@ -120,34 +120,29 @@ async def settings_view(request: Request):
         except Exception:
             gemini_model = "gemini-2.5-flash"
 
-        # Mask sensitive tokens for display
-        def mask_token(token: str) -> str:
-            if not token or len(token) < 20:
-                return "Not configured"
-            return token[:20] + "..." if len(token) > 20 else token
-
+        # Don't mask tokens - show full values for editing
+        # Users can see/hide them using the password toggle button
         settings_info = {
             # Facebook Settings
             "fb_app_id": settings.FB_APP_ID or "",
             "fb_page_id": settings.FB_PAGE_ID or "",
             "fb_verify_token": settings.FB_VERIFY_TOKEN or "",
-            "fb_page_access_token": mask_token(settings.FB_PAGE_ACCESS_TOKEN),
+            "fb_page_access_token": settings.FB_PAGE_ACCESS_TOKEN or "",
 
             # WhatsApp Settings
             "whatsapp_phone_number_id": settings.WHATSAPP_PHONE_NUMBER_ID or "",
             "whatsapp_verify_token": settings.WHATSAPP_VERIFY_TOKEN or "",
-            "whatsapp_access_token": mask_token(settings.WHATSAPP_ACCESS_TOKEN),
+            "whatsapp_access_token": settings.WHATSAPP_ACCESS_TOKEN or "",
 
             # Webhook URLs (Railway)
             "messenger_webhook_url": f"{railway_url}/webhook/messenger",
             "whatsapp_webhook_url": f"{railway_url}/webhook/whatsapp",
-            "leadcenter_webhook_url": f"{railway_url}/webhook/leadcenter",
 
             # AI Model Settings
             "ai_provider": "Gemini",
             "ai_model": gemini_model,
             "ai_available": gemini_available,
-            "gemini_api_key": mask_token(gemini_key),
+            "gemini_api_key": gemini_key or "",
 
             # System Info
             "environment": settings.ENVIRONMENT or "production",
