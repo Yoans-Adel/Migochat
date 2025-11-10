@@ -36,36 +36,53 @@
         .webhook-url-box {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
-            padding: 1.25rem;
-            border-radius: 0.75rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
             position: relative;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
         }
         .webhook-url-box code {
-            display: block;
+            flex: 1;
             word-break: break-all;
-            padding-right: 90px;
+            padding-right: 80px;
             color: #ffffff;
             font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 500;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            line-height: 1.4;
         }
         .webhook-url-box button {
             position: absolute;
-            top: 0.75rem;
+            top: 50%;
             right: 0.75rem;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             color: #ffffff;
             backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
         }
         .webhook-url-box button:hover {
-            background: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.35);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-50%) scale(1.05);
+        }
+        .card.shadow-sm {
+            transition: all 0.3s ease;
+        }
+        .card.shadow-sm:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+        }
+        .card-header.bg-primary,
+        .card-header.bg-success {
+            border: none;
+            padding: 1rem 1.25rem;
         }
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -373,45 +390,95 @@
 
                             <!-- Webhooks Configuration -->
                             <div class="tab-pane fade" id="webhooks-config" role="tabpanel">
-                                <div class="alert alert-success">
+                                <div class="alert alert-success mb-4">
                                     <i class="fas fa-rocket me-2"></i>
                                     <strong>Railway Production URLs:</strong> Copy these URLs to your platform webhook settings
                                 </div>
 
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">
-                                        <i class="fab fa-facebook-messenger me-1"></i> Messenger Webhook
-                                    </label>
-                                    <div class="webhook-url-box">
-                                        <code id="messenger_webhook_url">{{ settings.messenger_webhook_url }}</code>
-                                        <button class="btn btn-sm btn-outline-primary float-end" onclick="copyToClipboard('messenger_webhook_url')">
-                                            <i class="fas fa-copy me-1"></i> Copy
-                                        </button>
+                                <div class="row g-4">
+                                    <!-- Facebook Webhook Card -->
+                                    <div class="col-md-6">
+                                        <div class="card h-100 shadow-sm border-0">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">
+                                                    <i class="fab fa-facebook me-2"></i>
+                                                    Facebook Platform
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="text-muted small mb-3">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    For Messenger & Lead Ads
+                                                </p>
+                                                <div class="webhook-url-box">
+                                                    <code id="messenger_webhook_url">{{ settings.messenger_webhook_url }}</code>
+                                                    <button class="btn btn-sm" onclick="copyToClipboard('messenger_webhook_url')">
+                                                        <i class="fas fa-copy me-1"></i> Copy
+                                                    </button>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <small class="text-muted">
+                                                        <strong>Verify Token:</strong> Use from Messenger config tab
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- WhatsApp Webhook Card -->
+                                    <div class="col-md-6">
+                                        <div class="card h-100 shadow-sm border-0">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0">
+                                                    <i class="fab fa-whatsapp me-2"></i>
+                                                    WhatsApp Business
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <p class="text-muted small mb-3">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    For Business API
+                                                </p>
+                                                <div class="webhook-url-box">
+                                                    <code id="whatsapp_webhook_url">{{ settings.whatsapp_webhook_url }}</code>
+                                                    <button class="btn btn-sm" onclick="copyToClipboard('whatsapp_webhook_url')">
+                                                        <i class="fas fa-copy me-1"></i> Copy
+                                                    </button>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <small class="text-muted">
+                                                        <strong>Verify Token:</strong> Use from WhatsApp config tab
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="mb-4">
-                                    <label class="form-label fw-bold">
-                                        <i class="fab fa-whatsapp me-1"></i> WhatsApp Webhook
-                                    </label>
-                                    <div class="webhook-url-box">
-                                        <code id="whatsapp_webhook_url">{{ settings.whatsapp_webhook_url }}</code>
-                                        <button class="btn btn-sm btn-outline-primary float-end" onclick="copyToClipboard('whatsapp_webhook_url')">
-                                            <i class="fas fa-copy me-1"></i> Copy
-                                        </button>
+                                <!-- Setup Guide -->
+                                <div class="card mt-4 border-0 bg-light">
+                                    <div class="card-body">
+                                        <h6 class="mb-3">
+                                            <i class="fas fa-book me-2 text-primary"></i>
+                                            Quick Setup Guide
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <ol class="mb-0 ps-3">
+                                                    <li class="mb-2">Copy the webhook URL for your platform</li>
+                                                    <li class="mb-2">Go to your platform's developer console</li>
+                                                    <li class="mb-2">Paste the URL in webhook settings</li>
+                                                </ol>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <ol start="4" class="mb-0 ps-3">
+                                                    <li class="mb-2">Use the verify token from config tab</li>
+                                                    <li class="mb-2">Subscribe to required events</li>
+                                                    <li class="mb-2">Test the webhook connection</li>
+                                                </ol>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div class="alert alert-info">
-                                    <h6><i class="fas fa-book me-2"></i>Quick Setup Guide:</h6>
-                                    <ol class="mb-0">
-                                        <li>Copy the webhook URL for your platform</li>
-                                        <li>Go to your platform's developer console</li>
-                                        <li>Paste the URL in webhook settings</li>
-                                        <li>Use the verify token from the configuration tab</li>
-                                        <li>Subscribe to required events (messages, postbacks, etc.)</li>
-                                        <li>Test the webhook connection</li>
-                                    </ol>
                                 </div>
                             </div>
                         </div>
