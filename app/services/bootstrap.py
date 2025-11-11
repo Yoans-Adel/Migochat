@@ -44,6 +44,32 @@ class ServiceBootstrap:
         self._startup_time: Optional[datetime] = None
         self._initialization_errors: List[str] = []
 
+    # Properties for accessing core components
+    @property
+    def di_container(self) -> Optional[DependencyInjectionContainer]:
+        """Get dependency injection container"""
+        return self._di_container
+
+    @property
+    def config_manager(self) -> Optional[ConfigurationManager]:
+        """Get configuration manager"""
+        return self._config_manager
+
+    @property
+    def error_handler(self) -> Optional[ErrorHandler]:
+        """Get error handler"""
+        return self._error_handler
+
+    @property
+    def service_registry(self) -> Optional[ServiceRegistry]:
+        """Get service registry"""
+        return self._service_registry
+
+    @property
+    def is_initialized(self) -> bool:
+        """Check if bootstrap is complete"""
+        return self._bootstrap_complete
+
     def initialize(self) -> bool:
         """Initialize the service bootstrap system"""
         try:

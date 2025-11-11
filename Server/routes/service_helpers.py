@@ -19,8 +19,8 @@ def get_service_bootstrap():
     Uses lazy import to avoid circular dependencies
     """
     try:
-        from app.services.bootstrap import get_bootstrap
-        return get_bootstrap()
+        from app.services.bootstrap import get_service_bootstrap as _get_bootstrap
+        return _get_bootstrap()
     except ImportError as e:
         logger.error(f"Failed to import service bootstrap: {e}")
         return None
@@ -49,17 +49,17 @@ def get_service(service_class: Type[T]) -> Optional[T]:
     try:
         # Try to get from DI container
         container = bootstrap.di_container
-        if container and hasattr(container, 'resolve'):
-            service = container.resolve(service_class)
+        if container:
+            service = container.get_service_by_type(service_class)
             if service:
-                return service
+                return service  # type: ignore[return-value]
     except Exception as e:
         logger.debug(f"Could not resolve service from DI container: {e}")
 
     # Fallback: try direct instantiation (for services not in DI container yet)
     try:
         logger.debug(f"Falling back to direct instantiation for: {service_class.__name__}")
-        return service_class()
+        return service_class()  # type: ignore[return-value]
     except Exception as e:
         logger.error(f"Failed to instantiate service {service_class.__name__}: {e}")
         return None
