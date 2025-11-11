@@ -50,7 +50,8 @@ def get_service(service_class: Type[T]) -> Optional[T]:
         # Try to get from DI container
         container = bootstrap.di_container
         if container:
-            service = container.get_service_by_type(service_class)
+            # Type ignore: DI container returns ServiceInterface, but we trust the type at runtime
+            service = container.get_service_by_type(service_class)  # type: ignore[arg-type]
             if service:
                 return service  # type: ignore[return-value]
     except Exception as e:

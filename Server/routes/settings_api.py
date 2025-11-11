@@ -37,14 +37,14 @@ class ConfigUpdateRequest(BaseModel):
 async def test_ai_connection(request: AITestRequest):
     """Test Gemini AI connection with provided API key"""
     try:
-        import google.generativeai as genai
+        import google.generativeai as genai  # type: ignore[import-untyped]
         
         # Configure with provided key
-        genai.configure(api_key=request.api_key)
+        genai.configure(api_key=request.api_key)  # type: ignore[attr-defined]
         
         # Create model and test
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(request.test_message)
+        model = genai.GenerativeModel('gemini-2.5-flash')  # type: ignore[attr-defined]
+        response = model.generate_content(request.test_message)  # type: ignore[misc]
         
         if response and response.text:
             return {
