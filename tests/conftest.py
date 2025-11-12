@@ -8,8 +8,8 @@ import os
 import sys
 import uuid
 from pathlib import Path
-from typing import Generator, Dict, Any
-from sqlalchemy import create_engine
+from typing import Generator, Dict, Any, Callable
+from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session
 from fastapi.testclient import TestClient
 
@@ -25,7 +25,7 @@ from Server.main import app  # noqa: E402
 # ==================== Fixtures ====================
 
 @pytest.fixture(scope="session")
-def test_db_engine():
+def test_db_engine() -> Generator[Engine, None, None]:
     """Create test database engine"""
     # Use in-memory SQLite for testing
     test_engine = create_engine(
@@ -40,12 +40,12 @@ def test_db_engine():
 
 
 @pytest.fixture(scope="function")
-def db_session(test_db_engine) -> Generator[Session, None, None]:
+def db_session(test_db_engine: Engine) -> Generator[Session, None, None]:  # type: ignore[misc]
     """Create a fresh database session for each test"""
     TestSessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
-        bind=test_db_engine
+        bind=test_db_engine  # type: ignore[arg-type]
     )
     session = TestSessionLocal()
     try:
@@ -56,13 +56,13 @@ def db_session(test_db_engine) -> Generator[Session, None, None]:
 
 
 @pytest.fixture(scope="function")
-def client(test_db_engine) -> Generator[TestClient, None, None]:
+def client(test_db_engine: Engine) -> Generator[TestClient, None, None]:  # type: ignore[misc]
     """Create FastAPI test client with test database"""
     # Create session factory for test database
     TestSessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
-        bind=test_db_engine
+        bind=test_db_engine  # type: ignore[arg-type]
     )
 
     def override_get_session():
@@ -144,7 +144,7 @@ def sample_webhook_payload() -> Dict[str, Any]:
 
 
 @pytest.fixture(scope="function")
-def mock_whatsapp_response():
+def mock_whatsapp_response() -> Dict[str, Any]:
     """Mock WhatsApp API response"""
     return {
         "messaging_product": "whatsapp",
@@ -159,7 +159,7 @@ def mock_whatsapp_response():
 
 
 @pytest.fixture(scope="function")
-def mock_messenger_response():
+def mock_messenger_response() -> Dict[str, Any]:
     """Mock Messenger API response"""
     return {
         "recipient_id": "user_id_123",
@@ -168,7 +168,7 @@ def mock_messenger_response():
 
 
 @pytest.fixture(scope="function")
-def mock_gemini_response():
+def mock_gemini_response() -> Dict[str, Any]:
     """Mock Gemini AI response"""
     return {
         "text": "مرحبا! كيف يمكنني مساعدتك اليوم؟",
@@ -185,11 +185,11 @@ def mock_gemini_response():
 # ==================== Test Database Helpers ====================
 
 @pytest.fixture(scope="function")
-def create_test_user(db_session):
+def create_test_user(db_session: Session) -> Callable[..., Any]:
     """Helper to create test users"""
     from database import User
 
-    def _create_user(**kwargs):
+    def _create_user(**kwargs: Any) -> Any:
         # Generate unique psid if not provided
         if "psid" not in kwargs:
             kwargs["psid"] = f"test_{uuid.uuid4().hex[:12]}"
@@ -210,11 +210,11 @@ def create_test_user(db_session):
 
 
 @pytest.fixture(scope="function")
-def create_test_message(db_session, create_test_user):
+def create_test_message(db_session: Session, create_test_user: Callable[..., Any]) -> Callable[..., Any]:
     """Helper to create test messages"""
     from database import Message, MessageDirection, MessageStatus
 
-    def _create_message(**kwargs):
+    def _create_message(**kwargs: Any) -> Any:
         # Create user if not provided
         if "user_id" not in kwargs:
             user = create_test_user()
@@ -243,11 +243,11 @@ def create_test_message(db_session, create_test_user):
 
 
 @pytest.fixture(scope="function")
-def create_test_conversation(db_session, create_test_user):
+def create_test_conversation(db_session: Session, create_test_user: Callable[..., Any]) -> Callable[..., Any]:
     """Helper to create test conversations"""
     from database import Conversation
 
-    def _create_conversation(**kwargs):
+    def _create_conversation(**kwargs: Any) -> Any:
         if "user_id" not in kwargs:
             user = create_test_user()
             kwargs["user_id"] = user.id
@@ -265,7 +265,7 @@ def create_test_conversation(db_session, create_test_user):
 # ==================== Cleanup ====================
 
 @pytest.fixture(autouse=True)
-def reset_app_state():
+def reset_app_state() -> Generator[None, None, None]:
     """Reset app state between tests"""
     yield
     # Cleanup after each test
@@ -274,7 +274,7 @@ def reset_app_state():
 
 # ==================== Marks ====================
 
-def pytest_configure(config):
+def pytest_configure(config: Any) -> None:
     """Configure custom markers"""
     config.addinivalue_line(
         "markers", "unit: Unit tests for individual components"
