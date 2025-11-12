@@ -59,29 +59,34 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Temporary files
-temp/
-tmp/
-uploads/
+# Temporary analysis files
+temp/*.json
+!temp/.gitkeep
 
-# Test files
-test_*.py
-*_test.py
+# Test files (keep test code, ignore test data only)
 test_*.json
+*.test.json
+*_test_data.json
 
-# Documentation (keep only essential)
-*.md
-!README.md
-!CONTRIBUTING.md
-!CHANGELOG.md
-!PROJECT_STATUS.md
-!CRITICAL_FIXES_REPORT.md
-!ENDPOINTS_AUDIT_REPORT.md
-!CODE_QUALITY_REPORT.md
-!DEPLOYMENT_READY_CHECKLIST.md
-!deployment/README.md
-!project.md
-!docs/Guide/README.md
-!docs/Guide/COMPLETE_SETUP_GUIDE.md
-!docs/Guide/TROUBLESHOOTING_GUIDE.md
-!docs/Guide/API_AND_DEPLOYMENT_GUIDE.md
+# Coverage reports
+.coverage
+htmlcov/
+coverage.xml
+.pytest_cache/
+.tox/
+
+# Database backups (keep structure docs)
+database/backups/*.sql
+database/backups/*.db
+database/backups/*.sqlite*
+!database/backups/.gitkeep
+
+# Temporary analysis files
+temp/*.json
+!temp/.gitkeep
+
+# Documentation (keep all database and important docs)
+# Note: We keep database documentation as it's critical
+!database/**/*.md
+!docs/**/*.md
+!*.md
