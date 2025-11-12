@@ -50,7 +50,8 @@ def get_service(service_class: Type[T]) -> Optional[T]:
         # Try to get from DI container
         container = bootstrap.di_container
         if container:
-            # Type ignore: DI container returns ServiceInterface, but we trust the type at runtime
+            # DI container uses ServiceInterface protocol, but we need type flexibility
+            # Runtime: container returns correct type based on service_class parameter
             service = container.get_service_by_type(service_class)  # type: ignore[arg-type]
             if service:
                 return service  # type: ignore[return-value]
@@ -60,7 +61,8 @@ def get_service(service_class: Type[T]) -> Optional[T]:
     # Fallback: try direct instantiation (for services not in DI container yet)
     try:
         logger.debug(f"Falling back to direct instantiation for: {service_class.__name__}")
-        return service_class()  # type: ignore[return-value]
+        # Direct instantiation returns the exact type T
+        return service_class()
     except Exception as e:
         logger.error(f"Failed to instantiate service {service_class.__name__}: {e}")
         return None

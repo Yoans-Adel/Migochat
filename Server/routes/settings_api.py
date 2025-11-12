@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api", tags=["settings"])
 # ========================================
 class AITestRequest(BaseModel):
     api_key: str
-    test_message: Optional[str] = "Hello, test message"
+    test_message: str = "Hello, test message"
 
 class MessengerTestRequest(BaseModel):
     access_token: str
@@ -37,14 +37,14 @@ class ConfigUpdateRequest(BaseModel):
 async def test_ai_connection(request: AITestRequest):
     """Test Gemini AI connection with provided API key"""
     try:
-        import google.generativeai as genai  # type: ignore[import-untyped]
+        import google.generativeai as genai
         
         # Configure with provided key
-        genai.configure(api_key=request.api_key)  # type: ignore[attr-defined]
+        genai.configure(api_key=request.api_key)
         
         # Create model and test
-        model = genai.GenerativeModel('gemini-2.5-flash')  # type: ignore[attr-defined]
-        response = model.generate_content(request.test_message)  # type: ignore[misc]
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(request.test_message)
         
         if response and response.text:
             return {

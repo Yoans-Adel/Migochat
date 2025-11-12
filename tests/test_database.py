@@ -2,11 +2,15 @@
 Database Tests
 Tests for database models, connections, and operations
 """
-# type: ignore  # pytest fixtures don't support full type checking
 
 import pytest
 from datetime import datetime
+from typing import TYPE_CHECKING
 from sqlalchemy.exc import IntegrityError
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Session
+    from typing import Callable, Any
 
 
 @pytest.mark.critical

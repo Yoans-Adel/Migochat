@@ -40,12 +40,12 @@ def test_db_engine() -> Generator[Engine, None, None]:
 
 
 @pytest.fixture(scope="function")
-def db_session(test_db_engine: Engine) -> Generator[Session, None, None]:  # type: ignore[misc]
+def db_session(test_db_engine: Engine) -> Generator[Session, None, None]:
     """Create a fresh database session for each test"""
     TestSessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
-        bind=test_db_engine  # type: ignore[arg-type]
+        bind=test_db_engine
     )
     session = TestSessionLocal()
     try:
@@ -56,13 +56,13 @@ def db_session(test_db_engine: Engine) -> Generator[Session, None, None]:  # typ
 
 
 @pytest.fixture(scope="function")
-def client(test_db_engine: Engine) -> Generator[TestClient, None, None]:  # type: ignore[misc]
+def client(test_db_engine: Engine) -> Generator[TestClient, None, None]:
     """Create FastAPI test client with test database"""
     # Create session factory for test database
     TestSessionLocal = sessionmaker(
         autocommit=False,
         autoflush=False,
-        bind=test_db_engine  # type: ignore[arg-type]
+        bind=test_db_engine
     )
 
     def override_get_session():
