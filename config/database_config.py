@@ -1,5 +1,6 @@
 # Database Configuration for Bww-AI-Assistant
 from pathlib import Path
+from typing import Dict, List, Union
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum, inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
@@ -337,7 +338,7 @@ def restore_database(backup_file: str) -> None:
 # Database health check
 
 
-def check_database_health() -> dict[str, str | list[str]]:
+def check_database_health() -> Dict[str, Union[str, List[str]]]:
     """Check database health and connectivity"""
     try:
         from sqlalchemy import text

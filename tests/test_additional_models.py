@@ -2,6 +2,7 @@
 Additional Database Model Tests
 Tests for Post, AdCampaign, and AppSettings models
 """
+# type: ignore  # pytest fixtures don't support full type checking
 
 import pytest
 from datetime import datetime

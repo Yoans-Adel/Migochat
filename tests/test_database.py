@@ -2,6 +2,7 @@
 Database Tests
 Tests for database models, connections, and operations
 """
+# type: ignore  # pytest fixtures don't support full type checking
 
 import pytest
 from datetime import datetime
