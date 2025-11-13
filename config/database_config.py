@@ -5,13 +5,12 @@ All database models, enums, and utilities are in database/ package.
 """
 
 from pathlib import Path
+from typing import Generator
 
 # Import everything from the database package
 from database import (
     # Engine and session
     get_engine,
-    get_session,
-    get_db_session,
     create_all_tables,
     drop_all_tables,
     database_exists,
@@ -44,11 +43,20 @@ from database import (
 
 # Legacy compatibility
 DATABASE_DIR = Path("database")
-DATABASE_URL = f"sqlite:///{DATABASE_DIR}/bww_ai_assistant.db"
+DATABASE_URL = f"sqlite:///{DATABASE_DIR}/bww_assistant.db"
 engine = get_engine()
-SessionLocal = get_session
+
+# Create SessionLocal from engine
+from sqlalchemy.orm import sessionmaker
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Database utility functions (delegated to database package)
+
+
+def get_session() -> Generator:
+    """Get database session generator for FastAPI dependency injection"""
+    from database import get_db_session
+    return get_db_session()
 
 
 def create_database():
@@ -65,14 +73,36 @@ def drop_database():
 
 def backup_database():
     """Create a backup of the database"""
-    manager = get_database_manager()
-    return manager.backup_database()
+    import shutil
+    from datetime import datetime
+    
+    backup_dir = DATABASE_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+    
+    db_path = get_database_path()
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database file not found: {db_path}")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_file = backup_dir / f"bww_assistant_backup_{timestamp}.db"
+    
+    shutil.copy2(db_path, backup_file)
+    print(f"✅ Database backup created: {backup_file}")
+    return str(backup_file)
 
 
 def restore_database(backup_file: str) -> None:
     """Restore database from backup"""
-    manager = get_database_manager()
-    manager.restore_database(backup_file)
+    import shutil
+    from pathlib import Path
+    
+    backup_path = Path(backup_file)
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Backup file not found: {backup_file}")
+    
+    db_path = get_database_path()
+    shutil.copy2(backup_path, db_path)
+    print(f"✅ Database restored from: {backup_file}")
 
 
 def check_database_health():
@@ -89,7 +119,6 @@ __all__ = [
     'DATABASE_DIR',
     # Functions
     'get_session',
-    'get_db_session',
     'create_database',
     'drop_database',
     'backup_database',

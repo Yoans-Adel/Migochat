@@ -169,7 +169,7 @@ class TestBWWStorePackage:
     def test_package_version(self):
         """Test package version is defined"""
         from bww_store import __version__
-        assert __version__ == "1.0.0"
+        assert __version__ == "2.0.0"  # Updated to match current version
 
     def test_package_exports_api_service(self):
         """Test BWWStoreAPIService is exported"""
