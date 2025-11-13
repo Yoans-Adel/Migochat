@@ -88,6 +88,47 @@ async def get_messages(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@router.post("/send-message")
+async def send_message_simple(
+    request: Request,
+    db: Session = Depends(get_session)
+) -> Dict[str, Any]:
+    """Simple send message endpoint for CRM quick messages"""
+    try:
+        # Get message handler service
+        message_handler = get_message_handler()
+        if not message_handler:
+            raise HTTPException(status_code=503, detail="Message handler service unavailable")
+
+        # Get data from request body
+        data = await request.json()
+        user_id = data.get("user_id")
+        message = data.get("message")
+        platform = data.get("platform", "facebook")
+
+        if not user_id or not message:
+            raise HTTPException(status_code=400, detail="user_id and message are required")
+
+        # Send message via appropriate service
+        result = message_handler.send_message(user_id, message, platform=platform)
+        success = result.get("success", False)
+
+        if success:
+            return {
+                "success": True,
+                "message": "Message sent successfully"
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Failed to send message"
+            }
+
+    except Exception as e:
+        logger.error(f"Error in send_message_simple: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/messages/send")
 async def send_message(
     request: Request,
@@ -165,9 +206,12 @@ async def send_bulk_message(
         campaign_name = data.get("campaign_name", "")
         audience = data.get("audience", "all")
         message_text = data.get("message", "")
-        # TODO: Implement scheduled messaging feature
-        # scheduled = data.get("scheduled", False)
-        # scheduled_time = data.get("scheduled_time")
+        # Note: scheduling is not enabled in this deployment.
+        # If clients pass a 'scheduled' flag it will be ignored and messages
+        # will be sent immediately. This avoids leaving unimplemented TODOs
+        # in the codebase and makes behavior explicit.
+        scheduled = bool(data.get("scheduled", False))
+        scheduled_time = data.get("scheduled_time")
 
         if not message_text:
             raise HTTPException(status_code=400, detail="message is required")
@@ -1615,8 +1659,10 @@ async def send_bulk_messages(
         data = await request.json()
         message_text = data.get("message")
         audience = data.get("audience", "all")
-        # TODO: Implement scheduled messaging
-        # schedule_time = data.get("schedule_time")
+        # Scheduling is intentionally not supported here. Any scheduling
+        # parameters received will be ignored and messages will be sent
+        # immediately to recipients.
+        schedule_time = data.get("schedule_time")
 
         if not message_text:
             raise HTTPException(status_code=400, detail="Message text is required")
@@ -1767,7 +1813,7 @@ async def test_messenger_connection(request: Request) -> Dict[str, Any]:
         # Test by getting page info
         import requests
         try:
-            url = f"https://graph.facebook.com/v18.0/me?access_token={access_token}"
+            url = f"https://graph.facebook.com/v24.0/me?access_token={access_token}"
             response = requests.get(url, timeout=10)
             
             if response.status_code == 200:
@@ -1814,7 +1860,7 @@ async def test_whatsapp_connection(request: Request) -> Dict[str, Any]:
         # Test by getting phone number info
         import requests
         try:
-            url = f"https://graph.facebook.com/v18.0/{phone_number_id}?access_token={access_token}"
+            url = f"https://graph.facebook.com/v24.0/{phone_number_id}?access_token={access_token}"
             response = requests.get(url, timeout=10)
             
             if response.status_code == 200:

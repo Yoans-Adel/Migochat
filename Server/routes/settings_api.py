@@ -79,7 +79,7 @@ async def test_messenger_connection(request: MessengerTestRequest):
         
         # Test with Graph API me endpoint
         async with aiohttp.ClientSession() as session:
-            url = f"https://graph.facebook.com/v17.0/me"
+            url = "https://graph.facebook.com/v24.0/me"
             params = {"access_token": request.access_token}
             
             async with session.get(url, params=params) as response:
@@ -131,7 +131,7 @@ async def test_whatsapp_connection(request: WhatsAppTestRequest):
         
         # Test with WhatsApp Business API
         async with aiohttp.ClientSession() as session:
-            url = f"https://graph.facebook.com/v17.0/{request.phone_number_id}"
+            url = f"https://graph.facebook.com/v24.0/{request.phone_number_id}"
             headers = {"Authorization": f"Bearer {request.access_token}"}
             
             async with session.get(url, headers=headers) as response:

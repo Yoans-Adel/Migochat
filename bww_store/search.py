@@ -6,7 +6,7 @@ fuzzy matching, and smart product ranking for the BWW Store API.
 """
 
 import logging
-from typing import Any, Dict, List, Set, Tuple, cast
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from rapidfuzz import fuzz, process
 
@@ -19,6 +19,13 @@ from .constants import (
     BWW_SEARCH_SUGGESTIONS_EN,
     BWW_PRIORITY_ITEMS_AR,
     BWW_PRIORITY_ITEMS_EN
+)
+from .intelligent_search import (
+    IntelligentSearchEngine,
+    SearchIntent,
+    PriceRange,
+    Occasion,
+    Season
 )
 from .models import APIResponse, CacheStrategy
 from .product_formatter import format_product_for_messenger
@@ -98,6 +105,8 @@ class BWWStoreSearchEngine:
             client: BWWStoreAPIClient instance
         """
         self.client = client
+        # Initialize intelligent search engine for advanced intent detection
+        self.intelligent_engine = IntelligentSearchEngine(CLOTHING_KEYWORDS_AR)
 
     def _extract_clothing_keywords(self, sentence: str, language: str = "ar") -> List[str]:
         """Extract clothing-related keywords from Arabic/English sentences with spelling correction.
@@ -342,22 +351,255 @@ class BWWStoreSearchEngine:
 
         return APIResponse(success=False, error="No keyword matches in popular products")
 
-    async def search_and_format_products(self, search_text: str, *, limit: int = 3, language: str = "ar") -> List[str]:
-        """Smart search with multiple fallback strategies and sentence analysis.
+    def _filter_products_by_intent(self, products: List[Dict[str, Any]], intent: SearchIntent) -> List[Tuple[Dict[str, Any], float]]:
+        """Filter and score products based on detected search intent.
+
+        This is the core intelligence that understands what the user REALLY wants.
+        It applies sophisticated filtering for price, occasion, season, and quality.
+        
+        ENHANCED with supreme precision and multi-factor validation.
 
         Args:
-            search_text: User's search query
-            limit: Maximum number of products to return
-            language: Language code ("ar" or "en")
+            products: List of product dictionaries to filter
+            intent: Detected search intent with price, occasion, season, quality preferences
 
         Returns:
-            List of formatted product strings
+            List of (product, score) tuples, sorted by relevance (only high-quality matches)
         """
-        # Extract keywords from sentence first
-        keywords = self._extract_clothing_keywords(search_text, language)
+        filtered: List[Tuple[Dict[str, Any], float]] = []
 
+        # Price range mapping (based on Egyptian market analysis + BWW Store data)
+        price_ranges = {
+            PriceRange.VERY_LOW: (0, 150),      # ببلاش، رخيص جدا
+            PriceRange.LOW: (150, 350),          # رخيص، مش غالي
+            PriceRange.MEDIUM: (350, 650),       # عادي، متوسط
+            PriceRange.HIGH: (650, 1200),        # غالي، مكلف
+            PriceRange.VERY_HIGH: (1200, 999999) # فخم، راقي، لوكس
+        }
+
+        # Occasion keywords for smart matching
+        occasion_keywords = {
+            Occasion.WEDDING: ['عريس', 'عروس', 'فرح', 'زفاف', 'بدلة', 'سواريه'],
+            Occasion.WORK: ['رسمي', 'أوفيس', 'شغل', 'formal', 'office'],
+            Occasion.PARTY: ['سهرة', 'حفلة', 'party', 'evening'],
+            Occasion.SPORTS: ['رياضة', 'sport', 'athletic', 'جيم', 'ران'],
+            Occasion.FORMAL: ['رسمي', 'كلاسيك', 'أنيق', 'formal'],
+            Occasion.CASUAL: ['كاجوال', 'عادي', 'casual', 'يومي'],
+            Occasion.BEACH: ['بحر', 'شاطئ', 'beach', 'سباحة'],
+            Occasion.HOME: ['بيت', 'نوم', 'home', 'sleep'],
+            Occasion.SCHOOL: ['مدرسة', 'جامعة', 'school']
+        }
+
+        # Season keywords for smart matching
+        season_keywords = {
+            Season.SUMMER: ['صيف', 'خفيف', 'قطن', 'summer', 'light'],
+            Season.WINTER: ['شتاء', 'دافي', 'صوف', 'winter', 'warm', 'ثقيل'],
+            Season.SPRING: ['ربيع', 'spring'],
+            Season.AUTUMN: ['خريف', 'autumn', 'fall']
+        }
+
+        for product in products:
+            score = 1.0  # Start with base score
+            name = product.get("name", "").lower()
+            description = product.get("description", "").lower()
+            combined_text = f"{name} {description}"
+            
+            # === CRITICAL: Validation flags for precision ===
+            has_critical_mismatch = False
+            match_count = 0  # Count how many intent factors matched
+
+            # 1. Price Range Filtering (CRITICAL - High Priority)
+            if intent.price_range:
+                price = product.get("price", 0)
+                min_price, max_price = price_ranges[intent.price_range]
+                
+                if min_price <= price <= max_price:
+                    # Perfect price match
+                    score += 2.0
+                    match_count += 1
+                elif price < min_price * 0.8:
+                    # Much cheaper - still acceptable
+                    score += 1.0
+                    match_count += 0.5
+                elif price <= min_price:
+                    # Slightly cheaper - good
+                    score += 1.5
+                    match_count += 0.8
+                elif price <= max_price * 1.2:
+                    # Slightly more expensive - acceptable
+                    score += 0.5
+                    match_count += 0.3
+                else:
+                    # Too expensive - critical mismatch
+                    score -= 2.0
+                    has_critical_mismatch = True
+
+            # 2. Occasion Matching (CRITICAL - High Priority)
+            if intent.occasion:
+                occasion_terms = occasion_keywords.get(intent.occasion, [])
+                
+                # Use fuzzy matching for better accuracy
+                occasion_matches = 0
+                for term in occasion_terms:
+                    if term in combined_text:
+                        occasion_matches += 1
+                    else:
+                        # Fuzzy match with intelligent engine
+                        similarity = self.intelligent_engine.fuzzy_matcher.similarity_score(term, name)
+                        if similarity > 0.6:
+                            occasion_matches += similarity
+                
+                if occasion_matches > 0:
+                    # Strong occasion match
+                    score += occasion_matches * 1.5
+                    match_count += 1
+                else:
+                    # No occasion match - this is critical
+                    score -= 1.5
+                    has_critical_mismatch = True
+
+            # 3. Season Matching (HIGH Priority)
+            if intent.season and intent.season != Season.ALL_SEASON:
+                season_terms = season_keywords.get(intent.season, [])
+                
+                season_matches = 0
+                for term in season_terms:
+                    if term in combined_text:
+                        season_matches += 1
+                    else:
+                        # Fuzzy match
+                        similarity = self.intelligent_engine.fuzzy_matcher.similarity_score(term, combined_text)
+                        if similarity > 0.5:
+                            season_matches += similarity * 0.7
+                
+                if season_matches > 0:
+                    score += season_matches * 1.0
+                    match_count += 1
+                else:
+                    # Wrong season - penalty
+                    score -= 0.8
+
+            # 4. Quality Preference (MEDIUM-HIGH Priority)
+            if intent.quality_preference:
+                rating = product.get("rating", 0)
+                is_best_seller = product.get("is_best_seller", False)
+                
+                if intent.quality_preference == 'excellent':
+                    # Wants premium quality - STRICT
+                    if rating >= 4.5 and is_best_seller:
+                        score += 2.0
+                        match_count += 1
+                    elif rating >= 4.2:
+                        score += 1.0
+                        match_count += 0.7
+                    elif rating >= 3.8:
+                        score += 0.3
+                        match_count += 0.3
+                    else:
+                        # Not good enough quality
+                        score -= 1.5
+                        has_critical_mismatch = True
+                        
+                elif intent.quality_preference == 'very_good':
+                    if rating >= 4.0:
+                        score += 1.5
+                        match_count += 1
+                    elif rating >= 3.5:
+                        score += 0.7
+                        match_count += 0.5
+                    else:
+                        score -= 0.5
+                        
+                elif intent.quality_preference == 'good':
+                    if rating >= 3.5:
+                        score += 1.0
+                        match_count += 1
+                    elif rating >= 3.0:
+                        score += 0.5
+                        match_count += 0.5
+                        
+                elif intent.quality_preference == 'acceptable':
+                    if rating >= 3.0:
+                        score += 0.8
+                        match_count += 1
+                    elif rating >= 2.5:
+                        score += 0.3
+
+            # 5. Complete Outfit Detection (MEDIUM Priority)
+            if intent.wants_complete_outfit:
+                # Boost sets, combos, complete outfits
+                outfit_keywords = ['طقم', 'كومبليت', 'set', 'combo', 'outfit', 'كامل']
+                outfit_match = sum(1 for keyword in outfit_keywords if keyword in combined_text)
+                
+                if outfit_match > 0:
+                    score += outfit_match * 1.5
+                    match_count += 1
+                else:
+                    # User wants outfit but this isn't - significant penalty
+                    score -= 1.2
+
+            # === PRECISION VALIDATION ===
+            # Only include if:
+            # 1. No critical mismatches (occasion, price, quality)
+            # 2. At least some matches (score > threshold)
+            # 3. Positive overall score
+            
+            quality_threshold = 1.0  # Minimum score to be considered
+            
+            # If user has specific requirements, be STRICT
+            if intent.price_range or intent.occasion or intent.quality_preference:
+                quality_threshold = 1.5  # Higher threshold for specific requests
+                
+                # Must match at least 60% of specified criteria
+                total_criteria = sum([
+                    1 if intent.price_range else 0,
+                    1 if intent.occasion else 0,
+                    1 if intent.season and intent.season != Season.ALL_SEASON else 0,
+                    1 if intent.quality_preference else 0,
+                    1 if intent.wants_complete_outfit else 0
+                ])
+                
+                if total_criteria > 0:
+                    match_ratio = match_count / total_criteria
+                    if match_ratio < 0.5:  # Less than 50% match
+                        has_critical_mismatch = True
+
+            # Apply strict filtering
+            if not has_critical_mismatch and score >= quality_threshold:
+                filtered.append((product, score))
+
+        # Sort by score (highest first)
+        filtered.sort(key=lambda x: x[1], reverse=True)
+        return filtered
+
+    async def search_and_format_products(self, search_text: str, *, limit: int = 3, language: str = "ar") -> List[str]:
+        """Smart search with AI-powered intent detection and intelligent filtering.
+
+        This method uses advanced natural language understanding to detect what the user
+        REALLY wants (price, occasion, season, quality) and filters products accordingly.
+
+        Args:
+            search_text: User's search query in natural language
+            limit: Maximum number of products to return
+            language: Language code ("ar" for Arabic, "en" for English)
+
+        Returns:
+            List of formatted product strings with smart Arabic responses
+        """
+        # === STEP 1: Intelligent Intent Analysis ===
+        # Understand what user REALLY wants
+        intent = self.intelligent_engine.analyze_query(search_text)
+        
+        logger.info(f"🧠 Intent detected: price={intent.price_range}, occasion={intent.occasion}, "
+                   f"season={intent.season}, outfit={intent.wants_complete_outfit}, quality={intent.quality_preference}")
+
+        # Extract keywords from sentence
+        keywords = self._extract_clothing_keywords(search_text, language)
+        
+        # === STEP 2: Multi-Strategy Search ===
+        # Try different search strategies to get candidates
         search_strategies = [
-            # Strategy 1: Get popular products and filter locally (BEST for limited API data)
+            # Strategy 1: Get popular products (BEST for limited API data)
             lambda: self._search_popular_with_keywords(keywords),
 
             # Strategy 2: Search with extracted keywords
@@ -366,40 +608,67 @@ class BWWStoreSearchEngine:
             # Strategy 3: Search by individual important words
             lambda: self._search_by_important_words(keywords),
 
-            # Strategy 4: Search with original sentence (cleaned) - last resort
+            # Strategy 4: Search with original sentence (cleaned)
             lambda: self._search_clean_sentence(search_text, language),
         ]
 
-        all_candidates: List[Tuple[Dict[str, Any], float]] = []
+        all_products: List[Dict[str, Any]] = []
 
         for strategy in search_strategies:
             try:
                 result = await strategy()
                 if result.success:
-                    products = result.data.get("data", {}).get("products", [])
-                    if products:
-                        # Score each product
-                        for product_item in products:
-                            product = cast(Dict[str, Any], product_item)
-                            score = calculate_product_score(product, search_text)
-                            if score > 0.2:  # Slightly higher threshold for main strategies
-                                all_candidates.append((product, score))
-                        # Don't break - continue to other strategies to get more results
+                    products_data = result.data.get("data", {}).get("products", [])
+                    if products_data:
+                        # Extract products from tuples if needed
+                        for item in products_data:
+                            if isinstance(item, tuple):
+                                product = item[0]
+                            else:
+                                product = item
+                            
+                            # Avoid duplicates
+                            if product not in all_products:
+                                all_products.append(product)
             except Exception as e:
                 logger.warning(f"Search strategy failed: {e}")
-                continue  # Try next strategy
+                continue
 
-        if not all_candidates:
-            # Try fuzzy search as last resort
+        # === STEP 3: Intelligent Filtering ===
+        # Apply AI-powered filtering based on detected intent
+        if all_products:
+            filtered_with_scores = self._filter_products_by_intent(all_products, intent)
+            
+            if filtered_with_scores:
+                # Get top products
+                top_products = [product for product, _score in filtered_with_scores[:limit]]
+                
+                # === STEP 4: Smart Response Generation ===
+                # Generate intelligent Arabic response
+                smart_response = self.intelligent_engine.generate_smart_response(
+                    intent, 
+                    results_count=len(top_products)
+                )
+                
+                # Format products with smart prefix
+                formatted = [format_product_for_messenger(p, language) for p in top_products]
+                
+                # Add smart response as first message
+                return [smart_response] + formatted
+        
+        # === FALLBACK: No Results After Intelligent Filtering ===
+        # Try fuzzy search as last resort
+        if not all_products:
             fuzzy_result = await self._search_popular_with_keywords(keywords)
             if fuzzy_result.success and fuzzy_result.data.get("data", {}).get("products"):
                 products = fuzzy_result.data["data"]["products"]
-                # Score with lower threshold
+                
+                # Score with lower threshold for fuzzy matches
                 scored_products: List[Tuple[Dict[str, Any], float]] = []
                 for product_item in products:
                     product = cast(Dict[str, Any], product_item)
                     score = calculate_product_score(product, search_text)
-                    if score > 0.1:  # Much lower threshold for fuzzy matches
+                    if score > 0.1:
                         scored_products.append((product, score))
 
                 if scored_products:
@@ -414,31 +683,22 @@ class BWWStoreSearchEngine:
                             unique_products.append(product)
 
                     if unique_products:
-                        return [format_product_for_messenger(p, language) for p in unique_products]
+                        # Use smart response even for fuzzy results
+                        smart_response = self.intelligent_engine.generate_smart_response(
+                            intent,
+                            results_count=len(unique_products)
+                        )
+                        formatted = [format_product_for_messenger(p, language) for p in unique_products]
+                        return [smart_response] + formatted
 
-            # If still no results, provide suggestions
-            suggestions = self._generate_search_suggestions(keywords, language)
-            no_results_msg = "❌ لم يتم العثور على منتجات مطابقة للبحث" if language == "ar" else "❌ No products found matching your search"
-
-            if suggestions:
-                suggestion_text = "\n\n💡 اقتراحات بديلة:\n" + "\n".join(f"• {s}" for s in suggestions) if language == "ar" else "\n\n💡 Alternative suggestions:\n" + "\n".join(f"• {s}" for s in suggestions)
-                return [no_results_msg + suggestion_text]
-            else:
-                return [no_results_msg]
-
-        # Sort by score and remove duplicates
-        all_candidates.sort(key=lambda x: float(x[1]), reverse=True)
-
-        # Remove duplicates based on product ID
-        seen_ids: Set[Any] = set()
-        unique_products: List[Dict[str, Any]] = []
-        for product_tuple in all_candidates:
-            product: Dict[str, Any] = product_tuple[0]
-            product_id = product.get('id')
-            if product_id and product_id not in seen_ids:
-                seen_ids.add(product_id)
-                unique_products.append(product)
-                if len(unique_products) >= limit:
-                    break
-
-        return [format_product_for_messenger(p, language) for p in unique_products]
+        # === NO RESULTS: Provide Smart Suggestions ===
+        suggestions = self._generate_search_suggestions(keywords, language)
+        
+        # Generate smart "no results" response
+        no_results_response = self.intelligent_engine.generate_smart_response(intent, results_count=0)
+        
+        if suggestions:
+            suggestion_text = "\n\n💡 جرب تدور عن:\n" + "\n".join(f"• {s}" for s in suggestions) if language == "ar" else "\n\n💡 Try searching for:\n" + "\n".join(f"• {s}" for s in suggestions)
+            return [no_results_response + suggestion_text]
+        else:
+            return [no_results_response]

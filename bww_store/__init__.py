@@ -6,6 +6,8 @@ reliability features, intelligent caching, and multi-language support.
 
 Main Features:
     - Intelligent search with Egyptian dialect support
+    - Advanced fuzzy matching and context understanding
+    - Price range, occasion, and season detection
     - Product comparison and card generation
     - Enterprise-grade caching and rate limiting
     - Circuit breaker pattern for fault tolerance
@@ -28,10 +30,18 @@ from .constants import (
     BWW_PRIORITY_ITEMS_EN
 )
 from .models import APIResponse, CacheStrategy, ProductInfo
+from .intelligent_search import (
+    IntelligentSearchEngine,
+    FuzzyMatcher,
+    SearchIntent,
+    PriceRange,
+    Occasion,
+    Season
+)
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "BWW Store AI Assistant"
-__description__ = "BWW Store API Client with advanced features"
+__description__ = "BWW Store API Client with advanced intelligent search"
 
 __all__ = [
     "BWWStoreAPIService",
@@ -45,4 +55,10 @@ __all__ = [
     "BWW_SEARCH_SUGGESTIONS_EN",
     "BWW_PRIORITY_ITEMS_AR",
     "BWW_PRIORITY_ITEMS_EN",
+    "IntelligentSearchEngine",
+    "FuzzyMatcher",
+    "SearchIntent",
+    "PriceRange",
+    "Occasion",
+    "Season",
 ]

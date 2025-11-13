@@ -7,9 +7,9 @@ from app.services.core.base_service import AIService as BaseAIService
 logger = logging.getLogger(__name__)
 
 gemini_available = False
-genai = None  # type: ignore
-HarmCategory = None  # type: ignore
-HarmBlockThreshold = None  # type: ignore
+genai: Any = None
+HarmCategory: Any = None
+HarmBlockThreshold: Any = None
 
 try:
     import google.generativeai as genai  # type: ignore
@@ -30,7 +30,7 @@ class GeminiService(BaseAIService):
         self.api_key = settings.GEMINI_API_KEY
 
         # Model configurations for different use cases
-        self.models = {
+        self.models: Dict[str, Any] = {
             'multimodal': None,      # For images + audio + text
             'text_fast': None,       # For text-only (Gemma)
             'text_quality': None,    # For high-quality text
@@ -86,7 +86,7 @@ class GeminiService(BaseAIService):
     def generate_response(
         self,
         message: str,
-        user_context: Optional[Dict[str, Any]] = None,
+        context: Optional[Dict[str, Any]] = None,  # Changed from user_context
         media_files: Optional[List[Dict[str, Any]]] = None,
         use_quality_model: bool = False
     ) -> str:
@@ -95,7 +95,7 @@ class GeminiService(BaseAIService):
 
         Args:
             message: User message text
-            user_context: Additional context about the user
+            context: Additional context about the user (renamed from user_context)
             media_files: List of media files [{'type': 'image|audio', 'data': bytes|path, 'mime_type': str}]
             use_quality_model: Use high-quality model for complex queries
 
@@ -117,7 +117,7 @@ class GeminiService(BaseAIService):
                     logger.error("Multimodal model not available")
                     return self._fallback_response(message)
 
-                return self._generate_multimodal_response(message, user_context, media_files, model)
+                return self._generate_multimodal_response(message, context, media_files, model)
 
             else:
                 # Text-only → use fast Gemma model or quality model
@@ -134,7 +134,7 @@ class GeminiService(BaseAIService):
                 if not model:
                     return self._fallback_response(message)
 
-                return self._generate_text_response(message, user_context, model, model_name)
+                return self._generate_text_response(message, context, model, model_name)
 
         except Exception as e:
             logger.error(f"Error generating Gemini response: {e}")
@@ -143,19 +143,19 @@ class GeminiService(BaseAIService):
     def _generate_text_response(
         self,
         message: str,
-        user_context: Optional[Dict[str, Any]],
-        model,
+        context: Optional[Dict[str, Any]],  # Changed from user_context
+        model: Any,
         model_name: str
     ) -> str:
         """Generate text-only response"""
         try:
             # Build context for the AI
-            context = self._build_context(user_context)
+            ai_context = self._build_context(context)
 
             # Create prompt optimized for fashion retail
             prompt = f"""You are Bww-Assistant, a friendly AI shopping assistant for BWW Store - a leading fashion retailer in Egypt specializing in men's, women's, and kids' fashion.
 
-User Context: {context}
+User Context: {ai_context}
 User Message: {message}
 
 Guidelines:
@@ -195,17 +195,17 @@ Respond naturally:"""
     def _generate_multimodal_response(
         self,
         message: str,
-        user_context: Optional[Dict[str, Any]],
+        context: Optional[Dict[str, Any]],  # Changed from user_context
         media_files: List[Dict[str, Any]],
-        model
+        model: Any
     ) -> str:
         """Generate response with images/audio input"""
         try:
             # Build context
-            context = self._build_context(user_context)
+            ai_context = self._build_context(context)
 
             # Prepare content parts
-            content_parts = []
+            content_parts: List[Any] = []
 
             # Add media files
             for media in media_files:
@@ -249,7 +249,7 @@ Respond naturally:"""
             # Add text prompt
             prompt = f"""You are Bww-Assistant analyzing media from a customer.
 
-User Context: {context}
+User Context: {ai_context}
 User Message: {message}
 
 Instructions:
@@ -292,7 +292,7 @@ Respond naturally:"""
         if not user_context:
             return "No additional context available"
 
-        context_parts = []
+        context_parts: List[str] = []
 
         if user_context.get('lead_stage'):
             context_parts.append(f"Lead stage: {user_context['lead_stage']}")
@@ -440,20 +440,25 @@ Respond naturally:"""
             "strategy": "Smart routing: text-only → Gemma (fast), multimodal → Gemini Flash"
         }
 
-    def _do_initialize(self) -> None:
+    def _do_initialize(self) -> bool:
         """Initialize Gemini service"""
-        self._initialize_models()
+        try:
+            self._initialize_models()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini service: {e}")
+            return False
 
-    def _generate_response_impl(self, query: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+    def _generate_response_impl(self, query: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """AI-specific response generation"""
         try:
             # Extract media files if present in context
-            media_files = context.get('media_files') if context else None
-            use_quality = context.get('use_quality_model', False) if context else False
+            media_files: Optional[List[Dict[str, Any]]] = context.get('media_files') if context else None
+            use_quality: bool = context.get('use_quality_model', False) if context else False
 
             response = self.generate_response(
                 message=query,
-                user_context=context,
+                context=context,
                 media_files=media_files,
                 use_quality_model=use_quality
             )

@@ -112,7 +112,13 @@ class ProductRecommender:
                 }
             
             prefs = self.customer_preferences[user_id]
-            recommendations = []
+            recommendations: List[Dict[str, str]] = []
+            
+            # Initialize Counter variables outside if blocks to avoid "possibly unbound" errors
+            category_counts: Optional[Counter[str]] = None
+            favorite_category: Optional[str] = None
+            color_counts: Optional[Counter[str]] = None
+            favorite_color: Optional[str] = None
             
             # Analyze favorite categories
             if prefs["viewed_categories"]:
@@ -169,8 +175,8 @@ class ProductRecommender:
                 "recommendations": recommendations[:3],  # Top 3 recommendations
                 "customer_profile": {
                     "total_searches": len(prefs["searches"]),
-                    "favorite_category": category_counts.most_common(1)[0][0] if prefs["viewed_categories"] else None,
-                    "favorite_color": color_counts.most_common(1)[0][0] if prefs["viewed_colors"] else None,
+                    "favorite_category": category_counts.most_common(1)[0][0] if category_counts and prefs["viewed_categories"] else None,
+                    "favorite_color": color_counts.most_common(1)[0][0] if color_counts and prefs["viewed_colors"] else None,
                     "avg_price_range": sum(prefs["price_range"]) / len(prefs["price_range"]) if prefs["price_range"] else 0
                 }
             }
@@ -233,7 +239,7 @@ class ProductRecommender:
                     "has_suggestions": False
                 }
             
-            suggestions = []
+            suggestions: List[Dict[str, str]] = []
             
             # Suggest matching items
             for item in complementary[:2]:  # Top 2 matches
@@ -278,7 +284,7 @@ class ProductRecommender:
             # Get recommendations
             recommendations = await self.get_recommendations(user_id)
             
-            response_parts = []
+            response_parts: List[str] = []
             
             # Main results message
             if products_found:

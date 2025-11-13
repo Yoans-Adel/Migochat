@@ -779,25 +779,148 @@ function getScoreColor(score) {
     return 'danger';
 }
 
-// Placeholder functions for future implementation
-function sendQuickMessage(psid) {
-    showToast('Quick message feature coming soon!', 'info');
+// Quick Message Implementation
+async function sendQuickMessage(psid) {
+    const message = prompt('أدخل رسالة سريعة:');
+    if (!message) return;
+    
+    try {
+        const response = await fetch('/api/send-message', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: psid, message: message, platform: 'facebook'})
+        });
+        
+        if (response.ok) {
+            showToast('تم إرسال الرسالة بنجاح!', 'success');
+        } else {
+            showToast('فشل إرسال الرسالة', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء الإرسال', 'error');
+    }
 }
 
-function changeLeadStage(psid) {
-    showToast('Change stage feature coming soon!', 'info');
+// Change Lead Stage Implementation
+async function changeLeadStage(psid) {
+    const stage = prompt('أدخل المرحلة الجديدة (new/contacted/qualified/converted/lost):');
+    if (!stage) return;
+    
+    try {
+        const response = await fetch(`/api/leads/${psid}/stage`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({stage: stage})
+        });
+        
+        if (response.ok) {
+            showToast('تم تحديث المرحلة بنجاح!', 'success');
+            loadLeads(); // Refresh
+        } else {
+            showToast('فشل تحديث المرحلة', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء التحديث', 'error');
+    }
 }
 
-function bulkChangeStage() {
-    showToast('Bulk change stage feature coming soon!', 'info');
+// Bulk Change Stage Implementation
+async function bulkChangeStage() {
+    const selected = Array.from(crmState.selectedItems.leads);
+    if (selected.length === 0) {
+        showToast('الرجاء اختيار عناصر أولاً', 'warning');
+        return;
+    }
+    
+    const stage = prompt('أدخل المرحلة الجديدة للعناصر المحددة:');
+    if (!stage) return;
+    
+    try {
+        const promises = selected.map(psid => 
+            fetch(`/api/leads/${psid}/stage`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({stage: stage})
+            })
+        );
+        
+        await Promise.all(promises);
+        showToast(`تم تحديث ${selected.length} عنصر بنجاح!`, 'success');
+        loadLeads();
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('حدث خطأ أثناء التحديث الجماعي', 'error');
+    }
 }
 
+// Bulk Export Implementation
 function bulkExport(type) {
-    showToast('Export feature coming soon!', 'info');
+    const data = type === 'leads' ? crmState.leads : crmState.users;
+    
+    if (data.length === 0) {
+        showToast('لا توجد بيانات للتصدير', 'warning');
+        return;
+    }
+    
+    // Convert to CSV
+    const headers = Object.keys(data[0]).join(',');
+    const rows = data.map(item => Object.values(item).join(',')).join('\n');
+    const csv = headers + '\n' + rows;
+    
+    // Download
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    showToast('تم التصدير بنجاح!', 'success');
 }
 
+// Preview Bulk Message Implementation
 function previewBulkMessage() {
-    showToast('Preview feature coming soon!', 'info');
+    const message = document.getElementById('bulkMessage')?.value;
+    if (!message) {
+        showToast('الرجاء كتابة رسالة أولاً', 'warning');
+        return;
+    }
+    
+    // Show preview modal
+    const previewHtml = `
+        <div class="modal fade" id="previewModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">معاينة الرسالة</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="card">
+                            <div class="card-body">
+                                <p class="card-text" style="white-space: pre-wrap;">${message}</p>
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2">عدد الأحرف: ${message.length}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove old modal if exists
+    document.getElementById('previewModal')?.remove();
+    
+    // Add and show new modal
+    document.body.insertAdjacentHTML('beforeend', previewHtml);
+    const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+    modal.show();
 }
 
 function loadTemplate() {
