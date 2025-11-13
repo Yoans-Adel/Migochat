@@ -1,3 +1,4 @@
+# pyright: reportAttributeAccessIssue=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 import logging
 from typing import Optional, Dict, Any, List
 from Server.config import settings
@@ -6,13 +7,13 @@ from app.services.core.base_service import AIService as BaseAIService
 logger = logging.getLogger(__name__)
 
 gemini_available = False
-genai = None
-HarmCategory = None
-HarmBlockThreshold = None
+genai = None  # type: ignore
+HarmCategory = None  # type: ignore
+HarmBlockThreshold = None  # type: ignore
 
 try:
-    import google.generativeai as genai
-    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+    import google.generativeai as genai  # type: ignore
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold  # type: ignore
     gemini_available = True
 except ImportError as import_error:
     logger.info(f"Gemini package not available: {import_error}")

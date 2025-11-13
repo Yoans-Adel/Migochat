@@ -79,8 +79,8 @@ async def messenger_webhook_post(request: Request):
                             "message_id": message_id
                         }
 
-                        # Process the message
-                        result = await message_handler._process_message_impl(message_data, platform="facebook")
+                        # Process the message using public async method
+                        result = await message_handler.process_message_async(message_data, platform="facebook")
                         logger.info(f"Message processing result: {result}")
 
         return JSONResponse(content={"status": "ok"})
@@ -97,6 +97,10 @@ async def whatsapp_webhook_get(request: Request):
     try:
         verify_token = request.query_params.get("hub.verify_token")
         challenge = request.query_params.get("hub.challenge")
+
+        # Validate parameters
+        if not verify_token or not challenge:
+            raise HTTPException(status_code=400, detail="Missing required parameters")
 
         from app.services.messaging.whatsapp_service import WhatsAppService
         whatsapp_service = WhatsAppService()
@@ -142,8 +146,8 @@ async def whatsapp_webhook_post(request: Request):
                                 "message_type": message_type
                             }
 
-                            # Process the message
-                            result = await message_handler._process_message_impl(message_data, platform="whatsapp")
+                            # Process the message using public async method
+                            result = await message_handler.process_message_async(message_data, platform="whatsapp")
                             logger.info(f"WhatsApp message processing result: {result}")
 
         return {"status": "ok"}

@@ -114,6 +114,27 @@ class LeadActivity(Base):
     user: Mapped["User"] = relationship(back_populates="lead_activities")
 
 
+class ProductQuery(Base):
+    """Product Query Analytics - tracks customer product searches"""
+    __tablename__ = "product_queries"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    query_text: Mapped[str] = mapped_column(Text)  # Original customer query
+    results_count: Mapped[int] = mapped_column(default=0)  # Number of products found
+    recommendations_sent: Mapped[bool] = mapped_column(Boolean, default=False)  # Were recommendations sent?
+    platform: Mapped[str] = mapped_column(String(50))  # facebook, whatsapp, etc.
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    
+    # Analytics fields
+    clicked_product: Mapped[Optional[str]] = mapped_column(String(200))  # Product clicked (if tracked)
+    converted: Mapped[bool] = mapped_column(Boolean, default=False)  # Did customer make purchase?
+    conversion_timestamp: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    
+    # Relationships
+    user: Mapped["User"] = relationship()
+
+
 class Post(Base):
     """Post model - tracks Facebook posts"""
     __tablename__ = "posts"

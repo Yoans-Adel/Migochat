@@ -29,11 +29,13 @@ except ImportError:
     logger.warning("BWW Store integration not available in Message Handler")
 
 # Import Product Recommender
+recommender_available = False
 try:
-    from app.services.ai.product_recommender import ProductRecommender
-    recommender_available = True
-    logger.info("Product Recommender loaded in Message Handler")
-except ImportError:
+    import importlib.util
+    if importlib.util.find_spec("app.services.ai.product_recommender") is not None:
+        recommender_available = True
+        logger.info("Product Recommender available in Message Handler")
+except Exception:
     recommender_available = False
     logger.warning("Product Recommender not available in Message Handler")
 
@@ -69,6 +71,19 @@ class MessageHandler(MessageService):
         
         self._initialized = False
 
+    async def process_message_async(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
+        """
+        Public async method to process incoming message (for webhooks)
+        
+        Args:
+            message_data: Message data containing user_id, text, etc.
+            platform: Platform name (facebook, whatsapp, etc.)
+        
+        Returns:
+            Dict with processing result
+        """
+        return await self._process_message_impl(message_data, platform)
+
     def _do_initialize(self) -> bool:
         """Initialize all services"""
         try:
@@ -84,7 +99,7 @@ class MessageHandler(MessageService):
             return False
 
     async def _process_message_impl(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
-        """Process incoming message"""
+        """Process incoming message - internal implementation"""
         try:
             # Extract message details
             user_id = message_data.get("user_id")
@@ -162,8 +177,8 @@ class MessageHandler(MessageService):
                         if self.product_recommender:
                             try:
                                 # Convert product results to dict format for tracking
-                                products_dict = []
-                                for product_str in product_results:
+                                products_dict: list[dict[str, str]] = []
+                                for _ in product_results:
                                     # Extract basic info from formatted product string
                                     products_dict.append({
                                         "category": message_text,
