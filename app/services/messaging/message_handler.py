@@ -17,6 +17,17 @@ from database import get_db_session, User
 
 logger = logging.getLogger(__name__)
 
+# Import BWW Store Integration
+bww_store_available = False
+BWWStoreAPIService = None
+
+try:
+    from bww_store import BWWStoreAPIService
+    bww_store_available = True
+    logger.info("BWW Store integration loaded in Message Handler")
+except ImportError:
+    logger.warning("BWW Store integration not available in Message Handler")
+
 
 class MessageHandler(MessageService):
     """Message handler using the new architecture"""
@@ -27,6 +38,16 @@ class MessageHandler(MessageService):
         self.ai_service = AIService()
         self.messenger_service = MessengerService()
         self.whatsapp_service = WhatsAppService()
+        
+        # Initialize BWW Store if available
+        self.bww_store = None
+        if bww_store_available and BWWStoreAPIService:
+            try:
+                self.bww_store = BWWStoreAPIService(language="ar")
+                logger.info("BWW Store service initialized in Message Handler")
+            except Exception as e:
+                logger.warning(f"Failed to initialize BWW Store: {e}")
+        
         self._initialized = False
 
     def _do_initialize(self) -> bool:
@@ -62,17 +83,52 @@ class MessageHandler(MessageService):
             if not user:
                 return {"success": False, "error": "Failed to get or create user"}
 
-            # Generate AI response (sync method)
-            ai_response = self.ai_service.generate_response(message_text, context={"user": user})
+            # Check if message is product-related query
+            product_query_detected = await self._detect_product_query(message_text)
+            
+            ai_response = None
+            product_results = None
+            
+            if product_query_detected and self.bww_store:
+                # Handle product query with BWW Store
+                try:
+                    logger.info(f"Product query detected: {message_text}")
+                    product_results = await self.bww_store.search_and_format_products(
+                        search_text=message_text,
+                        limit=3,
+                        language="ar"
+                    )
+                    
+                    if product_results:
+                        # Send product cards via Messenger
+                        if platform == "facebook" and product_results:
+                            await self._send_product_cards(str(user_id), product_results, platform)
+                            ai_response = f"تم العثور على {len(product_results)} منتج"
+                        else:
+                            # For WhatsApp or if no cards, send text
+                            ai_response = "\n\n".join(product_results)
+                    else:
+                        ai_response = "عذراً، لم أتمكن من العثور على منتجات مطابقة"
+                        
+                except Exception as e:
+                    logger.error(f"Error searching BWW Store: {e}")
+                    # Fallback to AI response
+                    ai_response = self.ai_service.generate_response(message_text, context={"user": user})
+            else:
+                # Generate AI response (sync method)
+                ai_response = self.ai_service.generate_response(message_text, context={"user": user})
 
-            # Send response back
-            response_sent = await self._send_message_impl(str(user_id), ai_response, platform)
+            # Send response back if not already sent
+            response_sent = False
+            if ai_response and not product_results:
+                response_sent = await self._send_message_impl(str(user_id), ai_response, platform)
 
             return {
                 "success": True,
                 "user_id": user_id,
                 "response": ai_response,
-                "response_sent": response_sent,
+                "product_results": len(product_results) if product_results else 0,
+                "response_sent": response_sent or bool(product_results),
                 "platform": platform
             }
 
@@ -156,11 +212,69 @@ class MessageHandler(MessageService):
             logger.error(f"Error getting or creating user {user_id}: {e}")
             return None
 
+    async def _detect_product_query(self, message_text: str) -> bool:
+        """Detect if message is a product-related query"""
+        try:
+            if not self.bww_store:
+                return False
+            
+            # Import constants from bww_store
+            from bww_store.constants import CLOTHING_KEYWORDS_AR, CLOTHING_KEYWORDS_EN
+            
+            message_lower = message_text.lower()
+            
+            # Check for product-related keywords
+            product_keywords = [
+                "منتج", "منتجات", "عايز", "عايزة", "محتاج", "محتاجة",
+                "فستان", "بنطلون", "بلوزة", "تيشرت", "جاكيت",
+                "سعر", "كام", "متاح", "موجود", "عندك",
+                "product", "products", "looking for", "want", "need"
+            ]
+            
+            # Check Arabic clothing keywords
+            for keyword in CLOTHING_KEYWORDS_AR:
+                if keyword in message_lower:
+                    return True
+            
+            # Check English clothing keywords
+            for keyword in CLOTHING_KEYWORDS_EN:
+                if keyword.lower() in message_lower:
+                    return True
+            
+            # Check general product keywords
+            for keyword in product_keywords:
+                if keyword in message_lower:
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error detecting product query: {e}")
+            return False
+
+    async def _send_product_cards(self, user_id: str, product_cards: list[str], platform: str) -> bool:
+        """Send product cards to user"""
+        try:
+            if platform == "facebook" and self.messenger_service:
+                # Send as generic template (cards)
+                for card in product_cards[:3]:  # Max 3 cards
+                    self.messenger_service.send_message(user_id, str(card))
+                return True
+            elif platform == "whatsapp" and self.whatsapp_service:
+                # Send as text messages
+                for card in product_cards[:3]:
+                    self.whatsapp_service.send_message(user_id, str(card))
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error sending product cards: {e}")
+            return False
+
     def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status"""
         base_status = super().get_service_status()
 
-        return {
+        status = {
             **base_status,
             "platform": self.platform,
             "database": "connected",  # Database is always available via get_session()
@@ -169,6 +283,15 @@ class MessageHandler(MessageService):
             "whatsapp_service_status": self.whatsapp_service.get_service_status(),
             "initialized": self._initialized
         }
+        
+        # Add BWW Store status if available
+        if self.bww_store:
+            status["bww_store_status"] = self.bww_store.get_service_status()
+            status["bww_store_enabled"] = True
+        else:
+            status["bww_store_enabled"] = False
+        
+        return status
 
     def health_check(self) -> ServiceHealth:
         """Comprehensive health check"""
