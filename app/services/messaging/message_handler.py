@@ -28,6 +28,15 @@ try:
 except ImportError:
     logger.warning("BWW Store integration not available in Message Handler")
 
+# Import Product Recommender
+try:
+    from app.services.ai.product_recommender import ProductRecommender
+    recommender_available = True
+    logger.info("Product Recommender loaded in Message Handler")
+except ImportError:
+    recommender_available = False
+    logger.warning("Product Recommender not available in Message Handler")
+
 
 class MessageHandler(MessageService):
     """Message handler using the new architecture"""
@@ -47,6 +56,16 @@ class MessageHandler(MessageService):
                 logger.info("BWW Store service initialized in Message Handler")
             except Exception as e:
                 logger.warning(f"Failed to initialize BWW Store: {e}")
+        
+        # Initialize Product Recommender if available
+        self.product_recommender = None
+        if recommender_available:
+            try:
+                from app.services.ai.product_recommender import ProductRecommender
+                self.product_recommender = ProductRecommender()
+                logger.info("Product Recommender initialized in Message Handler")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Product Recommender: {e}")
         
         self._initialized = False
 
@@ -83,6 +102,45 @@ class MessageHandler(MessageService):
             if not user:
                 return {"success": False, "error": "Failed to get or create user"}
 
+            # Check for recommendations request
+            if self.product_recommender and any(keyword in message_text.lower() for keyword in ["توصيات", "اقتراحات", "recommendations", "suggest"]):
+                try:
+                    recommendations = await self.product_recommender.get_recommendations(str(user_id), message_text)
+                    
+                    if recommendations.get("has_recommendations"):
+                        response_parts = ["💡 توصيات مخصصة لك:\n"]
+                        for rec in recommendations["recommendations"][:3]:
+                            response_parts.append(f"• {rec['suggestion']}")
+                        
+                        ai_response = "\n".join(response_parts)
+                        
+                        # Optionally search for recommended products
+                        if recommendations["recommendations"]:
+                            first_rec = recommendations["recommendations"][0]
+                            search_query = first_rec.get("search_query", "")
+                            if search_query and self.bww_store:
+                                product_results = await self.bww_store.search_and_format_products(
+                                    search_text=search_query,
+                                    limit=3,
+                                    language="ar"
+                                )
+                                if product_results and platform == "facebook":
+                                    await self._send_product_cards(str(user_id), product_results, platform)
+                    else:
+                        ai_response = recommendations.get("message", "ابحث عن منتجات أولاً لنقدم لك توصيات مخصصة! 🛍️")
+                    
+                    response_sent = await self._send_message_impl(str(user_id), ai_response, platform)
+                    return {
+                        "success": True,
+                        "user_id": user_id,
+                        "response": ai_response,
+                        "response_sent": response_sent,
+                        "platform": platform,
+                        "type": "recommendations"
+                    }
+                except Exception as rec_error:
+                    logger.error(f"Error handling recommendations request: {rec_error}")
+
             # Check if message is product-related query
             product_query_detected = await self._detect_product_query(message_text)
             
@@ -100,10 +158,33 @@ class MessageHandler(MessageService):
                     )
                     
                     if product_results:
+                        # Generate smart response with recommendations
+                        if self.product_recommender:
+                            try:
+                                # Convert product results to dict format for tracking
+                                products_dict = []
+                                for product_str in product_results:
+                                    # Extract basic info from formatted product string
+                                    products_dict.append({
+                                        "category": message_text,
+                                        "search_query": message_text
+                                    })
+                                
+                                # Get smart response with recommendations
+                                ai_response = await self.product_recommender.generate_smart_response(
+                                    user_id=str(user_id),
+                                    search_query=message_text,
+                                    products_found=products_dict
+                                )
+                            except Exception as rec_error:
+                                logger.error(f"Error getting recommendations: {rec_error}")
+                                ai_response = f"تم العثور على {len(product_results)} منتج"
+                        else:
+                            ai_response = f"تم العثور على {len(product_results)} منتج"
+                        
                         # Send product cards via Messenger
                         if platform == "facebook" and product_results:
                             await self._send_product_cards(str(user_id), product_results, platform)
-                            ai_response = f"تم العثور على {len(product_results)} منتج"
                         else:
                             # For WhatsApp or if no cards, send text
                             ai_response = "\n\n".join(product_results)
@@ -290,6 +371,13 @@ class MessageHandler(MessageService):
             status["bww_store_enabled"] = True
         else:
             status["bww_store_enabled"] = False
+        
+        # Add Product Recommender status if available
+        if self.product_recommender:
+            status["product_recommender_status"] = self.product_recommender.get_service_status()
+            status["product_recommender_enabled"] = True
+        else:
+            status["product_recommender_enabled"] = False
         
         return status
 
