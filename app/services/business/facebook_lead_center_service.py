@@ -2,7 +2,7 @@ import logging
 import requests
 from typing import Dict, Optional, List, Tuple, Any
 from sqlalchemy import func
-from Server.config import settings
+from config.settings import settings
 from database import User, LeadStage, CustomerLabel, CustomerType, LeadActivity, Message, MessageDirection, enum_to_value
 from database.context import get_db_session
 from app.services.messaging.messenger_service import MessengerService

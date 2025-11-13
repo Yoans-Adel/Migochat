@@ -34,7 +34,7 @@ class TestMessengerService:
     def test_send_text_message(self, mock_messenger_response):
         """Test sending text message via Messenger"""
         from app.services.messaging.messenger_service import MessengerService
-        from Server.config import settings
+        from config.settings import settings
 
         # Mock Messenger API
         responses.add(
@@ -159,7 +159,7 @@ class TestMessengerAPI:
 
     def test_api_url_format(self):
         """Test API URL is properly formatted"""
-        from Server.config import settings
+        from config.settings import settings
 
         api_url = getattr(settings, 'MESSENGER_API_URL', 'https://graph.facebook.com/v24.0')
         assert api_url.startswith('https://')
@@ -167,7 +167,8 @@ class TestMessengerAPI:
 
     def test_access_token_exists(self):
         """Test access token is configured"""
-        from Server.config import settings
+        from config.settings import settings
 
         assert hasattr(settings, 'FB_PAGE_ACCESS_TOKEN')
         assert settings.FB_PAGE_ACCESS_TOKEN is not None
+

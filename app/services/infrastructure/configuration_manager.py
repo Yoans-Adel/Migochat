@@ -1,6 +1,8 @@
 """
 Service Configuration Management for BWW Assistant Chatbot
 Professional configuration system with validation and hot-reloading
+
+Note: This is SERVICE-specific configuration (different from global app config in config/)
 """
 
 import logging
@@ -40,7 +42,7 @@ class ConfigFormat(Enum):
 
 @dataclass
 class ServiceConfiguration:
-    """Service configuration with validation"""
+    """Service configuration with validation (for individual services)"""
     name: str
     enabled: bool = True
     timeout: int = 30

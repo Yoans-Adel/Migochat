@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 
 from database import get_db_session, User, Message, Conversation
-from Server.config import settings
+from config.settings import settings
 import os
 
 logger = logging.getLogger(__name__)

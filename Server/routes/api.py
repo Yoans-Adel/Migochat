@@ -7,7 +7,7 @@ import logging
 import traceback
 
 from database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign, enum_to_value
-from Server.config import settings
+from config.settings import settings
 from Server.routes.service_helpers import (
     get_messenger_service,
     get_whatsapp_service,

@@ -21,7 +21,7 @@ setup_logging()
 logger = get_logger(__name__)
 
 # Import from app (services are still in app/ folder)
-from Server.config import settings  # noqa: E402
+from config.settings import settings  # noqa: E402
 from database import create_all_tables  # noqa: E402
 from Server.routes import dashboard, api, webhook, settings_api  # noqa: E402
 

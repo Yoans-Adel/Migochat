@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import JSONResponse, Response
 import logging
 
-from Server.config import settings
+from config.settings import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -38,7 +38,7 @@ def check_imports():
     try:
         sys.path.insert(0, str(Path(__file__).parent.parent))
         from Server.main import app
-        from Server.config import settings
+        from config.settings import settings
         # Verify imports work by checking they're not None
         if app is not None and settings is not None:
             print("  ✅ All imports working")

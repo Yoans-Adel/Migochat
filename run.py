@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from Server.config import settings  # noqa: E402
+from config.settings import settings  # noqa: E402
 
 if __name__ == "__main__":
     print("🚀 Starting Bww-Assistant-chatbot Facebook Messenger Platform...")

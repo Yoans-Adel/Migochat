@@ -35,7 +35,7 @@ class TestWhatsAppService:
     def test_send_text_message(self, mock_whatsapp_response):
         """Test sending text message"""
         from app.services.messaging.whatsapp_service import WhatsAppService
-        from Server.config import settings
+        from config.settings import settings
 
         # Mock WhatsApp API response
         responses.add(
@@ -168,3 +168,4 @@ class TestWhatsAppServiceIntegration:
         # This would make real API call
         # Only run with real credentials
         pass
+

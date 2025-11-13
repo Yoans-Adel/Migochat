@@ -61,7 +61,7 @@ class TestGeminiService:
 
     def test_api_key_configured(self):
         """Test API key is configured"""
-        from Server.config import settings
+        from config.settings import settings
 
         assert hasattr(settings, 'GEMINI_API_KEY')
         assert settings.GEMINI_API_KEY is not None
@@ -145,3 +145,4 @@ class TestGeminiIntegration:
                 pass
         except ImportError:
             pytest.skip("Gemini service not available")
+

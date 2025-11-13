@@ -4,7 +4,7 @@ Property-based settings using ConfigurationManager with full type safety
 """
 
 from typing import List
-from Server.config_manager import config_manager, ConfigurationManager
+from .config_manager import config_manager, ConfigurationManager
 
 
 class Settings:

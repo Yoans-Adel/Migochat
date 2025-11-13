@@ -72,7 +72,7 @@ class TestWebhookVerification:
 
     def test_webhook_get_verification(self, client):
         """Test webhook GET verification"""
-        from Server.config import settings
+        from config.settings import settings
 
         # Messenger webhook verification
         response = client.get(
@@ -92,7 +92,7 @@ class TestWebhookVerification:
 
     def test_whatsapp_webhook_get_verification(self, client):
         """Test WhatsApp webhook GET verification"""
-        from Server.config import settings
+        from config.settings import settings
 
         response = client.get(
             "/webhook/whatsapp",
@@ -273,7 +273,8 @@ class TestServerConfig:
 
     def test_config_loaded_in_app(self):
         """Test that config is loaded in app"""
-        from Server.config import settings
+        from config.settings import settings
 
         assert settings is not None
         # App should have access to settings
+

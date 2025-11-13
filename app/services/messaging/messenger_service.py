@@ -2,7 +2,7 @@ import requests
 import json
 import logging
 from typing import Dict, List, Optional, Any
-from Server.config import settings
+from config.settings import settings
 from app.services.messaging.platform_messaging_service import PlatformMessagingService
 from app.services.infrastructure.error_handler import api_error_handler, retry_on_error, circuit_breaker, RetryConfig, CircuitBreakerConfig
 

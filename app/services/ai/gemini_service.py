@@ -1,7 +1,7 @@
 # pyright: reportAttributeAccessIssue=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 import logging
 from typing import Optional, Dict, Any, List
-from Server.config import settings
+from config.settings import settings
 from app.services.core.base_service import AIService as BaseAIService
 
 logger = logging.getLogger(__name__)

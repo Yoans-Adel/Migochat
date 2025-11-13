@@ -1,7 +1,7 @@
 import logging
 import requests
 from typing import Dict, Optional, List, Any
-from Server.config import settings
+from config.settings import settings
 from app.services.messaging.platform_messaging_service import PlatformMessagingService
 
 logger = logging.getLogger(__name__)

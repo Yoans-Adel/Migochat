@@ -228,7 +228,7 @@ async def update_settings(request: ConfigUpdateRequest):
 async def export_settings():
     """Export current configuration (non-sensitive)"""
     try:
-        from Server.config import settings
+        from config.settings import settings
         
         config = {
             "environment": settings.ENVIRONMENT,
