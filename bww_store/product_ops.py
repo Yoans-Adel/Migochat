@@ -9,6 +9,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import cast
 from typing import Any, Dict, List, Optional
 
 from .card_generator import generate_product_card
@@ -164,8 +165,12 @@ class BWWStoreProductOperations:
 
         all_products: List[Dict[str, Any]] = []
         res = await self.client.filter_products(page_size=100)
-        if res.success and isinstance(res.data, dict):
-            all_products = res.data.get("data", {}).get("products", []) or []
+        if res.success and res.data:
+            # Type narrowing: res.data should be dict with nested structure
+            data_obj = res.data if isinstance(res.data, dict) else {}  # type: ignore[misc]
+            data_dict = cast(Dict[str, Any], data_obj.get("data", {}))  # type: ignore[misc]
+            products_list = cast(List[Dict[str, Any]], data_dict.get("products", []))
+            all_products = products_list
 
         found: List[Dict[str, Any]] = []
         for pid in product_ids:
@@ -175,8 +180,9 @@ class BWWStoreProductOperations:
                     break
             else:
                 detail = await self.get_product_details(pid)
-                if detail.success and isinstance(detail.data, dict):
-                    found.append(detail.data)
+                if detail.success and detail.data:
+                    data_obj = detail.data if isinstance(detail.data, dict) else {}  # type: ignore[misc]
+                    found.append(cast(Dict[str, Any], data_obj))
 
         if not found:
             return "❌ لم يتم العثور على المنتجات المطلوبة" if language == "ar" else "❌ Products not found"
@@ -367,18 +373,21 @@ class BWWStoreProductOperations:
             try:
                 product_id = int(input_text)
                 result = await self.get_product_details(product_id)
-                if result.success and isinstance(result.data, dict):
-                    return result.data
+                if result.success and result.data:
+                    data_obj = result.data if isinstance(result.data, dict) else {}  # type: ignore[misc]
+                    return cast(Dict[str, Any], data_obj)
             except ValueError:
                 pass
 
             # Try search
             result = await self.search_products_by_text(input_text, page_size=5)
-            if result.success and isinstance(result.data, dict):
-                products = result.data.get("data", {}).get("products", [])
-                if products:
+            if result.success and result.data:
+                data_obj = result.data if isinstance(result.data, dict) else {}  # type: ignore[misc]
+                data_dict = cast(Dict[str, Any], data_obj.get("data", {}))  # type: ignore[misc]
+                products_list = cast(List[Dict[str, Any]], data_dict.get("products", []))
+                if products_list:
                     # Return the best match (first result)
-                    return products[0]
+                    return products_list[0]
 
             return None
 

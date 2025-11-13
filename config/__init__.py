@@ -7,8 +7,8 @@ This package contains all configuration modules for the application.
 from typing import Any
 
 # Import config modules
-from .database_config import *
-from .logging_config import *
+from . import database_config
+from . import logging_config
 
 __all__ = [
     "database_config",
