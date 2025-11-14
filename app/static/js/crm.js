@@ -109,10 +109,12 @@ async function loadLeads() {
         
         const stage = document.getElementById('leadStageFilter')?.value || '';
         const customerType = document.getElementById('customerTypeFilter')?.value || '';
+        const search = crmState.filters.search || '';
         
         const params = new URLSearchParams();
         if (stage) params.append('stage', stage);
         if (customerType) params.append('customer_type', customerType);
+        if (search) params.append('search', search);
         
         const response = await fetch(`/api/leads?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to load leads');
@@ -120,11 +122,14 @@ async function loadLeads() {
         const data = await response.json();
         crmState.leads = data.leads || [];
         
+        // Apply client-side filtering for instant search
+        const filteredLeads = filterLeads(crmState.leads);
+        
         // Update counts
-        document.getElementById('leadsCount').textContent = crmState.leads.length;
+        document.getElementById('leadsCount').textContent = filteredLeads.length;
         
         // Render leads table
-        renderLeadsTable();
+        renderLeadsTable(filteredLeads);
         
     } catch (error) {
         console.error('Error loading leads:', error);
@@ -132,11 +137,13 @@ async function loadLeads() {
     }
 }
 
-function renderLeadsTable() {
+function renderLeadsTable(leads = null) {
     const tbody = document.getElementById('leadsTableBody');
     if (!tbody) return;
     
-    if (crmState.leads.length === 0) {
+    const leadsToRender = leads || crmState.leads;
+    
+    if (leadsToRender.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="text-center text-muted py-4">
@@ -148,7 +155,7 @@ function renderLeadsTable() {
         return;
     }
     
-    tbody.innerHTML = crmState.leads.map(lead => {
+    tbody.innerHTML = leadsToRender.map(lead => {
         const isSelected = crmState.selectedItems.leads.has(lead.psid);
         const stageColor = getStageColor(lead.lead_stage);
         const typeColor = getTypeColor(lead.customer_type);
@@ -219,17 +226,24 @@ async function loadUsers() {
     try {
         showLoading('usersTableBody');
         
-        const response = await fetch('/api/users');
+        const search = crmState.filters.search || '';
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        
+        const response = await fetch(`/api/users?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to load users');
         
         const data = await response.json();
         crmState.users = data.users || [];
         
+        // Apply client-side filtering
+        const filteredUsers = filterUsers(crmState.users);
+        
         // Update counts
-        document.getElementById('usersCount').textContent = crmState.users.length;
+        document.getElementById('usersCount').textContent = filteredUsers.length;
         
         // Render users table
-        renderUsersTable();
+        renderUsersTable(filteredUsers);
         
     } catch (error) {
         console.error('Error loading users:', error);
@@ -237,11 +251,13 @@ async function loadUsers() {
     }
 }
 
-function renderUsersTable() {
+function renderUsersTable(users = null) {
     const tbody = document.getElementById('usersTableBody');
     if (!tbody) return;
     
-    if (crmState.users.length === 0) {
+    const usersToRender = users || crmState.users;
+    
+    if (usersToRender.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="text-center text-muted py-4">
@@ -975,4 +991,202 @@ async function sendMessage() {
 
 function showMessageComposer() {
     document.getElementById('messageComposer').classList.toggle('d-none');
+}
+
+// ============================================================
+// Advanced Search & Filter Functions
+// ============================================================
+
+function filterLeads(leads) {
+    const searchTerm = (crmState.filters.search || '').toLowerCase().trim();
+    
+    if (!searchTerm) return leads;
+    
+    return leads.filter(lead => {
+        const fullName = `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase();
+        const psid = (lead.psid || '').toLowerCase();
+        const stage = (lead.lead_stage || '').toLowerCase();
+        const type = (lead.customer_type || '').toLowerCase();
+        const phone = (lead.phone || '').toLowerCase();
+        const email = (lead.email || '').toLowerCase();
+        
+        return fullName.includes(searchTerm) ||
+               psid.includes(searchTerm) ||
+               stage.includes(searchTerm) ||
+               type.includes(searchTerm) ||
+               phone.includes(searchTerm) ||
+               email.includes(searchTerm);
+    });
+}
+
+function filterUsers(users) {
+    const searchTerm = (crmState.filters.search || '').toLowerCase().trim();
+    
+    if (!searchTerm) return users;
+    
+    return users.filter(user => {
+        const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+        const psid = (user.psid || '').toLowerCase();
+        const platform = (user.platform || '').toLowerCase();
+        const phone = (user.phone || '').toLowerCase();
+        
+        return fullName.includes(searchTerm) ||
+               psid.includes(searchTerm) ||
+               platform.includes(searchTerm) ||
+               phone.includes(searchTerm);
+    });
+}
+
+// Instant search handler with debounce
+let searchTimeout;
+function handleSearch(searchValue) {
+    clearTimeout(searchTimeout);
+    
+    searchTimeout = setTimeout(() => {
+        crmState.filters.search = searchValue;
+        
+        // Refresh current active tab
+        const activeTab = document.querySelector('.nav-link.active');
+        const target = activeTab?.getAttribute('data-bs-target');
+        
+        if (target === '#leads') {
+            const filteredLeads = filterLeads(crmState.leads);
+            renderLeadsTable(filteredLeads);
+            document.getElementById('leadsCount').textContent = filteredLeads.length;
+        } else if (target === '#users') {
+            const filteredUsers = filterUsers(crmState.users);
+            renderUsersTable(filteredUsers);
+            document.getElementById('usersCount').textContent = filteredUsers.length;
+        } else if (target === '#conversations') {
+            renderConversationsList();
+        }
+    }, 300); // 300ms debounce
+}
+
+// Sort functions
+function sortLeads(sortBy, order = 'asc') {
+    const sorted = [...crmState.leads].sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(sortBy) {
+            case 'name':
+                valueA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+                valueB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+                break;
+            case 'score':
+                valueA = a.lead_score || 0;
+                valueB = b.lead_score || 0;
+                break;
+            case 'stage':
+                valueA = a.lead_stage || '';
+                valueB = b.lead_stage || '';
+                break;
+            case 'date':
+                valueA = new Date(a.last_message_at || 0);
+                valueB = new Date(b.last_message_at || 0);
+                break;
+            default:
+                return 0;
+        }
+        
+        if (valueA < valueB) return order === 'asc' ? -1 : 1;
+        if (valueA > valueB) return order === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    crmState.leads = sorted;
+    const filteredLeads = filterLeads(sorted);
+    renderLeadsTable(filteredLeads);
+}
+
+function sortUsers(sortBy, order = 'asc') {
+    const sorted = [...crmState.users].sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(sortBy) {
+            case 'name':
+                valueA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+                valueB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+                break;
+            case 'platform':
+                valueA = a.platform || '';
+                valueB = b.platform || '';
+                break;
+            case 'date':
+                valueA = new Date(a.last_message_at || 0);
+                valueB = new Date(b.last_message_at || 0);
+                break;
+            default:
+                return 0;
+        }
+        
+        if (valueA < valueB) return order === 'asc' ? -1 : 1;
+        if (valueA > valueB) return order === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    crmState.users = sorted;
+    const filteredUsers = filterUsers(sorted);
+    renderUsersTable(filteredUsers);
+}
+
+// Export functions
+async function exportLeads(format = 'csv') {
+    try {
+        const leads = filterLeads(crmState.leads);
+        
+        if (leads.length === 0) {
+            showToast('⚠️ No leads to export', 'warning');
+            return;
+        }
+        
+        if (format === 'csv') {
+            const csv = convertToCSV(leads);
+            downloadFile(csv, 'leads.csv', 'text/csv');
+            showToast(`✅ Exported ${leads.length} leads`, 'success');
+        } else if (format === 'json') {
+            const json = JSON.stringify(leads, null, 2);
+            downloadFile(json, 'leads.json', 'application/json');
+            showToast(`✅ Exported ${leads.length} leads`, 'success');
+        }
+        
+    } catch (error) {
+        console.error('Error exporting leads:', error);
+        showToast('❌ Export failed', 'error');
+    }
+}
+
+function convertToCSV(data) {
+    if (data.length === 0) return '';
+    
+    const headers = ['Name', 'PSID', 'Score', 'Stage', 'Type', 'Last Contact', 'Phone', 'Email'];
+    const rows = data.map(item => [
+        `${item.first_name || ''} ${item.last_name || ''}`,
+        item.psid || '',
+        item.lead_score || 0,
+        item.lead_stage || '',
+        item.customer_type || '',
+        item.last_message_at || '',
+        item.phone || '',
+        item.email || ''
+    ]);
+    
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    return csvContent;
+}
+
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }

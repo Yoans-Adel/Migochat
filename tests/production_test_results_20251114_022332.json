@@ -1,0 +1,122 @@
+[
+  {
+    "Name": "Health Check",
+    "Path": "/health",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 241
+  },
+  {
+    "Name": "Home Page",
+    "Path": "/",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 8682
+  },
+  {
+    "Name": "Dashboard Home",
+    "Path": "/dashboard/",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 8682
+  },
+  {
+    "Name": "CRM Page",
+    "Path": "/dashboard/crm",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 26166
+  },
+  {
+    "Name": "Messages Page",
+    "Path": "/dashboard/messages",
+    "Status": 0,
+    "Expected": 200,
+    "Success": false,
+    "Size": 0
+  },
+  {
+    "Name": "Leads Page",
+    "Path": "/dashboard/leads",
+    "Status": 0,
+    "Expected": 200,
+    "Success": false,
+    "Size": 0
+  },
+  {
+    "Name": "Users Page",
+    "Path": "/dashboard/users",
+    "Status": 0,
+    "Expected": 200,
+    "Success": false,
+    "Size": 0
+  },
+  {
+    "Name": "Settings Page",
+    "Path": "/dashboard/settings",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 36749
+  },
+  {
+    "Name": "API Users",
+    "Path": "/api/users",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 22
+  },
+  {
+    "Name": "API Messages",
+    "Path": "/api/messages",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 25
+  },
+  {
+    "Name": "API Leads",
+    "Path": "/api/leads",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 22
+  },
+  {
+    "Name": "API Stats",
+    "Path": "/api/stats",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 992
+  },
+  {
+    "Name": "Messenger Webhook",
+    "Path": "/webhook/messenger",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 7
+  },
+  {
+    "Name": "WhatsApp Webhook",
+    "Path": "/webhook/whatsapp",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 7
+  },
+  {
+    "Name": "Lead Center Webhook",
+    "Path": "/webhook/leadgen",
+    "Status": 200,
+    "Expected": 200,
+    "Success": true,
+    "Size": 7
+  }
+]

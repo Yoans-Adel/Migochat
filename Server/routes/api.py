@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, timezone
 import logging
@@ -290,11 +290,26 @@ async def send_bulk_message(
 async def get_users(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = None,
     db: Session = Depends(get_session)
 ) -> Dict[str, Any]:
-    """Get users list"""
+    """Get users list with optional search"""
     try:
-        users = db.query(User).order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
+        query = db.query(User)
+        
+        # Apply search filter if provided
+        if search:
+            search_term = f"%{search.lower()}%"
+            query = query.filter(
+                or_(
+                    User.first_name.ilike(search_term),
+                    User.last_name.ilike(search_term),
+                    User.psid.ilike(search_term),
+                    User.phone.ilike(search_term) if User.phone else False
+                )
+            )
+        
+        users = query.order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
 
         return {
             "users": [

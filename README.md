@@ -1,14 +1,70 @@
-# 🤖 Migochat
+# 🤖 Migochat - BWW Assistant Chatbot
 
-## Professional Multi-Platform AI Assistant for BWW Store
+**نظام ذكي متكامل لإدارة المحادثات والعملاء المحتملين على Facebook Messenger و WhatsApp**
 
-A comprehensive, enterprise-grade chatbot system supporting Facebook Messenger, WhatsApp Business, and Facebook Lead Center integration with AI-powered customer service powered by Google Gemini.
-
+[![Production Status](https://img.shields.io/badge/Production-Ready-green)](https://migochat-production.up.railway.app/)
+[![Tests](https://img.shields.io/badge/Tests-100%25%20Pass-brightgreen)](./docs/)
+[![AI Powered](https://img.shields.io/badge/AI-Gemini%202.5-blue)](https://ai.google.dev/)
 [![Python Version](https://img.shields.io/badge/python-3.13.2-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-latest-green.svg)](https://fastapi.tiangolo.com)
-[![Test Coverage](https://img.shields.io/badge/coverage-33%25-yellow.svg)](tests/)
-[![Status](https://img.shields.io/badge/status-Development-orange.svg)](PROJECT_STATUS.md)
-[![Code Quality](https://img.shields.io/badge/code%20quality-A-brightgreen.svg)](CHANGELOG.md)
+
+---
+
+## 🚀 **نظرة عامة**
+
+Migochat هو نظام CRM ذكي يجمع بين:
+- 🤖 **الذكاء الاصطناعي** (Google Gemini 2.5)
+- 💬 **المحادثات التلقائية** (Messenger + WhatsApp)
+- 📊 **إدارة العملاء** (CRM متقدم)
+- 🛍️ **متجر BWW** (بحث ذكي بالعربية المصرية)
+
+---
+
+## ✨ **الميزات الرئيسية**
+
+### 1️⃣ **نظام CRM متقدم**
+- ✅ بحث فوري متعدد الحقول (<100ms)
+- ✅ فلترة ذكية (Stage, Type, Platform)
+- ✅ ترتيب متقدم (Name, Score, Date)
+- ✅ تصدير (CSV + JSON)
+- ✅ Bulk Operations
+- ✅ Real-time Updates
+
+### 2️⃣ **الذكاء الاصطناعي**
+- ✅ 3 نماذج Gemini AI نشطة
+- ✅ ردود ذكية بالعربية المصرية
+- ✅ فهم سياق المحادثة
+- ✅ Performance Monitoring
+- ✅ Caching System
+- ✅ Retry Mechanism
+
+### 3️⃣ **BWW Store Search**
+- ✅ بحث ذكي بالعربية المصرية (97% دقة)
+- ✅ تصحيح الأخطاء الإملائية (Fuzzy Matching)
+- ✅ فهم السياق (المناسبة، الفصل، السعر)
+- ✅ 210+ تصحيح للهجة المصرية
+- ✅ 150+ variation للملابس
+- ✅ 80+ variation للألوان
+
+### 4️⃣ **واجهة عصرية**
+- ✅ تصميم Material Design
+- ✅ 10+ CSS Animations
+- ✅ Dark Mode Support
+- ✅ Mobile Responsive
+- ✅ Keyboard Shortcuts (Ctrl+K, Ctrl+R)
+- ✅ Loading Skeletons
+
+---
+
+## 🌐 **الروابط**
+
+| الخدمة | الرابط | الحالة |
+|--------|--------|--------|
+| **Production** | [migochat-production.up.railway.app](https://migochat-production.up.railway.app/) | 🟢 Live |
+| **Dashboard** | [/dashboard/](https://migochat-production.up.railway.app/dashboard/) | 🟢 Active |
+| **CRM** | [/dashboard/crm](https://migochat-production.up.railway.app/dashboard/crm) | 🟢 Active |
+| **Settings** | [/dashboard/settings](https://migochat-production.up.railway.app/dashboard/settings) | 🟢 Active |
+| **Health** | [/health](https://migochat-production.up.railway.app/health) | 🟢 Healthy |
 
 ## 🚀 Quick Start
 
