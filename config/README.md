@@ -1,16 +1,16 @@
-# ⚙️ Migochat Configuration
+# ⚙️ Configuration Package
 
-**Centralized Configuration Management for Migochat Project**
+**Centralized Configuration Management**
 
 ---
 
 ## 📋 Overview
 
-This directory contains **all** configuration for the Migochat application. All settings, environment variables, database configuration, and logging setup are managed here following the **Single Source of Truth** principle.
+This package manages all configuration for the application using the **Single Source of Truth** principle. All settings, environment variables, and configuration logic are centralized here.
 
 ---
 
-## 🗂️ Directory Structure
+## 🗂️ Package Structure
 
 ```
 config/
@@ -104,73 +104,35 @@ api_key = config_manager.get_config("ai", "gemini_api_key", default="fallback")
 
 ## 📖 Configuration Reference
 
-### 🔵 Facebook Messenger
+### Configuration Sections
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `FB_APP_ID` | Facebook Application ID | ✅ |
-| `FB_APP_SECRET` | Facebook Application Secret | ✅ |
-| `FB_PAGE_ID` | Facebook Page ID | ✅ |
-| `FB_PAGE_ACCESS_TOKEN` | Page access token for API | ✅ |
-| `FB_SYSTEM_USER_TOKEN` | System user token (Lead Ads) | ✅ |
-| `FB_VERIFY_TOKEN` | Webhook verification token | ✅ |
-| `FB_LEADCENTER_VERIFY_TOKEN` | Lead Ads webhook token (same as Messenger) | ✅ |
+The configuration is organized into logical sections:
 
-**Note:** Facebook Lead Ads use the same webhook as Messenger (object: "page"), so `FB_LEADCENTER_VERIFY_TOKEN` should match `FB_VERIFY_TOKEN`.
+#### Facebook Integration
+- App credentials (ID, Secret)
+- Page tokens and IDs
+- Webhook verification tokens
 
-### 💚 WhatsApp Business
+#### WhatsApp Integration
+- API tokens
+- Phone number IDs
+- Webhook verification
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API token | ✅ |
-| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp phone number ID | ✅ |
-| `WHATSAPP_VERIFY_TOKEN` | Webhook verification token | ✅ |
+#### AI Services
+- Gemini API configuration
+- Model selection
 
-### 🤖 AI Services (Google Gemini)
+#### Application Settings
+- Environment (development/production)
+- Debug mode
+- Logging configuration
+- Server settings
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `GEMINI_API_KEY` | Google Gemini API key | ✅ | - |
-| `GEMINI_MODEL` | Model name | ❌ | `gemini-2.5-flash` |
+#### Database
+- Connection strings
+- SQLite/PostgreSQL support
 
-### 🌐 Webhook URLs
-
-| Variable | Description | Auto-Generated |
-|----------|-------------|----------------|
-| `MESSENGER_WEBHOOK_URL` | Messenger webhook endpoint | Via `update_webhook_urls()` |
-| `WHATSAPP_WEBHOOK_URL` | WhatsApp webhook endpoint | Via `update_webhook_urls()` |
-| `LEADCENTER_WEBHOOK_URL` | Lead Ads webhook endpoint | Via `update_webhook_urls()` |
-
-### 🗄️ Database
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | Database connection string | `sqlite:///database/bww_ai_assistant.db` |
-
-### 🛍️ BWW Store Integration
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `BWW_STORE_SECRET_KEY` | BWW Store API secret | `BwwSecretKey2025` |
-| `BWW_STORE_BASE_URL` | BWW Store API base URL | `https://api-v1.bww-store.com/api/v1` |
-
-### ⚙️ Application Settings
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DEBUG` | Debug mode (True/False) | `True` |
-| `ENVIRONMENT` | Environment (development/production) | `development` |
-| `LOG_LEVEL` | Logging level (DEBUG/INFO/WARNING/ERROR) | `INFO` |
-| `TIMEZONE` | Application timezone | `Africa/Cairo` |
-| `HOST` | Server bind address | `0.0.0.0` |
-| `PORT` | Server port | `8000` |
-
-### 🔌 API Configuration (Fixed)
-
-| Variable | Description | Value |
-|----------|-------------|-------|
-| `MESSENGER_API_URL` | Facebook Graph API URL | `https://graph.facebook.com/v24.0` |
-| `WEBHOOK_URL` | Webhook base path | `/webhook` |
+**See `.env.example` for complete list of all available variables.**
 
 ---
 
@@ -313,45 +275,24 @@ All tests should pass (14/14):
 
 ---
 
-## 🚢 Deployment
+## 🌍 Environment Support
 
-### Local Development (ngrok)
+### Development
+- Set `DEBUG=True` in `.env`
+- Use local database or development database
+- Webhook URLs point to ngrok or local tunnel
 
-```dotenv
-# config/.env
-DEBUG=True
-ENVIRONMENT=development
-MESSENGER_WEBHOOK_URL=https://your-domain.ngrok-free.dev/webhook/messenger
-WHATSAPP_WEBHOOK_URL=https://your-domain.ngrok-free.dev/webhook/whatsapp
-```
+### Production
+- Set `DEBUG=False` and `ENVIRONMENT=production`
+- Use production database credentials
+- Webhook URLs point to production domain
 
-### Production (Railway)
-
-```dotenv
-# config/.env (Railway environment)
-DEBUG=False
-ENVIRONMENT=production
-LOG_LEVEL=INFO
-
-# Railway provides DATABASE_URL automatically for PostgreSQL
-DATABASE_URL=postgresql://user:pass@host:port/dbname
-
-# Set your production webhook URLs
-MESSENGER_WEBHOOK_URL=https://your-app.railway.app/webhook/messenger
-WHATSAPP_WEBHOOK_URL=https://your-app.railway.app/webhook/whatsapp
-```
-
-### Environment-Specific Settings
-
+### Dynamic Configuration
 ```python
 from config.settings import settings
 
-if settings.ENVIRONMENT == "production":
-    # Production-specific logic
-    settings.update_webhook_urls("https://your-app.railway.app")
-else:
-    # Development-specific logic
-    settings.update_webhook_urls("https://your-domain.ngrok-free.dev")
+# Update webhooks dynamically
+settings.update_webhook_urls("https://your-domain.com")
 ```
 
 ---
@@ -625,41 +566,31 @@ from config.settings import settings  # ✅ Standard everywhere
 
 ---
 
-## 🎓 Additional Resources
+## 🎓 Related Documentation
 
-### Project Documentation
-- **Main README**: `../README.md` - Project overview & setup
-- **Database Docs**: `../database/README.md` - Database structure
-- **Deployment Guide**: `../deployment/README.md` - Production deployment
-- **API Docs**: `../docs/` - Complete API documentation
+- **`.env.example`** - Template file with all configuration variables
+- **`__init__.py`** - Package documentation with architecture details
+- Python documentation for `dotenv`, `typing`, and configuration patterns
 
-### External Resources
-- [Facebook Messenger Platform](https://developers.facebook.com/docs/messenger-platform/)
-- [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp/)
-- [Google Gemini API](https://ai.google.dev/docs)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Railway Deployment](https://docs.railway.app/)
+### Configuration Testing
+
+```bash
+# Run all configuration tests
+pytest tests/test_config.py -v
+
+# Test specific configuration aspect
+pytest tests/test_config.py::TestServerConfig -v
+```
 
 ---
 
-## ✅ Status
+## ✅ Package Status
 
-- **Last Updated**: November 2025
-- **Configuration Status**: ✅ Production Ready
-- **Test Coverage**: ✅ 14/14 tests passing
+- **Version**: 2.0.0
+- **Tests**: ✅ 14/14 passing
+- **Type Safety**: ✅ Full typing support
 - **Documentation**: ✅ Complete
-- **Security**: ✅ Secrets protected
 
 ---
 
-## 📧 Support
-
-For configuration issues:
-1. Check this README for common solutions
-2. Verify `config/.env` exists and has correct values
-3. Run configuration validation tests
-4. Check application logs in `logs/` directory
-
----
-
-**Remember:** This directory is the **SINGLE SOURCE OF TRUTH** for all Migochat configuration! 🎯
+**Remember:** This package is the **SINGLE SOURCE OF TRUTH** for all configuration! 🎯
