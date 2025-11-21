@@ -1,199 +1,665 @@
-# Configuration Directory
+# ⚙️ Migochat Configuration
 
-## 📋 Overview
-
-This directory contains **all** centralized configuration for the BWW AI Assistant application. All settings, database configs, logging, and environment variables are managed here.
-
-## 🗂️ Structure
-
-```
-config/
-├── __init__.py              # Package initialization, exports settings
-├── settings.py              # Main settings API (property-based access)
-├── config_manager.py        # Configuration manager (loads from .env)
-├── database_config.py       # Database configuration (imports from database/)
-├── logging_config.py        # Centralized logging configuration
-└── .env                     # Environment variables (git-ignored)
-```
-
-## 🔧 Usage
-
-### Import Settings
-
-```python
-# Recommended - Direct import
-from config.settings import settings
-
-# Use settings
-print(settings.FB_APP_ID)
-print(settings.GEMINI_API_KEY)
-print(settings.DATABASE_URL)
-```
-
-### Import Database Config
-
-```python
-# Import models
-from config.database_config import User, Message, Conversation
-
-# Import utilities
-from config.database_config import get_session, check_database_health
-```
-
-### Import Config Manager
-
-```python
-# Advanced usage
-from config.config_manager import config_manager
-
-# Get entire section
-fb_config = config_manager.get_facebook_config()
-
-# Get specific value
-api_key = config_manager.get_config("ai", "gemini_api_key")
-```
-
-## ⚙️ Configuration Sections
-
-### 1. Facebook Configuration
-- `FB_APP_ID` - Facebook App ID
-- `FB_APP_SECRET` - Facebook App Secret
-- `FB_PAGE_ACCESS_TOKEN` - Page Access Token
-- `FB_PAGE_ID` - Facebook Page ID
-- `FB_SYSTEM_USER_TOKEN` - System User Token
-- `FB_VERIFY_TOKEN` - Messenger Webhook Verify Token
-- `FB_LEADCENTER_VERIFY_TOKEN` - Lead Center Verify Token
-
-### 2. WhatsApp Configuration
-- `WHATSAPP_ACCESS_TOKEN` - WhatsApp Business API Token
-- `WHATSAPP_PHONE_NUMBER_ID` - WhatsApp Phone Number ID
-- `WHATSAPP_VERIFY_TOKEN` - WhatsApp Webhook Verify Token
-
-### 3. Webhook Configuration
-- `MESSENGER_WEBHOOK_URL` - Messenger webhook URL
-- `WHATSAPP_WEBHOOK_URL` - WhatsApp webhook URL
-- `LEADCENTER_WEBHOOK_URL` - Lead Center webhook URL
-
-### 4. Database Configuration
-- `DATABASE_URL` - SQLite database URL
-
-### 5. Application Configuration
-- `DEBUG` - Debug mode (True/False)
-- `ENVIRONMENT` - Environment (development/production)
-- `LOG_LEVEL` - Logging level (INFO/DEBUG/ERROR)
-- `TIMEZONE` - Application timezone
-- `HOST` - Server host
-- `PORT` - Server port
-
-### 6. AI Configuration
-- `GEMINI_API_KEY` - Google Gemini API Key
-- `GEMINI_MODEL` - Gemini model name (default: gemini-2.5-flash)
-
-### 7. BWW Store Configuration
-- `BWW_STORE_SECRET_KEY` - BWW Store API Secret
-- `BWW_STORE_BASE_URL` - BWW Store API Base URL
-
-### 8. API Configuration
-- `MESSENGER_API_URL` - Facebook Graph API URL
-- `WEBHOOK_URL` - Webhook endpoint path
-
-## 📝 Environment Variables
-
-Create a `config/.env` file with:
-
-```env
-# Facebook
-FB_APP_ID=your_app_id
-FB_APP_SECRET=your_app_secret
-FB_PAGE_ACCESS_TOKEN=your_page_token
-FB_PAGE_ID=your_page_id
-FB_SYSTEM_USER_TOKEN=your_system_token
-FB_VERIFY_TOKEN=BWW_MESSENGER_VERIFY_TOKEN_2025
-FB_LEADCENTER_VERIFY_TOKEN=BWW_LEADCENTER_VERIFY_TOKEN_2025
-
-# WhatsApp
-WHATSAPP_ACCESS_TOKEN=your_whatsapp_token
-WHATSAPP_PHONE_NUMBER_ID=your_phone_id
-WHATSAPP_VERIFY_TOKEN=BWW_WHATSAPP_VERIFY_TOKEN_2025
-
-# AI
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
-
-# BWW Store
-BWW_STORE_SECRET_KEY=BwwSecretKey2025
-BWW_STORE_BASE_URL=https://api-v1.bww-store.com/api/v1
-
-# Application
-DEBUG=True
-ENVIRONMENT=development
-LOG_LEVEL=INFO
-TIMEZONE=Africa/Cairo
-HOST=0.0.0.0
-PORT=8000
-```
-
-## 🔄 Migration from Old Structure
-
-### Before (Duplicated Configuration)
-```
-Server/
-  ├── config.py              ❌ Moved to config/settings.py
-  └── config_manager.py      ❌ Moved to config/config_manager.py
-
-config/
-  └── database_config.py     ❌ Had duplicate models (now imports from database/)
-```
-
-### After (Centralized Configuration)
-```
-config/
-  ├── settings.py            ✅ Main settings API
-  ├── config_manager.py      ✅ Configuration loader
-  ├── database_config.py     ✅ Clean wrapper (imports from database/)
-  └── logging_config.py      ✅ Logging setup
-```
-
-### Import Changes
-```python
-# Old imports (removed)
-from Server.config import settings          ❌
-from Server.config_manager import config    ❌
-
-# New imports (use these)
-from config.settings import settings        ✅
-from config.config_manager import config    ✅
-```
-
-## ✅ Benefits
-
-1. **Single Source of Truth** - All config in one place
-2. **No Duplication** - Removed duplicate database models
-3. **Clear Separation** - Config vs. Server logic
-4. **Easy to Find** - Developers know where to look
-5. **Type Safety** - Property-based access with type hints
-6. **Validation** - Built-in config validation
-7. **Maintainability** - Easier to update and test
-
-## 🧪 Testing
-
-All configuration tests pass:
-```bash
-pytest tests/test_config.py -v
-# ✅ 14/14 tests passing
-```
-
-## 🚀 Production Ready
-
-- ✅ All duplicates removed
-- ✅ Clean imports updated
-- ✅ All tests passing
-- ✅ Type-safe configuration
-- ✅ Environment-based settings
-- ✅ Proper validation
-- ✅ Documentation complete
+**Centralized Configuration Management for Migochat Project**
 
 ---
 
-**Last Updated**: 2025-01-14
-**Status**: Production Ready ✅
+## 📋 Overview
+
+This directory contains **all** configuration for the Migochat application. All settings, environment variables, database configuration, and logging setup are managed here following the **Single Source of Truth** principle.
+
+---
+
+## 🗂️ Directory Structure
+
+```
+config/
+├── .env                     # Environment variables (gitignored) ⚠️
+├── .env.example             # Template for environment setup ✅
+├── __init__.py              # Package initialization & exports
+├── settings.py              # Main settings API (property-based)
+├── config_manager.py        # Configuration loader & validator
+├── database_config.py       # Database configuration wrapper
+└── logging_config.py        # Centralized logging setup
+```
+
+### File Purposes
+
+| File | Purpose | Usage |
+|------|---------|-------|
+| **`.env`** | Actual secrets & config | Never commit! |
+| **`.env.example`** | Template for team | Safe to commit |
+| **`settings.py`** | Settings access layer | Import in code |
+| **`config_manager.py`** | Loads from .env | Auto-loaded |
+| **`database_config.py`** | Database setup | Import models |
+| **`logging_config.py`** | Logging setup | Auto-configured |
+
+---
+
+## 🚀 Quick Start
+
+### First Time Setup
+
+```powershell
+# 1. Copy environment template
+Copy-Item config\.env.example config\.env
+
+# 2. Edit configuration with your values
+notepad config\.env
+
+# 3. Fill in required credentials:
+#    - Facebook: FB_APP_ID, FB_APP_SECRET, FB_PAGE_ACCESS_TOKEN
+#    - WhatsApp: WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID
+#    - AI: GEMINI_API_KEY
+```
+
+### Verify Configuration
+
+```powershell
+# Test that configuration loads correctly
+python -c "from config.settings import settings; print(f'✅ Config loaded: App ID={settings.FB_APP_ID}')"
+```
+
+---
+
+## 💻 Usage in Code
+
+### Import Settings (Recommended)
+
+```python
+from config.settings import settings
+
+# Access configuration properties
+app_id = settings.FB_APP_ID
+gemini_key = settings.GEMINI_API_KEY
+port = settings.PORT
+debug = settings.DEBUG
+```
+
+### Import Database Models
+
+```python
+from config.database_config import User, Message, Conversation
+from config.database_config import get_session, check_database_health
+
+# Use models in your code
+with get_session() as session:
+    users = session.query(User).all()
+```
+
+### Advanced Configuration Manager
+
+```python
+from config.config_manager import config_manager
+
+# Get entire configuration section
+fb_config = config_manager.get_facebook_config()
+whatsapp_config = config_manager.get_whatsapp_config()
+
+# Get specific value with default
+api_key = config_manager.get_config("ai", "gemini_api_key", default="fallback")
+```
+
+---
+
+## 📖 Configuration Reference
+
+### 🔵 Facebook Messenger
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `FB_APP_ID` | Facebook Application ID | ✅ |
+| `FB_APP_SECRET` | Facebook Application Secret | ✅ |
+| `FB_PAGE_ID` | Facebook Page ID | ✅ |
+| `FB_PAGE_ACCESS_TOKEN` | Page access token for API | ✅ |
+| `FB_SYSTEM_USER_TOKEN` | System user token (Lead Ads) | ✅ |
+| `FB_VERIFY_TOKEN` | Webhook verification token | ✅ |
+| `FB_LEADCENTER_VERIFY_TOKEN` | Lead Ads webhook token (same as Messenger) | ✅ |
+
+**Note:** Facebook Lead Ads use the same webhook as Messenger (object: "page"), so `FB_LEADCENTER_VERIFY_TOKEN` should match `FB_VERIFY_TOKEN`.
+
+### 💚 WhatsApp Business
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `WHATSAPP_ACCESS_TOKEN` | WhatsApp Business API token | ✅ |
+| `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp phone number ID | ✅ |
+| `WHATSAPP_VERIFY_TOKEN` | Webhook verification token | ✅ |
+
+### 🤖 AI Services (Google Gemini)
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GEMINI_API_KEY` | Google Gemini API key | ✅ | - |
+| `GEMINI_MODEL` | Model name | ❌ | `gemini-2.5-flash` |
+
+### 🌐 Webhook URLs
+
+| Variable | Description | Auto-Generated |
+|----------|-------------|----------------|
+| `MESSENGER_WEBHOOK_URL` | Messenger webhook endpoint | Via `update_webhook_urls()` |
+| `WHATSAPP_WEBHOOK_URL` | WhatsApp webhook endpoint | Via `update_webhook_urls()` |
+| `LEADCENTER_WEBHOOK_URL` | Lead Ads webhook endpoint | Via `update_webhook_urls()` |
+
+### 🗄️ Database
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | Database connection string | `sqlite:///database/bww_ai_assistant.db` |
+
+### 🛍️ BWW Store Integration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `BWW_STORE_SECRET_KEY` | BWW Store API secret | `BwwSecretKey2025` |
+| `BWW_STORE_BASE_URL` | BWW Store API base URL | `https://api-v1.bww-store.com/api/v1` |
+
+### ⚙️ Application Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DEBUG` | Debug mode (True/False) | `True` |
+| `ENVIRONMENT` | Environment (development/production) | `development` |
+| `LOG_LEVEL` | Logging level (DEBUG/INFO/WARNING/ERROR) | `INFO` |
+| `TIMEZONE` | Application timezone | `Africa/Cairo` |
+| `HOST` | Server bind address | `0.0.0.0` |
+| `PORT` | Server port | `8000` |
+
+### 🔌 API Configuration (Fixed)
+
+| Variable | Description | Value |
+|----------|-------------|-------|
+| `MESSENGER_API_URL` | Facebook Graph API URL | `https://graph.facebook.com/v24.0` |
+| `WEBHOOK_URL` | Webhook base path | `/webhook` |
+
+---
+
+## 🔒 Security Best Practices
+
+### ⚠️ NEVER Commit These Files:
+- `config/.env` - Contains actual secrets
+- Any file with real API keys or tokens
+- Backup files with sensitive data
+
+### ✅ Safe to Commit:
+- `config/.env.example` - Template only (no real secrets)
+- All `.py` configuration files
+- This README
+
+### 🛡️ Protection Setup
+
+The `.gitignore` is already configured:
+```gitignore
+# Environment files
+.env
+.env.*
+config/.env
+
+# Allow template
+!config/.env.example
+```
+
+---
+
+## 🎯 Architecture & Design
+
+### Single Source of Truth Principle
+
+All configuration flows through one clear path:
+
+```
+.env file → config_manager.py → settings.py → Your Code
+```
+
+**Benefits:**
+- ✅ No duplicate configuration
+- ✅ Centralized validation
+- ✅ Type-safe access via properties
+- ✅ Easy to test and mock
+- ✅ Clear dependency injection
+
+### Configuration Layers
+
+```
+┌─────────────────────────────────────┐
+│         Your Application            │
+│  (app/, routes/, services/)         │
+└───────────────┬─────────────────────┘
+                │ from config.settings import settings
+                ↓
+┌─────────────────────────────────────┐
+│       settings.py (API Layer)       │
+│    Property-based type-safe access  │
+└───────────────┬─────────────────────┘
+                │
+                ↓
+┌─────────────────────────────────────┐
+│   config_manager.py (Loader)        │
+│    Loads, validates, caches config  │
+└───────────────┬─────────────────────┘
+                │ load_dotenv()
+                ↓
+┌─────────────────────────────────────┐
+│       config/.env (Storage)         │
+│      Single source of truth         │
+└─────────────────────────────────────┘
+```
+
+### Type Safety
+
+The `settings.py` module provides full type safety:
+
+```python
+# Type-safe property access
+app_id: str = settings.FB_APP_ID        # Returns str
+port: int = settings.PORT               # Returns int
+debug: bool = settings.DEBUG            # Returns bool
+
+# No need for manual type conversion!
+```
+
+---
+
+## 🧪 Validation & Testing
+
+### Configuration Validation
+
+```python
+from config.settings import settings
+
+# Validate all required settings
+missing_fields = settings.validate_required_settings()
+
+if missing_fields:
+    print(f"❌ Missing configuration: {', '.join(missing_fields)}")
+else:
+    print("✅ All configuration valid!")
+```
+
+### Health Check
+
+```python
+from config.config_manager import config_manager
+
+# Check configuration health
+summary = config_manager.get_configuration_summary()
+print(summary)
+```
+
+### Testing
+
+Run configuration tests:
+```powershell
+pytest tests/test_config.py -v
+```
+
+All tests should pass (14/14):
+```
+✅ test_config_import
+✅ test_config_has_required_fields
+✅ test_config_manager_loads
+✅ test_database_url_format
+✅ test_debug_mode_is_boolean
+✅ test_api_keys_are_strings
+✅ test_whatsapp_config_complete
+✅ test_env_file_exists
+✅ test_config_validation
+✅ test_load_configuration
+✅ test_get_config
+✅ test_configuration_is_cached
+✅ test_messenger_api_url
+✅ test_whatsapp_api_version
+```
+
+---
+
+## 🚢 Deployment
+
+### Local Development (ngrok)
+
+```dotenv
+# config/.env
+DEBUG=True
+ENVIRONMENT=development
+MESSENGER_WEBHOOK_URL=https://your-domain.ngrok-free.dev/webhook/messenger
+WHATSAPP_WEBHOOK_URL=https://your-domain.ngrok-free.dev/webhook/whatsapp
+```
+
+### Production (Railway)
+
+```dotenv
+# config/.env (Railway environment)
+DEBUG=False
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+
+# Railway provides DATABASE_URL automatically for PostgreSQL
+DATABASE_URL=postgresql://user:pass@host:port/dbname
+
+# Set your production webhook URLs
+MESSENGER_WEBHOOK_URL=https://your-app.railway.app/webhook/messenger
+WHATSAPP_WEBHOOK_URL=https://your-app.railway.app/webhook/whatsapp
+```
+
+### Environment-Specific Settings
+
+```python
+from config.settings import settings
+
+if settings.ENVIRONMENT == "production":
+    # Production-specific logic
+    settings.update_webhook_urls("https://your-app.railway.app")
+else:
+    # Development-specific logic
+    settings.update_webhook_urls("https://your-domain.ngrok-free.dev")
+```
+
+---
+
+## 🔧 Common Issues & Solutions
+
+### Issue: "Token not found" or Empty Configuration
+
+**Cause:** `config/.env` file doesn't exist or is empty
+
+**Solution:**
+```powershell
+# Copy template
+Copy-Item config\.env.example config\.env
+
+# Edit with your actual values
+notepad config\.env
+```
+
+---
+
+### Issue: ImportError: cannot import name 'settings'
+
+**Cause:** Wrong import path
+
+**Fix:**
+```python
+# ❌ Wrong (old structure)
+from app.config import settings
+from Server.config import settings
+
+# ✅ Correct (current structure)
+from config.settings import settings
+```
+
+---
+
+### Issue: Configuration not loading
+
+**Cause:** ConfigManager couldn't find `config/.env`
+
+**Verify:**
+```powershell
+# Check file exists
+Test-Path config\.env   # Should return True
+
+# Test configuration loading
+python -c "from config.config_manager import config_manager; print(config_manager.load_configuration())"
+```
+
+---
+
+### Issue: Validation fails on startup
+
+**Cause:** Missing required environment variables
+
+**Debug:**
+```python
+from config.settings import settings
+
+# Check which fields are missing
+missing = settings.validate_required_settings()
+print(f"Missing fields: {missing}")
+```
+
+**Fix:** Add missing values to `config/.env`
+
+---
+
+## 📚 API Reference
+
+### `settings.py`
+
+Property-based settings access:
+
+```python
+from config.settings import settings
+
+# Facebook properties
+settings.FB_APP_ID: str
+settings.FB_APP_SECRET: str
+settings.FB_PAGE_ACCESS_TOKEN: str
+settings.FB_VERIFY_TOKEN: str
+
+# WhatsApp properties
+settings.WHATSAPP_ACCESS_TOKEN: str
+settings.WHATSAPP_PHONE_NUMBER_ID: str
+
+# AI properties
+settings.GEMINI_API_KEY: str
+settings.GEMINI_MODEL: str
+
+# Application properties
+settings.DEBUG: bool
+settings.PORT: int
+settings.ENVIRONMENT: str
+settings.LOG_LEVEL: str
+
+# Methods
+settings.validate_required_settings() -> List[str]
+settings.update_webhook_urls(base_url: str) -> None
+```
+
+### `config_manager.py`
+
+Configuration management:
+
+```python
+from config.config_manager import config_manager
+
+# Load configuration
+config_manager.load_configuration() -> bool
+
+# Validate configuration
+config_manager.validate_configuration() -> List[str]
+
+# Get configuration
+config_manager.get_config(section: str, key: str = None, default: Any = None) -> Any
+
+# Section getters
+config_manager.get_facebook_config() -> Dict[str, str]
+config_manager.get_whatsapp_config() -> Dict[str, str]
+config_manager.get_ai_config() -> Dict[str, str]
+config_manager.get_app_config() -> Dict[str, Any]
+
+# Update webhooks
+config_manager.update_webhook_urls(base_url: str) -> None
+
+# Status checks
+config_manager.is_loaded() -> bool
+config_manager.is_validated() -> bool
+config_manager.get_configuration_summary() -> Dict[str, Any]
+```
+
+### `database_config.py`
+
+Database configuration & models:
+
+```python
+from config.database_config import (
+    # Models
+    User, Message, Conversation, LeadActivity,
+    Post, AdCampaign, AppSettings,
+    
+    # Enums
+    MessageDirection, MessageStatus, MessageSource,
+    LeadStage, CustomerLabel, CustomerType,
+    PostType, Governorate,
+    
+    # Utilities
+    get_session, create_database, drop_database,
+    backup_database, restore_database,
+    check_database_health,
+    
+    # SQLAlchemy
+    engine, SessionLocal, Base
+)
+```
+
+---
+
+## 📝 Best Practices
+
+### ✅ DO:
+
+1. **Use `config.settings` for all configuration access**
+   ```python
+   from config.settings import settings
+   api_key = settings.GEMINI_API_KEY  # Type-safe!
+   ```
+
+2. **Keep `config/.env` with actual secrets (gitignored)**
+   ```bash
+   # This file is automatically ignored by git
+   config/.env
+   ```
+
+3. **Update `.env.example` when adding new variables**
+   ```dotenv
+   # Add new variable to .env.example (without real value)
+   NEW_API_KEY=your_key_here
+   ```
+
+4. **Validate configuration on application startup**
+   ```python
+   from config.settings import settings
+   
+   missing = settings.validate_required_settings()
+   if missing:
+       raise RuntimeError(f"Missing config: {missing}")
+   ```
+
+5. **Use environment-specific settings**
+   ```python
+   if settings.ENVIRONMENT == "production":
+       # Production logic
+   else:
+       # Development logic
+   ```
+
+### ❌ DON'T:
+
+1. **Don't use `os.getenv()` directly in application code**
+   ```python
+   # ❌ Bad
+   import os
+   api_key = os.getenv("GEMINI_API_KEY")
+   
+   # ✅ Good
+   from config.settings import settings
+   api_key = settings.GEMINI_API_KEY
+   ```
+
+2. **Don't hardcode credentials in code**
+   ```python
+   # ❌ Very bad!
+   API_KEY = "AIzaSyC..."
+   
+   # ✅ Good
+   api_key = settings.GEMINI_API_KEY
+   ```
+
+3. **Don't commit `config/.env` to version control**
+   ```bash
+   # Already protected by .gitignore
+   # Never force add: git add -f config/.env  ❌
+   ```
+
+4. **Don't create duplicate configuration files**
+   ```
+   ❌ .env
+   ❌ .env.local
+   ❌ .env.development
+   ❌ config.json
+   
+   ✅ config/.env (single source of truth)
+   ```
+
+---
+
+## 🔄 Migration History
+
+### Previous Structure (Removed)
+```
+Server/
+├── config.py              ❌ Moved to config/settings.py
+└── config_manager.py      ❌ Moved to config/config_manager.py
+
+app/
+└── config.py              ❌ Removed (duplicate)
+
+config/
+└── database_config.py     ❌ Had duplicate models (now wrapper)
+```
+
+### Current Structure (Clean)
+```
+config/
+├── .env                   ✅ Single source of truth
+├── settings.py            ✅ Main API
+├── config_manager.py      ✅ Loader
+├── database_config.py     ✅ Clean wrapper
+└── logging_config.py      ✅ Logging setup
+```
+
+### Import Updates
+All code now uses:
+```python
+from config.settings import settings  # ✅ Standard everywhere
+```
+
+---
+
+## 🎓 Additional Resources
+
+### Project Documentation
+- **Main README**: `../README.md` - Project overview & setup
+- **Database Docs**: `../database/README.md` - Database structure
+- **Deployment Guide**: `../deployment/README.md` - Production deployment
+- **API Docs**: `../docs/` - Complete API documentation
+
+### External Resources
+- [Facebook Messenger Platform](https://developers.facebook.com/docs/messenger-platform/)
+- [WhatsApp Business API](https://developers.facebook.com/docs/whatsapp/)
+- [Google Gemini API](https://ai.google.dev/docs)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Railway Deployment](https://docs.railway.app/)
+
+---
+
+## ✅ Status
+
+- **Last Updated**: November 2025
+- **Configuration Status**: ✅ Production Ready
+- **Test Coverage**: ✅ 14/14 tests passing
+- **Documentation**: ✅ Complete
+- **Security**: ✅ Secrets protected
+
+---
+
+## 📧 Support
+
+For configuration issues:
+1. Check this README for common solutions
+2. Verify `config/.env` exists and has correct values
+3. Run configuration validation tests
+4. Check application logs in `logs/` directory
+
+---
+
+**Remember:** This directory is the **SINGLE SOURCE OF TRUTH** for all Migochat configuration! 🎯
