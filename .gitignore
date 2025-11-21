@@ -1,7 +1,8 @@
-# Environment variables
+# Environment variables (NEVER commit these)
 .env
-.env.local
-.env.production
+.env.*
+config/.env
+!config/.env.example
 
 # Python
 __pycache__/
