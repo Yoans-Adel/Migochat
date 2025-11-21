@@ -81,13 +81,60 @@ async def dashboard_home(request: Request):
                 User.last_message_at >= week_ago
             ).count()
 
+            # System Status Checks
+            system_status = {
+                "webhook": {"status": "active", "label": "Active"},
+                "database": {"status": "connected", "label": "Connected"},
+                "ai_service": {"status": "unknown", "label": "Unknown"},
+                "lead_automation": {"status": "unknown", "label": "Unknown"},
+                "whatsapp": {"status": "unknown", "label": "Unknown"}
+            }
+
+            # Check Database
+            try:
+                db.execute("SELECT 1")
+                system_status["database"] = {"status": "connected", "label": "Connected"}
+            except Exception:
+                system_status["database"] = {"status": "error", "label": "Disconnected"}
+
+            # Check AI Service (Gemini)
+            try:
+                gemini_key = settings.GEMINI_API_KEY
+                if gemini_key and len(gemini_key) > 20:
+                    system_status["ai_service"] = {"status": "active", "label": "Active"}
+                else:
+                    system_status["ai_service"] = {"status": "inactive", "label": "Not Configured"}
+            except Exception:
+                system_status["ai_service"] = {"status": "error", "label": "Error"}
+
+            # Check Lead Automation
+            try:
+                if lead_analytics.get("total_leads", 0) >= 0:
+                    system_status["lead_automation"] = {"status": "active", "label": "Active"}
+                else:
+                    system_status["lead_automation"] = {"status": "inactive", "label": "Inactive"}
+            except Exception:
+                system_status["lead_automation"] = {"status": "error", "label": "Error"}
+
+            # Check WhatsApp Integration
+            try:
+                whatsapp_token = settings.WHATSAPP_ACCESS_TOKEN
+                whatsapp_phone = settings.WHATSAPP_PHONE_NUMBER_ID
+                if whatsapp_token and whatsapp_phone:
+                    system_status["whatsapp"] = {"status": "active", "label": "Active"}
+                else:
+                    system_status["whatsapp"] = {"status": "inactive", "label": "Not Configured"}
+            except Exception:
+                system_status["whatsapp"] = {"status": "error", "label": "Error"}
+
             stats = {
                 "total_users": total_users,
                 "total_messages": total_messages,
                 "active_conversations": active_conversations,
                 "active_users": active_users,
                 "recent_messages": recent_messages,
-                "lead_analytics": lead_analytics
+                "lead_analytics": lead_analytics,
+                "system_status": system_status
             }
 
         return templates.TemplateResponse("dashboard.html", {

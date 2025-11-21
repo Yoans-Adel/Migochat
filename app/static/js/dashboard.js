@@ -1,21 +1,43 @@
 // Dashboard JavaScript functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-refresh dashboard every 30 seconds
-    setInterval(function() {
-        if (window.location.pathname === '/dashboard' || window.location.pathname === '/') {
-            location.reload();
-        }
-    }, 30000);
-    
-    // Check WhatsApp status
-    checkWhatsAppStatus();
-    
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    
+    // Update last updated timestamp
+    updateLastUpdatedTime();
+    
+    // Auto-refresh system status every 60 seconds
+    setInterval(function() {
+        if (window.location.pathname === '/dashboard' || window.location.pathname === '/') {
+            updateLastUpdatedTime();
+            location.reload();
+        }
+    }, 60000);
 });
+
+// Update last updated timestamp
+function updateLastUpdatedTime() {
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    if (lastUpdatedElement) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        lastUpdatedElement.textContent = `Updated at ${timeString}`;
+        
+        // Add fade animation
+        lastUpdatedElement.style.opacity = '0';
+        setTimeout(() => {
+            lastUpdatedElement.style.transition = 'opacity 0.5s ease-in';
+            lastUpdatedElement.style.opacity = '1';
+        }, 100);
+    }
+}
 
 // Check WhatsApp service status
 async function checkWhatsAppStatus() {
