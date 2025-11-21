@@ -179,12 +179,16 @@ class ConfigurationWatcher:
     """Configuration file watcher for hot-reloading (requires watchdog package)"""
 
     def __init__(self, config_manager: 'ConfigurationManager'):
-        if not WATCHDOG_AVAILABLE or not FileSystemEventHandler:
+        if not WATCHDOG_AVAILABLE or FileSystemEventHandler is None:
             raise ImportError("watchdog package not installed. Install via: pip install -r tests/requirements-test.txt")
 
-        # Dynamically create the event handler class
-        class Handler(FileSystemEventHandler):  # type: ignore
+        # FileSystemEventHandler is guaranteed to be not None here after the check above
+        # Use assert to help type checker understand this
+        assert FileSystemEventHandler is not None, "FileSystemEventHandler should be available after check"
+        
+        class Handler(FileSystemEventHandler):
             def __init__(self, manager: 'ConfigurationManager'):
+                super().__init__()
                 self.config_manager = manager
                 self.logger = logging.getLogger(__name__)
 
@@ -195,8 +199,10 @@ class ConfigurationWatcher:
                     self.logger.info(f"Configuration file modified: {src_path}")
                     try:
                         self.config_manager.reload_config()
-                    except Exception as e:
+                    except (ValueError, KeyError, TypeError, OSError) as e:
                         self.logger.error(f"Failed to reload configuration: {e}")
+                    except Exception as e:
+                        self.logger.exception(f"Unexpected error reloading configuration: {e}")
 
         self.handler = Handler(config_manager)
 
@@ -365,14 +371,19 @@ class ConfigurationManager(ConfigurationServiceInterface):
 
         try:
             watcher = ConfigurationWatcher(self)
+            handler = watcher.get_handler()
             if Observer is not None:
                 self._observer = Observer()
-                self._observer.schedule(watcher.get_handler(), str(self._config_dir), recursive=True)
+                self._observer.schedule(handler, str(self._config_dir), recursive=True)
                 self._observer.start()
                 self._watch_enabled = True
                 self._logger.info("Configuration watching enabled")
-        except Exception as e:
+        except ImportError as e:
+            self._logger.warning(f"Watchdog not available: {e}")
+        except (ValueError, OSError) as e:
             self._logger.error(f"Failed to enable configuration watching: {e}")
+        except Exception as e:
+            self._logger.exception(f"Unexpected error enabling configuration watching: {e}")
 
     def disable_config_watching(self) -> None:
         """Disable configuration file watching"""

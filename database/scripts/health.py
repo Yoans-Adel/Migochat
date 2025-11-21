@@ -5,14 +5,9 @@ Check database health and statistics
 """
 import sys
 import logging
-from pathlib import Path
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from database.manager import get_database_manager  # noqa: E402
-from database.engine import get_database_path, database_exists  # noqa: E402
+from database.manager import get_database_manager
+from database.engine import get_database_path, database_exists
 
 logging.basicConfig(
     level=logging.INFO,

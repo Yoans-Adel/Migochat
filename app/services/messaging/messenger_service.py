@@ -136,7 +136,7 @@ class MessengerService(PlatformMessagingService):
         """Mark messages as read"""
         # Accept both 'recipient_id' and 'identifier' for compatibility
         recipient_id = kwargs.get('recipient_id', identifier)
-        
+
         url = f"{self.api_url}/me/messages"
 
         payload: Dict[str, Any] = {
@@ -175,4 +175,3 @@ class MessengerService(PlatformMessagingService):
             logger.warning(f"Messenger API connection test failed: {e}")
             # Don't raise exception, service can still work with limited functionality
             return False
-

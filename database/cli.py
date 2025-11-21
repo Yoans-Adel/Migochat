@@ -3,24 +3,19 @@
 BWW Assistant - Database Management CLI
 Professional database management utility
 """
-import sys
 import argparse
 import logging
 from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from database.scripts.rebuild import rebuild_database_cli  # noqa: E402
-from database.scripts.backup import backup_database_cli  # noqa: E402
-from database.scripts.health import health_check_cli  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+from database.scripts.rebuild import rebuild_database_cli
+from database.scripts.backup import backup_database_cli
+from database.scripts.health import health_check_cli
 
 
 def show_banner():

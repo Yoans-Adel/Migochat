@@ -13,17 +13,14 @@ import uvicorn
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-# Import centralized logging configuration
 from config.logging_config import setup_logging, get_logger
+from config.settings import settings
+from database import create_all_tables
+from Server.routes import dashboard, api, webhook, settings_api
 
-# Setup logging first
+# Setup logging
 setup_logging()
 logger = get_logger(__name__)
-
-# Import from app (services are still in app/ folder)
-from config.settings import settings  # noqa: E402
-from database import create_all_tables  # noqa: E402
-from Server.routes import dashboard, api, webhook, settings_api  # noqa: E402
 
 
 @asynccontextmanager

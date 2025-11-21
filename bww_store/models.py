@@ -54,7 +54,8 @@ class APIResponse:
     metadata for performance monitoring, caching status, and debugging.
 
     Attributes:
-        data: The actual response payload (dict, list, or other types)
+        data: The actual response payload - typically Dict[str, Any] from API,
+              but can be None for errors. Always check `success` before accessing `data`.
         success: Boolean indicating if the operation succeeded
         error: Error message if operation failed (None for success)
         status_code: HTTP status code (200 for success, error codes for failures)
@@ -65,10 +66,12 @@ class APIResponse:
     Example:
         >>> # Successful response
         >>> resp = APIResponse(data={"products": []}, success=True, status_code=200)
+        >>> if resp.success and resp.data:
+        ...     products = resp.data.get("products", [])
         >>> # Error response
         >>> err = APIResponse(success=False, error="Network timeout", status_code=504)
     """
-    data: Any = None
+    data: Optional[Dict[str, Any]] = None
     success: bool = True
     error: Optional[str] = None
     status_code: int = 200

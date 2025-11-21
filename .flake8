@@ -1,0 +1,58 @@
+# Flake8 Configuration
+# https://flake8.pycqa.org/en/latest/user/configuration.html
+
+[flake8]
+# Maximum line length - relaxed to 100 (reasonable for modern displays)
+max-line-length = 100
+
+# Exclude directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    env,
+    .pytest_cache,
+    htmlcov,
+    build,
+    dist,
+    *.egg-info,
+    temp,
+    .tox
+
+# Select error codes to check
+select = E,W,F,C
+
+# Ignore specific errors
+ignore =
+    # E203: whitespace before ':' (conflicts with Black)
+    E203,
+    # W503: line break before binary operator (outdated)
+    W503,
+
+# Per-file ignores
+per-file-ignores =
+    # Allow import order issues in files that modify sys.path
+    **/conftest.py:E402
+    **/webhook.py:E402
+    **/dashboard.py:E402
+    Server/main.py:E402
+    scripts/*.py:E402
+    database/scripts/*.py:E402
+    run.py:E402
+    # Allow complexity and long lines in product operations (complex business logic)
+    bww_store/product_ops.py:C901,E501
+    # Allow long lines in service helpers (DI container type hints)
+    Server/routes/service_helpers.py:E501
+
+# Complexity
+max-complexity = 15
+
+# Show source code for errors
+show-source = True
+
+# Show statistics
+statistics = True
+
+# Count errors
+count = True

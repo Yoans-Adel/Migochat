@@ -166,26 +166,29 @@ def retry_on_error(
     exceptions: Tuple[Type[Exception], ...] = (Exception,)
 ) -> Callable[[F], F]:
     """Retry decorator with exponential backoff"""
-    if config is None:
-        config = RetryConfig()
+    # Ensure config is never None inside decorator
+    retry_config = config if config is not None else RetryConfig()
 
     def decorator(func: F) -> F:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception: Optional[Exception] = None
 
-            for attempt in range(config.max_retries + 1):  # type: ignore[union-attr]
+            for attempt in range(retry_config.max_retries + 1):
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
                     last_exception = e
 
-                    if attempt == config.max_retries:
-                        logger.error(f"Function {func.__name__} failed after {config.max_retries} retries: {e}")
+                    if attempt == retry_config.max_retries:
+                        logger.error(f"Function {func.__name__} failed after {retry_config.max_retries} retries: {e}")
                         raise e
 
-                    delay = min(config.delay * (config.backoff_factor ** attempt), config.max_delay)
-                    logger.warning(f"Function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")  # type: ignore[union-attr]
+                    delay = min(retry_config.delay * (retry_config.backoff_factor ** attempt), retry_config.max_delay)
+                    logger.warning(
+                        f"Function {func.__name__} failed (attempt {attempt + 1}/{retry_config.max_retries + 1}): {e}. "
+                        f"Retrying in {delay}s"
+                    )
                     time.sleep(delay)
 
             if last_exception:
@@ -201,26 +204,29 @@ def async_retry_on_error(
     exceptions: Tuple[Type[Exception], ...] = (Exception,)
 ) -> Callable[[F], F]:
     """Async retry decorator with exponential backoff"""
-    if config is None:
-        config = RetryConfig()
+    # Ensure config is never None inside decorator
+    retry_config = config if config is not None else RetryConfig()
 
     def decorator(func: F) -> F:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             last_exception: Optional[Exception] = None
 
-            for attempt in range(config.max_retries + 1):
+            for attempt in range(retry_config.max_retries + 1):
                 try:
                     return await func(*args, **kwargs)
                 except exceptions as e:
                     last_exception = e
 
-                    if attempt == config.max_retries:
-                        logger.error(f"Async function {func.__name__} failed after {config.max_retries} retries: {e}")
+                    if attempt == retry_config.max_retries:
+                        logger.error(f"Async function {func.__name__} failed after {retry_config.max_retries} retries: {e}")
                         raise e
 
-                    delay = min(config.delay * (config.backoff_factor ** attempt), config.max_delay)  # type: ignore[union-attr]
-                    logger.warning(f"Async function {func.__name__} failed (attempt {attempt + 1}/{config.max_retries + 1}): {e}. Retrying in {delay}s")  # type: ignore[union-attr]
+                    delay = min(retry_config.delay * (retry_config.backoff_factor ** attempt), retry_config.max_delay)
+                    logger.warning(
+                        f"Async function {func.__name__} failed (attempt {attempt + 1}/{retry_config.max_retries + 1}): {e}. "
+                        f"Retrying in {delay}s"
+                    )
                     await asyncio.sleep(delay)
 
             if last_exception:

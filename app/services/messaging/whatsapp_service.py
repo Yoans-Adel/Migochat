@@ -26,7 +26,7 @@ class WhatsAppService(PlatformMessagingService):
         # Accept both 'to' and 'recipient_id' for compatibility
         to = kwargs.get('to', recipient_id)
         message_type = kwargs.get('message_type', 'text')
-        
+
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
         # Format phone number (remove + and ensure it's numeric)
@@ -164,7 +164,7 @@ class WhatsAppService(PlatformMessagingService):
         """Mark a message as read"""
         # Accept both 'message_id' and 'identifier' for compatibility
         message_id = kwargs.get('message_id', identifier)
-        
+
         url = f"{self.api_url}/{self.phone_number_id}/messages"
 
         payload: Dict[str, Any] = {
@@ -222,4 +222,3 @@ class WhatsAppService(PlatformMessagingService):
         # Use self.verify_token if expected_token not provided
         token_to_check = expected_token or self.verify_token
         return super().verify_webhook(verify_token, challenge, token_to_check)
-

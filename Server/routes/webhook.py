@@ -3,13 +3,13 @@ from fastapi.responses import JSONResponse, Response
 import logging
 
 from config.settings import settings
+from app.services.messaging.message_handler import MessageHandler
+from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Initialize services directly to avoid circular imports
-from app.services.messaging.message_handler import MessageHandler  # noqa: E402
-from app.services.business.facebook_lead_center_service import FacebookLeadCenterService  # noqa: E402
 
 message_handler = MessageHandler()
 facebook_lead_center = FacebookLeadCenterService()

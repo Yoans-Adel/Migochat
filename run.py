@@ -5,14 +5,8 @@ Main entry point for running the application
 """
 
 import uvicorn
-import sys
-from pathlib import Path
 
-# Add the project root to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root))
-
-from config.settings import settings  # noqa: E402
+from config.settings import settings
 
 if __name__ == "__main__":
     print("🚀 Starting Bww-Assistant-chatbot Facebook Messenger Platform...")

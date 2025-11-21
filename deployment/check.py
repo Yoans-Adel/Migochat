@@ -19,8 +19,8 @@ def check_files():
         ".env": "Environment variables"
     }
 
-    missing = []
-    for file, desc in required.items():
+    missing: list[str] = []
+    for file in required:
         path = Path(file)
         if path.exists():
             print(f"  ✅ {file}")
@@ -36,16 +36,14 @@ def check_imports():
     print("\n🔍 Checking imports...\n")
 
     try:
-        sys.path.insert(0, str(Path(__file__).parent.parent))
         from Server.main import app
         from config.settings import settings
-        # Verify imports work by checking they're not None
-        if app is not None and settings is not None:
+        # Verify imports work by checking they are not None
+        if app and settings:
             print("  ✅ All imports working")
             return True
-        else:
-            print("  ❌ Imports returned None")
-            return False
+        print("  ❌ Imports returned None")
+        return False
     except ImportError as e:
         print(f"  ❌ Import error: {e}")
         return False

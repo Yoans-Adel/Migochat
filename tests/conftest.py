@@ -18,8 +18,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Import after adding to path - required for module discovery
-from database import Base  # noqa: E402
-from Server.main import app  # noqa: E402
+from database import Base
+from Server.main import app
 
 
 # ==================== Fixtures ====================

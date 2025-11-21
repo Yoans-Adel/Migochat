@@ -240,7 +240,7 @@ class FacebookLeadCenterService:
                 current_stage = LeadStage.INTAKE
             else:
                 current_stage = LeadStage(current_stage_value)
-                
+
             current_score = user.lead_score
             suggested_stage = self.determine_next_stage(user)
 

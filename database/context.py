@@ -131,9 +131,9 @@ class DatabaseSessionManager:
                 session.close()
 
     def execute_with_retry(
-        self, 
-        operation: Callable[..., Any], 
-        *args: Any, 
+        self,
+        operation: Callable[..., Any],
+        *args: Any,
         **kwargs: Any
     ) -> Any:
         """

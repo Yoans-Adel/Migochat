@@ -228,13 +228,13 @@ class ConfigurationManager:
             if isinstance(section_config, dict):
                 keys_list: List[str] = []
                 has_values_dict: Dict[str, bool] = {}
-                
+
                 # Cast to proper types for type checking
                 config_dict = cast(Dict[str, Any], section_config)
                 for key, value in config_dict.items():
                     keys_list.append(key)
                     has_values_dict[key] = bool(value)
-                
+
                 summary["sections"][section] = {
                     "keys": keys_list,
                     "has_values": has_values_dict

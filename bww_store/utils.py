@@ -37,7 +37,7 @@ class CompatibilityWrapper:
         """
         self.client = client
 
-    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
+    def make_request(self, method: str, endpoint: str, **kwargs: Any) -> Any:
         """Make HTTP request with synchronous interface for compatibility.
 
         Args:
@@ -46,7 +46,7 @@ class CompatibilityWrapper:
             **kwargs: Additional arguments
 
         Returns:
-            Response dictionary
+            Response data (dict from APIResponse or APIResponse object)
         """
         try:
             loop = asyncio.get_event_loop()
@@ -56,12 +56,16 @@ class CompatibilityWrapper:
 
         async def _async_request() -> Any:
             data = kwargs.get("data")
-            cache_strategy: CacheStrategy = kwargs.get("cache_strategy", CacheStrategy.MEDIUM_TERM)
-            result: APIResponse = await self.client.client._request(method, endpoint, data, cache_strategy)  # type: ignore[attr-defined]
+            cache_strategy: CacheStrategy = kwargs.get(
+                "cache_strategy", CacheStrategy.MEDIUM_TERM
+            )
+            result: APIResponse = await self.client.client.request(
+                method, endpoint, data, cache_strategy
+            )
             return result.__dict__ if hasattr(result, "__dict__") else result
 
         result: Any = loop.run_until_complete(_async_request())
-        return result  # type: ignore[return-value]
+        return result
 
 
 def create_error_response(error: str, status_code: int = 500) -> APIResponse:

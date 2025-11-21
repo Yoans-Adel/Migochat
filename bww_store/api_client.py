@@ -86,11 +86,11 @@ class BWWStoreAPIService:
         """Get products within a price range."""
         return await self.products.get_products_by_price_range(min_price, max_price, page=page, page_size=page_size)
 
-    async def filter_products(self, *, search: Optional[str] = None, product_code: Optional[str] = None, 
+    async def filter_products(self, *, search: Optional[str] = None, product_code: Optional[str] = None,
                               colors: Optional[List[str]] = None, sizes: Optional[List[str]] = None,
-                              material: Optional[str] = None, sku_code: Optional[str] = None, 
+                              material: Optional[str] = None, sku_code: Optional[str] = None,
                               category: Optional[str] = None, min_price: Optional[float] = None,
-                              max_price: Optional[float] = None, page: int = 1, page_size: int = 10, 
+                              max_price: Optional[float] = None, page: int = 1, page_size: int = 10,
                               cache_strategy: Optional[CacheStrategy] = None):
         """Filter products with various criteria."""
         strategy = cache_strategy or CacheStrategy.MEDIUM_TERM

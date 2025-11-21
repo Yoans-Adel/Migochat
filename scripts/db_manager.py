@@ -15,19 +15,28 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger  # noqa: E402
+from config.logging_config import setup_logging, get_logger
 
-# Setup logging
-setup_logging()
-logger = get_logger(__name__)
+# Lazy logging initialization
+_logger_initialized = False
+logger = None
+
+def _init_logger():
+    global logger, _logger_initialized
+    if not _logger_initialized:
+        setup_logging()
+        logger = get_logger(__name__)
+        _logger_initialized = True
+    return logger
 
 
 def create_database():
     """Create a fresh database"""
+    log = _init_logger()
     try:
         from config.database_config import create_database, DATABASE_DIR
 
-        logger.info("🗄️ Creating fresh database...")
+        log.info("🗄️ Creating fresh database...")
 
         # Create database directory if it doesn't exist
         DATABASE_DIR.mkdir(exist_ok=True)
@@ -35,86 +44,91 @@ def create_database():
         # Create database tables
         create_database()
 
-        logger.info("✅ Fresh database created successfully")
-        logger.info(f"📁 Database location: {DATABASE_DIR.absolute()}")
+        log.info("✅ Fresh database created successfully")
+        log.info(f"📁 Database location: {DATABASE_DIR.absolute()}")
 
     except Exception as e:
-        logger.error(f"❌ Error creating database: {e}")
+        log.error(f"❌ Error creating database: {e}")
         raise
 
 
 def backup_database():
     """Create a backup of the current database"""
+    log = _init_logger()
     try:
         from config.database_config import backup_database
 
-        logger.info("💾 Creating database backup...")
+        log.info("💾 Creating database backup...")
         backup_file = backup_database()
-        logger.info(f"✅ Backup created: {backup_file}")
+        log.info(f"✅ Backup created: {backup_file}")
 
     except Exception as e:
-        logger.error(f"❌ Error creating backup: {e}")
+        log.error(f"❌ Error creating backup: {e}")
         raise
 
 
 def restore_database(backup_file):
     """Restore database from backup"""
+    log = _init_logger()
     try:
         from config.database_config import restore_database
 
         if not Path(backup_file).exists():
-            logger.error(f"❌ Backup file not found: {backup_file}")
+            log.error(f"❌ Backup file not found: {backup_file}")
             return
 
-        logger.info(f"🔄 Restoring database from: {backup_file}")
+        log.info(f"🔄 Restoring database from: {backup_file}")
         restore_database(backup_file)
-        logger.info("✅ Database restored successfully")
+        log.info("✅ Database restored successfully")
 
     except Exception as e:
-        logger.error(f"❌ Error restoring database: {e}")
+        log.error(f"❌ Error restoring database: {e}")
         raise
 
 
 def drop_database():
     """Drop all database tables"""
+    log = _init_logger()
     try:
         from config.database_config import drop_database
 
-        logger.warning("⚠️ Dropping all database tables...")
+        log.warning("⚠️ Dropping all database tables...")
         drop_database()
-        logger.info("✅ Database tables dropped successfully")
+        log.info("✅ Database tables dropped successfully")
 
     except Exception as e:
-        logger.error(f"❌ Error dropping database: {e}")
+        log.error(f"❌ Error dropping database: {e}")
         raise
 
 
 def check_database_health():
     """Check database health"""
+    log = _init_logger()
     try:
         from config.database_config import check_database_health
 
-        logger.info("🔍 Checking database health...")
+        log.info("🔍 Checking database health...")
         health = check_database_health()
 
         if health["status"] == "healthy":
-            logger.info("✅ Database is healthy")
-            logger.info(f"📊 Tables: {len(health['tables'])}")
-            logger.info(f"🔗 Connection: {health['connection']}")
+            log.info("✅ Database is healthy")
+            log.info(f"📊 Tables: {len(health['tables'])}")
+            log.info(f"🔗 Connection: {health['connection']}")
         else:
-            logger.error(f"❌ Database is unhealthy: {health['error']}")
+            log.error(f"❌ Database is unhealthy: {health['error']}")
 
         return health
 
     except Exception as e:
-        logger.error(f"❌ Error checking database health: {e}")
+        log.error(f"❌ Error checking database health: {e}")
         return {"status": "unhealthy", "error": str(e)}
 
 
 def clean_database():
     """Clean database by dropping and recreating"""
+    log = _init_logger()
     try:
-        logger.info("🧹 Cleaning database...")
+        log.info("🧹 Cleaning database...")
 
         # Create backup first
         backup_database()
@@ -123,56 +137,58 @@ def clean_database():
         drop_database()
         create_database()
 
-        logger.info("✅ Database cleaned successfully")
+        log.info("✅ Database cleaned successfully")
 
     except Exception as e:
-        logger.error(f"❌ Error cleaning database: {e}")
+        log.error(f"❌ Error cleaning database: {e}")
         raise
 
 
 def show_database_status():
     """Show database status and information"""
+    log = _init_logger()
     try:
         from config.database_config import DATABASE_DIR, DATABASE_URL
 
-        logger.info("📊 Database Status:")
-        logger.info("=" * 50)
-        logger.info(f"📁 Database directory: {DATABASE_DIR.absolute()}")
-        logger.info(f"🔗 Database URL: {DATABASE_URL}")
+        log.info("📊 Database Status:")
+        log.info("=" * 50)
+        log.info(f"📁 Database directory: {DATABASE_DIR.absolute()}")
+        log.info(f"🔗 Database URL: {DATABASE_URL}")
 
         # Check if database file exists
         db_file = DATABASE_DIR / "bww_ai_assistant.db"
         if db_file.exists():
             size_mb = db_file.stat().st_size / (1024 * 1024)
             modified = datetime.fromtimestamp(db_file.stat().st_mtime)
-            logger.info(f"📄 Database file: {db_file.name}")
-            logger.info(f"📏 Size: {size_mb:.2f} MB")
-            logger.info(f"📅 Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}")
+            log.info(f"📄 Database file: {db_file.name}")
+            log.info(f"📏 Size: {size_mb:.2f} MB")
+            log.info(f"📅 Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}")
         else:
-            logger.info("📭 Database file: Not found")
+            log.info("📛 Database file: Not found")
 
         # Check health
         health = check_database_health()
-        logger.info(f"🏥 Health status: {health['status']}")
+        log.info(f"🏥 Health status: {health['status']}")
 
         # List backups
         backup_dir = DATABASE_DIR / "backups"
         if backup_dir.exists():
             backups = list(backup_dir.glob("*.db"))
-            logger.info(f"💾 Backups: {len(backups)} files")
+            log.info(f"💾 Backups: {len(backups)} files")
             for backup in sorted(backups)[-3:]:  # Show last 3 backups
                 size_mb = backup.stat().st_size / (1024 * 1024)
                 modified = datetime.fromtimestamp(backup.stat().st_mtime)
-                logger.info(f"   • {backup.name} ({size_mb:.2f} MB, {modified.strftime('%Y-%m-%d')})")
+                log.info(f"   • {backup.name} ({size_mb:.2f} MB, {modified.strftime('%Y-%m-%d')}))")
 
     except Exception as e:
-        logger.error(f"❌ Error showing database status: {e}")
+        log.error(f"❌ Error showing database status: {e}")
 
 
 def main():
     """Main function"""
-    logger.info("🎯 Bww-AI-Assistant Database Management Utility")
-    logger.info("=" * 60)
+    log = _init_logger()
+    log.info("🎯 Bww-AI-Assistant Database Management Utility")
+    log.info("=" * 60)
 
     if len(sys.argv) > 1:
         command = sys.argv[1].lower()
@@ -185,8 +201,8 @@ def main():
             if len(sys.argv) > 2:
                 restore_database(sys.argv[2])
             else:
-                logger.error("❌ Please provide backup file path")
-                logger.info("Usage: python scripts/db_manager.py restore <backup_file>")
+                log.error("❌ Please provide backup file path")
+                log.info("Usage: python scripts/db_manager.py restore <backup_file>")
         elif command == "drop":
             drop_database()
         elif command == "clean":
@@ -196,19 +212,19 @@ def main():
         elif command == "status":
             show_database_status()
         else:
-            logger.error(f"❌ Unknown command: {command}")
-            logger.info("Available commands: create, backup, restore, drop, clean, health, status")
+            log.error(f"❌ Unknown command: {command}")
+            log.info("Available commands: create, backup, restore, drop, clean, health, status")
     else:
         # Default: show status
         show_database_status()
-        logger.info("")
-        logger.info("💡 Usage:")
-        logger.info("  python scripts/db_manager.py status     # Show database status")
-        logger.info("  python scripts/db_manager.py create     # Create fresh database")
-        logger.info("  python scripts/db_manager.py backup     # Create backup")
-        logger.info("  python scripts/db_manager.py restore <file>  # Restore from backup")
-        logger.info("  python scripts/db_manager.py clean      # Clean database")
-        logger.info("  python scripts/db_manager.py health     # Check database health")
+        log.info("")
+        log.info("💡 Usage:")
+        log.info("  python scripts/db_manager.py status     # Show database status")
+        log.info("  python scripts/db_manager.py create     # Create fresh database")
+        log.info("  python scripts/db_manager.py backup     # Create backup")
+        log.info("  python scripts/db_manager.py restore <file>  # Restore from backup")
+        log.info("  python scripts/db_manager.py clean      # Clean database")
+        log.info("  python scripts/db_manager.py health     # Check database health")
 
 
 if __name__ == "__main__":

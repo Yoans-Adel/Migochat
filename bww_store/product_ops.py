@@ -9,8 +9,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import cast
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from .card_generator import generate_product_card
 from .client import BWWStoreAPIClient
@@ -46,13 +45,13 @@ class BWWStoreProductOperations:
             APIResponse with product details or error
         """
         # Try the newer product-details endpoint first
-        result = await self.client._request("GET", f"/product-details/{product_id}", cache_strategy=cache_strategy)  # type: ignore[attr-defined]
+        result = await self.client.request("GET", f"/product-details/{product_id}", cache_strategy=cache_strategy)
         if result.success:
             return result
 
         # Fallback to the older product endpoint
         logger.debug(f"Product-details endpoint failed for {product_id}, trying fallback endpoint")
-        return await self.client._request("GET", f"/product/{product_id}", cache_strategy=cache_strategy)  # type: ignore[attr-defined]
+        return await self.client.request("GET", f"/product/{product_id}", cache_strategy=cache_strategy)
 
     async def search_products_by_text(self, search_text: str, *, page: int = 1, page_size: int = 10) -> APIResponse:
         """Search products by text query.
@@ -111,6 +110,9 @@ class BWWStoreProductOperations:
         if not result.success:
             return result
 
+        if not result.data:
+            return result
+            
         all_products = result.data.get("data", {}).get("products", [])
 
         # Filter products by price range locally
@@ -166,11 +168,11 @@ class BWWStoreProductOperations:
         all_products: List[Dict[str, Any]] = []
         res = await self.client.filter_products(page_size=100)
         if res.success and res.data:
-            # Type narrowing: res.data should be dict with nested structure
-            data_obj = res.data if isinstance(res.data, dict) else {}  # type: ignore[misc]
-            data_dict = cast(Dict[str, Any], data_obj.get("data", {}))  # type: ignore[misc]
-            products_list = cast(List[Dict[str, Any]], data_dict.get("products", []))
-            all_products = products_list
+            data_dict_raw = res.data.get("data", {})
+            if isinstance(data_dict_raw, dict):
+                products_list_raw: Any = data_dict_raw.get("products", [])
+                if isinstance(products_list_raw, list):
+                    all_products = cast(List[Dict[str, Any]], products_list_raw)
 
         found: List[Dict[str, Any]] = []
         for pid in product_ids:
@@ -181,8 +183,7 @@ class BWWStoreProductOperations:
             else:
                 detail = await self.get_product_details(pid)
                 if detail.success and detail.data:
-                    data_obj = detail.data if isinstance(detail.data, dict) else {}  # type: ignore[misc]
-                    found.append(cast(Dict[str, Any], data_obj))
+                    found.append(detail.data)
 
         if not found:
             return "❌ لم يتم العثور على المنتجات المطلوبة" if language == "ar" else "❌ Products not found"
@@ -218,6 +219,14 @@ class BWWStoreProductOperations:
                     "files": []
                 }
 
+            if not result.data:
+                return {
+                    "success": False,
+                    "error": "No data returned from API",
+                    "downloaded": 0,
+                    "files": []
+                }
+
             products = result.data.get("data", {}).get("products", [])
             if not products:
                 return {
@@ -232,7 +241,7 @@ class BWWStoreProductOperations:
 
             saved_files: List[str] = []
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
+
             # Initialize for final stats
             categories: Dict[str, List[Dict[str, Any]]] = {}
             prices: List[float] = []
@@ -374,20 +383,20 @@ class BWWStoreProductOperations:
                 product_id = int(input_text)
                 result = await self.get_product_details(product_id)
                 if result.success and result.data:
-                    data_obj = result.data if isinstance(result.data, dict) else {}  # type: ignore[misc]
-                    return cast(Dict[str, Any], data_obj)
+                    return result.data
             except ValueError:
                 pass
 
             # Try search
             result = await self.search_products_by_text(input_text, page_size=5)
             if result.success and result.data:
-                data_obj = result.data if isinstance(result.data, dict) else {}  # type: ignore[misc]
-                data_dict = cast(Dict[str, Any], data_obj.get("data", {}))  # type: ignore[misc]
-                products_list = cast(List[Dict[str, Any]], data_dict.get("products", []))
-                if products_list:
-                    # Return the best match (first result)
-                    return products_list[0]
+                data_dict_raw = result.data.get("data")
+                if isinstance(data_dict_raw, dict):
+                    products_list_raw: Any = data_dict_raw.get("products")
+                    if isinstance(products_list_raw, list) and products_list_raw:
+                        products = cast(List[Dict[str, Any]], products_list_raw)
+                        # Return the best match (first result)
+                        return products[0]
 
             return None
 

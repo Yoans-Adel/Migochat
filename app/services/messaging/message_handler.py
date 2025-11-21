@@ -49,7 +49,7 @@ class MessageHandler(MessageService):
         self.ai_service = AIService()
         self.messenger_service = MessengerService()
         self.whatsapp_service = WhatsAppService()
-        
+
         # Initialize BWW Store if available
         self.bww_store = None
         if bww_store_available and BWWStoreAPIService:
@@ -58,7 +58,7 @@ class MessageHandler(MessageService):
                 logger.info("BWW Store service initialized in Message Handler")
             except Exception as e:
                 logger.warning(f"Failed to initialize BWW Store: {e}")
-        
+
         # Initialize Product Recommender if available
         self.product_recommender = None
         if recommender_available:
@@ -68,17 +68,17 @@ class MessageHandler(MessageService):
                 logger.info("Product Recommender initialized in Message Handler")
             except Exception as e:
                 logger.warning(f"Failed to initialize Product Recommender: {e}")
-        
+
         self._initialized = False
 
     async def process_message_async(self, message_data: Dict[str, Any], platform: str) -> Dict[str, Any]:
         """
         Public async method to process incoming message (for webhooks)
-        
+
         Args:
             message_data: Message data containing user_id, text, etc.
             platform: Platform name (facebook, whatsapp, etc.)
-        
+
         Returns:
             Dict with processing result
         """
@@ -121,14 +121,14 @@ class MessageHandler(MessageService):
             if self.product_recommender and any(keyword in message_text.lower() for keyword in ["توصيات", "اقتراحات", "recommendations", "suggest"]):
                 try:
                     recommendations = await self.product_recommender.get_recommendations(str(user_id), message_text)
-                    
+
                     if recommendations.get("has_recommendations"):
                         response_parts = ["💡 توصيات مخصصة لك:\n"]
                         for rec in recommendations["recommendations"][:3]:
                             response_parts.append(f"• {rec['suggestion']}")
-                        
+
                         ai_response = "\n".join(response_parts)
-                        
+
                         # Optionally search for recommended products
                         if recommendations["recommendations"]:
                             first_rec = recommendations["recommendations"][0]
@@ -143,7 +143,7 @@ class MessageHandler(MessageService):
                                     await self._send_product_cards(str(user_id), product_results, platform)
                     else:
                         ai_response = recommendations.get("message", "ابحث عن منتجات أولاً لنقدم لك توصيات مخصصة! 🛍️")
-                    
+
                     response_sent = await self._send_message_impl(str(user_id), ai_response, platform)
                     return {
                         "success": True,
@@ -158,10 +158,10 @@ class MessageHandler(MessageService):
 
             # Check if message is product-related query
             product_query_detected = await self._detect_product_query(message_text)
-            
+
             ai_response = None
             product_results = None
-            
+
             if product_query_detected and self.bww_store:
                 # Handle product query with BWW Store
                 try:
@@ -171,7 +171,7 @@ class MessageHandler(MessageService):
                         limit=3,
                         language="ar"
                     )
-                    
+
                     if product_results:
                         # Generate smart response with recommendations
                         if self.product_recommender:
@@ -184,7 +184,7 @@ class MessageHandler(MessageService):
                                         "category": message_text,
                                         "search_query": message_text
                                     })
-                                
+
                                 # Get smart response with recommendations
                                 ai_response = await self.product_recommender.generate_smart_response(
                                     user_id=str(user_id),
@@ -196,7 +196,7 @@ class MessageHandler(MessageService):
                                 ai_response = f"تم العثور على {len(product_results)} منتج"
                         else:
                             ai_response = f"تم العثور على {len(product_results)} منتج"
-                        
+
                         # Send product cards via Messenger
                         if platform == "facebook" and product_results:
                             await self._send_product_cards(str(user_id), product_results, platform)
@@ -205,7 +205,7 @@ class MessageHandler(MessageService):
                             ai_response = "\n\n".join(product_results)
                     else:
                         ai_response = "عذراً، لم أتمكن من العثور على منتجات مطابقة"
-                        
+
                 except Exception as e:
                     logger.error(f"Error searching BWW Store: {e}")
                     # Fallback to AI response
@@ -313,12 +313,12 @@ class MessageHandler(MessageService):
         try:
             if not self.bww_store:
                 return False
-            
+
             # Import constants from bww_store
             from bww_store.constants import CLOTHING_KEYWORDS_AR, CLOTHING_KEYWORDS_EN
-            
+
             message_lower = message_text.lower()
-            
+
             # Check for product-related keywords
             product_keywords = [
                 "منتج", "منتجات", "عايز", "عايزة", "محتاج", "محتاجة",
@@ -326,24 +326,24 @@ class MessageHandler(MessageService):
                 "سعر", "كام", "متاح", "موجود", "عندك",
                 "product", "products", "looking for", "want", "need"
             ]
-            
+
             # Check Arabic clothing keywords
             for keyword in CLOTHING_KEYWORDS_AR:
                 if keyword in message_lower:
                     return True
-            
+
             # Check English clothing keywords
             for keyword in CLOTHING_KEYWORDS_EN:
                 if keyword.lower() in message_lower:
                     return True
-            
+
             # Check general product keywords
             for keyword in product_keywords:
                 if keyword in message_lower:
                     return True
-            
+
             return False
-            
+
         except Exception as e:
             logger.error(f"Error detecting product query: {e}")
             return False
@@ -379,21 +379,21 @@ class MessageHandler(MessageService):
             "whatsapp_service_status": self.whatsapp_service.get_service_status(),
             "initialized": self._initialized
         }
-        
+
         # Add BWW Store status if available
         if self.bww_store:
             status["bww_store_status"] = self.bww_store.get_service_status()
             status["bww_store_enabled"] = True
         else:
             status["bww_store_enabled"] = False
-        
+
         # Add Product Recommender status if available
         if self.product_recommender:
             status["product_recommender_status"] = self.product_recommender.get_service_status()
             status["product_recommender_enabled"] = True
         else:
             status["product_recommender_enabled"] = False
-        
+
         return status
 
     def health_check(self) -> ServiceHealth:

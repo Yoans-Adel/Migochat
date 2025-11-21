@@ -125,8 +125,9 @@ class DependencyInjectionContainer:
                     service = self.get_service(name)
                     if service is None:
                         return None
-                    # Type assertion: we know the service matches service_type
-                    return service  # type: ignore[return-value]
+                    # Runtime verification ensures type safety
+                    if isinstance(service, service_type):
+                        return service  # Type-safe: verified by isinstance
             return None
 
     def _create_service_instance(self, registration: ServiceRegistration) -> Optional[ServiceInterface]:

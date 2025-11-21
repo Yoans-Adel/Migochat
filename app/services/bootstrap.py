@@ -469,9 +469,9 @@ class ServiceBootstrap:
         """Get configuration service class"""
         return ConfigurationManager
 
-    def _get_error_handler_service_class(self) -> Type[ServiceInterface]:
+    def _get_error_handler_service_class(self) -> type:
         """Get error handler service class"""
-        return ErrorHandler  # type: ignore[return-value]
+        return ErrorHandler
 
     def _get_messenger_service_class(self) -> Type[ServiceInterface]:
         """Get messenger service class"""
@@ -503,25 +503,25 @@ class ServiceBootstrap:
         from app.services.ai.gemini_service import GeminiService
         return GeminiService
 
-    def _get_keyword_manager_class(self) -> Type[ServiceInterface]:
+    def _get_keyword_manager_class(self) -> type:
         """Get keyword manager class"""
         from app.services.business.keyword_manager import KeywordManager
-        return KeywordManager  # type: ignore[return-value]
+        return KeywordManager
 
-    def _get_facebook_lead_center_service_class(self) -> Type[ServiceInterface]:
+    def _get_facebook_lead_center_service_class(self) -> type:
         """Get Facebook lead center service class"""
         from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
-        return FacebookLeadCenterService  # type: ignore[return-value]
+        return FacebookLeadCenterService
 
-    def _get_message_source_tracker_class(self) -> Type[ServiceInterface]:
+    def _get_message_source_tracker_class(self) -> type:
         """Get message source tracker class"""
         from app.services.business.message_source_tracker import MessageSourceTracker
-        return MessageSourceTracker  # type: ignore[return-value]
+        return MessageSourceTracker
 
-    def _get_health_monitor_class(self) -> Type[ServiceInterface]:
+    def _get_health_monitor_class(self) -> Optional[type]:
         """Get health monitor class (archived - returns None)"""
         logger.warning("Health monitor service has been archived and is no longer available")
-        return None  # type: ignore[return-value]
+        return None
 
 
 # Global service bootstrap instance

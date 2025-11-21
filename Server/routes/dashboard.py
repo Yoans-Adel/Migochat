@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta, timezone
 import logging
+import os
 
 from database import get_db_session, User, Message, Conversation
 from config.settings import settings
-import os
+from app.services.messaging.messenger_service import MessengerService
+from app.services.business.facebook_lead_center_service import FacebookLeadCenterService
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,8 +21,6 @@ templates_dir = os.path.join(base_dir, "app", "templates")
 templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize services directly to avoid circular imports
-from app.services.messaging.messenger_service import MessengerService  # noqa: E402
-from app.services.business.facebook_lead_center_service import FacebookLeadCenterService  # noqa: E402
 
 messenger_service = MessengerService()
 lead_automation = FacebookLeadCenterService()

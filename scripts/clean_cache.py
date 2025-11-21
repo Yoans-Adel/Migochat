@@ -68,9 +68,17 @@ def clean_pycache():
 
     for pycache_dir in pycache_dirs:
         try:
+            # Check permissions before attempting removal
+            if not os.access(pycache_dir, os.W_OK):
+                print(f"  ⚠️  Skipping (read-only): {pycache_dir}")
+                continue
             shutil.rmtree(pycache_dir)
             print(f"  ✅ Removed: {pycache_dir}")
             cleaned_count += 1
+        except PermissionError:
+            print(f"  ❌ Permission denied: {pycache_dir}")
+        except OSError as e:
+            print(f"  ❌ OS error removing {pycache_dir}: {e}")
         except Exception as e:
             print(f"  ❌ Error removing {pycache_dir}: {e}")
 
@@ -91,9 +99,17 @@ def clean_cache_files():
 
     for cache_file in cache_files:
         try:
+            # Check permissions before attempting removal
+            if not os.access(cache_file, os.W_OK):
+                print(f"  ⚠️  Skipping (read-only): {cache_file}")
+                continue
             os.remove(cache_file)
             print(f"  ✅ Removed: {cache_file}")
             cleaned_count += 1
+        except PermissionError:
+            print(f"  ❌ Permission denied: {cache_file}")
+        except OSError as e:
+            print(f"  ❌ OS error removing {cache_file}: {e}")
         except Exception as e:
             print(f"  ❌ Error removing {cache_file}: {e}")
 
@@ -120,9 +136,17 @@ def clean_temp_files():
 
     for temp_file in temp_files:
         try:
+            # Check permissions before attempting removal
+            if not os.access(temp_file, os.W_OK):
+                print(f"  ⚠️  Skipping (read-only): {temp_file}")
+                continue
             os.remove(temp_file)
             print(f"  ✅ Removed: {temp_file}")
             cleaned_count += 1
+        except PermissionError:
+            print(f"  ❌ Permission denied: {temp_file}")
+        except OSError as e:
+            print(f"  ❌ OS error removing {temp_file}: {e}")
         except Exception as e:
             print(f"  ❌ Error removing {temp_file}: {e}")
 
@@ -139,9 +163,19 @@ def clean_pytest_cache():
         return 0
 
     try:
+        # Check permissions before attempting removal
+        if not os.access(pytest_cache, os.W_OK):
+            print("\n⚠️  Skipping .pytest_cache (read-only)")
+            return 0
         shutil.rmtree(pytest_cache)
         print("\n🗑️  Removed .pytest_cache directory")
         return 1
+    except PermissionError:
+        print("\n❌ Permission denied: .pytest_cache")
+        return 0
+    except OSError as e:
+        print(f"\n❌ OS error removing .pytest_cache: {e}")
+        return 0
     except Exception as e:
         print(f"\n❌ Error removing .pytest_cache: {e}")
         return 0
@@ -156,9 +190,16 @@ def clean_coverage_files():
     htmlcov_dir = project_root / "htmlcov"
     if htmlcov_dir.exists():
         try:
-            shutil.rmtree(htmlcov_dir)
-            print("\n🗑️  Removed htmlcov/ directory")
-            cleaned_count += 1
+            if not os.access(htmlcov_dir, os.W_OK):
+                print("\n⚠️  Skipping htmlcov/ (read-only)")
+            else:
+                shutil.rmtree(htmlcov_dir)
+                print("\n🗑️  Removed htmlcov/ directory")
+                cleaned_count += 1
+        except PermissionError:
+            print("\n❌ Permission denied: htmlcov/")
+        except OSError as e:
+            print(f"\n❌ OS error removing htmlcov/: {e}")
         except Exception as e:
             print(f"\n❌ Error removing htmlcov/: {e}")
 
@@ -166,9 +207,16 @@ def clean_coverage_files():
     coverage_file = project_root / ".coverage"
     if coverage_file.exists():
         try:
-            os.remove(coverage_file)
-            print("🗑️  Removed .coverage file")
-            cleaned_count += 1
+            if not os.access(coverage_file, os.W_OK):
+                print("🗑️  Skipping .coverage (read-only)")
+            else:
+                os.remove(coverage_file)
+                print("🗑️  Removed .coverage file")
+                cleaned_count += 1
+        except PermissionError:
+            print("❌ Permission denied: .coverage")
+        except OSError as e:
+            print(f"❌ OS error removing .coverage: {e}")
         except Exception as e:
             print(f"❌ Error removing .coverage: {e}")
 
@@ -194,9 +242,16 @@ def clean_empty_dirs():
             try:
                 # Check if directory is empty
                 if not os.listdir(dir_path):
+                    if not os.access(dir_path, os.W_OK):
+                        print(f"⚠️  Skipping (read-only): {dir_path}")
+                        continue
                     os.rmdir(dir_path)
                     print(f"🗑️  Removed empty directory: {dir_path}")
                     cleaned_count += 1
+            except PermissionError:
+                print(f"❌ Permission denied: {dir_path}")
+            except OSError as e:
+                print(f"❌ OS error removing {dir_path}: {e}")
             except Exception as e:
                 print(f"❌ Error removing {dir_path}: {e}")
 
@@ -226,9 +281,16 @@ def clean_temporary_docs():
         file_path = project_root / filename
         if file_path.exists():
             try:
+                if not os.access(file_path, os.W_OK):
+                    print(f"  ⚠️  Skipping (read-only): {filename}")
+                    continue
                 os.remove(file_path)
                 print(f"  ✅ Removed: {filename}")
                 cleaned_count += 1
+            except PermissionError:
+                print(f"  ❌ Permission denied: {filename}")
+            except OSError as e:
+                print(f"  ❌ OS error removing {filename}: {e}")
             except Exception as e:
                 print(f"  ❌ Error removing {filename}: {e}")
 

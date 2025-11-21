@@ -15,29 +15,39 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger  # noqa: E402
+from config.logging_config import setup_logging, get_logger
 
-# Setup logging
-setup_logging()
-logger = get_logger(__name__)
+# Lazy logging initialization
+_logger_initialized = False
+logger = None
+
+def _init_logger():
+    global logger, _logger_initialized
+    if not _logger_initialized:
+        setup_logging()
+        logger = get_logger(__name__)
+        _logger_initialized = True
+    return logger
 
 
 def create_virtual_environment():
     """إنشاء البيئة الافتراضية"""
+    log = _init_logger()
     try:
-        logger.info("🐍 إنشاء البيئة الافتراضية...")
+        log.info("🐍 إنشاء البيئة الافتراضية...")
         subprocess.run([sys.executable, "-m", "venv", "venv"], check=True)
-        logger.info("✅ تم إنشاء البيئة الافتراضية بنجاح")
+        log.info("✅ تم إنشاء البيئة الافتراضية بنجاح")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"❌ خطأ في إنشاء البيئة الافتراضية: {e}")
+        log.error(f"❌ خطأ في إنشاء البيئة الافتراضية: {e}")
         return False
 
 
 def install_dependencies():
     """تثبيت التبعيات"""
+    log = _init_logger()
     try:
-        logger.info("📦 تثبيت التبعيات...")
+        log.info("📦 تثبيت التبعيات...")
 
         # تحديد مسار pip الصحيح حسب نظام التشغيل
         if os.name == 'nt':  # Windows
@@ -46,17 +56,18 @@ def install_dependencies():
             pip_path = "venv/bin/pip"
 
         subprocess.run([pip_path, "install", "-r", "requirements.txt"], check=True)
-        logger.info("✅ تم تثبيت التبعيات بنجاح")
+        log.info("✅ تم تثبيت التبعيات بنجاح")
         return True
     except subprocess.CalledProcessError as e:
-        logger.error(f"❌ خطأ في تثبيت التبعيات: {e}")
+        log.error(f"❌ خطأ في تثبيت التبعيات: {e}")
         return False
 
 
 def create_directories():
     """إنشاء المجلدات المطلوبة"""
+    log = _init_logger()
     try:
-        logger.info("📁 إنشاء المجلدات المطلوبة...")
+        log.info("📁 إنشاء المجلدات المطلوبة...")
 
         directories = [
             "logs",
@@ -67,18 +78,27 @@ def create_directories():
 
         for directory in directories:
             Path(directory).mkdir(exist_ok=True)
-            logger.info(f"✅ تم إنشاء مجلد: {directory}")
+            log.info(f"✅ تم إنشاء مجلد: {directory}")
 
         return True
     except Exception as e:
-        logger.error(f"❌ خطأ في إنشاء المجلدات: {e}")
+        log.error(f"❌ خطأ في إنشاء المجلدات: {e}")
         return False
 
 
 def create_env_file():
     """إنشاء ملف .env"""
+    log = _init_logger()
     try:
-        logger.info("⚙️ إنشاء ملف .env...")
+        log.info("⚙️ إنشاء ملف .env...")
+
+        # Check if file exists and is read-only
+        env_path = Path(".env")
+        if env_path.exists():
+            # Check if writable
+            if not os.access(env_path, os.W_OK):
+                log.error("❌ ملف .env موجود وفي وضع القراءة فقط")
+                return False
 
         env_content = """# Facebook Configuration
 FB_APP_ID=2111286849402188
@@ -107,17 +127,24 @@ GEMINI_API_KEY=your_gemini_api_key
         with open(".env", "w", encoding="utf-8") as f:
             f.write(env_content)
 
-        logger.info("✅ تم إنشاء ملف .env")
+        log.info("✅ تم إنشاء ملف .env")
         return True
+    except PermissionError:
+        log.error("❌ لا توجد صلاحيات للكتابة على ملف .env")
+        return False
+    except OSError as e:
+        log.error(f"❌ خطأ في نظام الملفات: {e}")
+        return False
     except Exception as e:
-        logger.error(f"❌ خطأ في إنشاء ملف .env: {e}")
+        log.error(f"❌ خطأ في إنشاء ملف .env: {e}")
         return False
 
 
 def setup_environment():
     """إعداد البيئة الكاملة"""
+    log = _init_logger()
     try:
-        logger.info("🎯 إعداد بيئة BWW Assistant Chatbot...")
+        log.info("🎯 إعداد بيئة BWW Assistant Chatbot...")
 
         steps = [
             ("إنشاء المجلدات", create_directories),
@@ -127,20 +154,20 @@ def setup_environment():
         ]
 
         for step_name, step_func in steps:
-            logger.info(f"الخطوة: {step_name}")
+            log.info(f"الخطوة: {step_name}")
             if not step_func():
-                logger.error(f"فشل في الخطوة: {step_name}")
+                log.error(f"فشل في الخطوة: {step_name}")
                 return False
 
-        logger.info("✅ تم إعداد البيئة بنجاح!")
-        logger.info("الخطوات التالية:")
-        logger.info("1. تحرير ملف .env بالمعلومات الصحيحة")
-        logger.info("2. تشغيل: python scripts/run.py")
+        log.info("✅ تم إعداد البيئة بنجاح!")
+        log.info("الخطوات التالية:")
+        log.info("1. تحرير ملف .env بالمعلومات الصحيحة")
+        log.info("2. تشغيل: python scripts/run.py")
 
         return True
 
     except Exception as e:
-        logger.error(f"❌ خطأ في إعداد البيئة: {e}")
+        log.error(f"❌ خطأ في إعداد البيئة: {e}")
         return False
 
 

@@ -8,15 +8,9 @@ import shutil
 import logging
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from database.engine import get_database_path, database_exists  # noqa: E402
-
-from typing import Optional  # noqa: E402
-
+from database.engine import get_database_path, database_exists
 
 logging.basicConfig(
     level=logging.INFO,

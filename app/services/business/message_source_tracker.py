@@ -169,7 +169,7 @@ class MessageSourceTracker:
             return None
 
     def create_post(self, facebook_post_id: str, post_type: PostType,
-                    content: str, price: Optional[str] = None, 
+                    content: str, price: Optional[str] = None,
                     data: Optional[Dict[str, Any]] = None) -> Optional[Post]:
         """Create a new post record"""
         try:

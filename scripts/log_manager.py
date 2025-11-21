@@ -15,14 +15,14 @@ sys.path.insert(0, str(project_root))
 os.environ['PYTHONPATH'] = str(project_root)
 
 # Import centralized logging configuration
-from config.logging_config import setup_logging, get_logger  # noqa: E402
+from config.logging_config import setup_logging, get_logger
 
-# Setup logging
+# Initialize logging once at module level
 setup_logging()
 logger = get_logger(__name__)
 
 
-def clean_old_logs(days_to_keep=7):
+def clean_old_logs(days_to_keep: int = 7) -> None:
     """Clean up old log files older than specified days"""
     logs_dir = Path("logs")
     if not logs_dir.exists():
@@ -47,9 +47,7 @@ def clean_old_logs(days_to_keep=7):
             logger.error(f"❌ Error processing {log_file.name}: {e}")
 
     logger.info(f"✅ Cleaned {cleaned_count} old log files")
-
-
-def show_log_status():
+def show_log_status() -> None:
     """Show current log files status"""
     logs_dir = Path("logs")
     if not logs_dir.exists():
@@ -61,7 +59,7 @@ def show_log_status():
 
     log_files = list(logs_dir.glob("*.log"))
     if not log_files:
-        logger.info("📭 No log files found")
+        logger.info("📛 No log files found")
         return
 
     total_size = 0
@@ -83,7 +81,7 @@ def show_log_status():
     logger.info(f"📊 Total logs size: {total_mb:.2f} MB")
 
 
-def create_log_summary():
+def create_log_summary() -> None:
     """Create a summary of recent log activity"""
     logs_dir = Path("logs")
     if not logs_dir.exists():
@@ -94,7 +92,7 @@ def create_log_summary():
     logger.info("=" * 50)
 
     # Count log entries by type
-    log_types = {}
+    log_types: dict[str, int] = {}
     total_entries = 0
 
     for log_file in logs_dir.glob("*.log"):
@@ -112,7 +110,7 @@ def create_log_summary():
     logger.info(f"📊 Total entries: {total_entries:,}")
 
 
-def main():
+def main() -> None:
     """Main function"""
     logger.info("🎯 Bww-AI-Assistant Log Management Utility")
     logger.info("=" * 60)

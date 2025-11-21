@@ -1,3 +1,4 @@
+# External library without type stubs - using pyright directives for proper type checking
 # pyright: reportAttributeAccessIssue=false, reportUnknownMemberType=false, reportUnknownVariableType=false
 import logging
 from typing import Optional, Dict, Any, List
@@ -7,16 +8,18 @@ from app.services.core.base_service import AIService as BaseAIService
 logger = logging.getLogger(__name__)
 
 gemini_available = False
-genai: Any = None
-HarmCategory: Any = None
-HarmBlockThreshold: Any = None
 
+# Runtime imports - google.generativeai doesn't have type stubs
 try:
-    import google.generativeai as genai  # type: ignore
-    from google.generativeai.types import HarmCategory, HarmBlockThreshold  # type: ignore
+    import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
     gemini_available = True
 except ImportError as import_error:
     logger.info(f"Gemini package not available: {import_error}")
+    # Define fallback types when package not available
+    genai = None
+    HarmCategory = None
+    HarmBlockThreshold = None
 
 
 class GeminiService(BaseAIService):
@@ -42,12 +45,17 @@ class GeminiService(BaseAIService):
 
     def _initialize_models(self) -> None:
         """Initialize multiple models for different use cases"""
-        if not gemini_available:
+        if not gemini_available or genai is None:
             # Suppress warning on first initialization only
             if not hasattr(self, '_warning_shown'):
                 logger.info("Gemini AI service not available - using fallback responses")
                 self._warning_shown = True
             return
+
+        # Type narrowing: assert genai is not None after availability check
+        assert genai is not None, "genai should be available after gemini_available check"
+        assert HarmCategory is not None, "HarmCategory should be available"
+        assert HarmBlockThreshold is not None, "HarmBlockThreshold should be available"
 
         try:
             genai.configure(api_key=self.api_key)
@@ -170,6 +178,9 @@ Guidelines:
 
 Respond naturally:"""
 
+            # Type narrowing for external library types
+            assert HarmCategory is not None and HarmBlockThreshold is not None
+
             # Generate response
             response = model.generate_content(
                 prompt,
@@ -264,6 +275,9 @@ Instructions:
 Respond naturally:"""
 
             content_parts.append(prompt)
+
+            # Type narrowing for external library types
+            assert HarmCategory is not None and HarmBlockThreshold is not None
 
             # Generate response
             response = model.generate_content(

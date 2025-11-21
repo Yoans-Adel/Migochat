@@ -18,6 +18,7 @@ from database.enums import (
     MessageStatus
 )
 
+
 class Base(DeclarativeBase):
     """Base class for all database models"""
     pass
@@ -125,12 +126,12 @@ class ProductQuery(Base):
     recommendations_sent: Mapped[bool] = mapped_column(Boolean, default=False)  # Were recommendations sent?
     platform: Mapped[str] = mapped_column(String(50))  # facebook, whatsapp, etc.
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
-    
+
     # Analytics fields
     clicked_product: Mapped[Optional[str]] = mapped_column(String(200))  # Product clicked (if tracked)
     converted: Mapped[bool] = mapped_column(Boolean, default=False)  # Did customer make purchase?
     conversion_timestamp: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    
+
     # Relationships
     user: Mapped["User"] = relationship()
 

@@ -3,7 +3,7 @@ Service dependency injection helpers for API routes
 Provides clean access to services without circular imports
 """
 import logging
-from typing import Optional, TypeVar, Type
+from typing import Optional, TypeVar, Type, cast
 from functools import lru_cache
 
 logger = logging.getLogger(__name__)
@@ -52,17 +52,35 @@ def get_service(service_class: Type[T]) -> Optional[T]:
         if container:
             # DI container uses ServiceInterface protocol, but we need type flexibility
             # Runtime: container returns correct type based on service_class parameter
-            service = container.get_service_by_type(service_class)  # type: ignore[arg-type]
-            if service:
-                return service  # type: ignore[return-value]
+            # We check if the method exists and call it dynamically
+            if hasattr(container, 'get_service_by_type'):
+                # Cast to suppress type error - we verify with isinstance below
+                # get_service_by_type expects ServiceInterface but we use broader Type[T]
+                service = cast(T, container.get_service_by_type(cast(type, service_class)))
+                if service:
+                    # Verify service is correct type at runtime
+                    if isinstance(service, service_class):
+                        return service  # Type-safe: verified by isinstance
+                    logger.warning(
+                        f"Service type mismatch: expected {service_class.__name__}, "
+                        f"got {type(service).__name__}"
+                    )
     except Exception as e:
         logger.debug(f"Could not resolve service from DI container: {e}")
 
     # Fallback: try direct instantiation (for services not in DI container yet)
     try:
-        logger.debug(f"Falling back to direct instantiation for: {service_class.__name__}")
+        logger.debug(
+            f"Falling back to direct instantiation for: {service_class.__name__}"
+        )
         # Direct instantiation returns the exact type T
-        return service_class()
+        instance = service_class()
+        return instance
+    except TypeError as e:
+        logger.error(
+            f"Service {service_class.__name__} requires constructor parameters: {e}"
+        )
+        return None
     except Exception as e:
         logger.error(f"Failed to instantiate service {service_class.__name__}: {e}")
         return None

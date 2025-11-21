@@ -151,11 +151,23 @@ class BWWStoreAPIClient(APIService):
     @api_error_handler
     @retry_on_error(RetryConfig(max_retries=3, delay=1.0))
     @circuit_breaker("BWWStoreAPIClient", CircuitBreakerConfig(failure_threshold=5))
-    async def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None,
-                       cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
-        """Make HTTP request with caching and error handling."""
+    async def request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None,
+                      cache_strategy: CacheStrategy = CacheStrategy.MEDIUM_TERM) -> APIResponse:
+        """Make HTTP request with caching and error handling.
+
+        Public method for making API requests.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            endpoint: API endpoint path
+            data: Optional request data
+            cache_strategy: Caching strategy to use
+
+        Returns:
+            APIResponse with result
+        """
         self._total_requests += 1
-        
+
         if not self._within_rate_limit():
             return APIResponse(success=False, error="Rate limit exceeded", status_code=429)
 
@@ -217,7 +229,7 @@ class BWWStoreAPIClient(APIService):
             payload["max_price"] = max_price
         payload["page"] = page
         payload["page_size"] = page_size
-        return await self._request("POST", "/filter-products", payload, cache_strategy)
+        return await self.request("POST", "/filter-products", payload, cache_strategy)
 
     def get_service_status(self) -> Dict[str, Any]:
         """Get comprehensive service status including cache metrics."""

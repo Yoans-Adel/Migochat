@@ -6,7 +6,22 @@ from datetime import datetime, timedelta, timezone
 import logging
 import traceback
 
-from database import get_session, User, Message, Conversation, MessageDirection, MessageStatus, LeadStage, CustomerLabel, CustomerType, LeadActivity, MessageSource, PostType, Post, AdCampaign, enum_to_value
+from database import (
+    get_session,
+    User,
+    Message,
+    Conversation,
+    MessageDirection,
+    MessageStatus,
+    LeadStage,
+    CustomerType,
+    LeadActivity,
+    MessageSource,
+    PostType,
+    Post,
+    AdCampaign,
+    enum_to_value
+)
 from config.settings import settings
 from Server.routes.service_helpers import (
     get_messenger_service,
@@ -17,6 +32,10 @@ from Server.routes.service_helpers import (
     get_ai_service,
     get_gemini_service,
     get_settings_manager as get_settings_manager_helper
+)
+from Server.routes.user_update_helpers import (
+    update_user_fields,
+    log_lead_activities
 )
 
 logger = logging.getLogger(__name__)
@@ -210,15 +229,16 @@ async def send_bulk_message(
         # If clients pass a 'scheduled' flag it will be ignored and messages
         # will be sent immediately. This avoids leaving unimplemented TODOs
         # in the codebase and makes behavior explicit.
-        scheduled = bool(data.get("scheduled", False))
-        scheduled_time = data.get("scheduled_time")
+        # Scheduling parameters are explicitly ignored
+        _ = data.get("scheduled", False)  # Acknowledge but ignore
+        _ = data.get("scheduled_time")  # Acknowledge but ignore
 
         if not message_text:
             raise HTTPException(status_code=400, detail="message is required")
 
         # Get target users based on audience filter
         query = db.query(User).filter(User.is_active.is_(True))
-        
+
         if audience == "leads":
             # Only users with lead stages
             from database import LeadStage
@@ -236,7 +256,7 @@ async def send_bulk_message(
             query = query.filter(User.lead_stage == LeadStage.QUALIFIED)
 
         users = query.all()
-        
+
         if len(users) == 0:
             return {
                 "success": False,
@@ -247,31 +267,43 @@ async def send_bulk_message(
         # Send messages
         sent_count = 0
         failed_count = 0
-        
+
         for user in users:
             try:
                 # Personalize message
-                personalized_message = message_text.replace("{name}", f"{user.first_name or ''} {user.last_name or ''}".strip())
-                personalized_message = personalized_message.replace("{first_name}", user.first_name or "")
-                personalized_message = personalized_message.replace("{last_name}", user.last_name or "")
-                
+                personalized_message = message_text.replace(
+                    "{name}",
+                    f"{user.first_name or ''} {user.last_name or ''}".strip()
+                )
+                personalized_message = personalized_message.replace(
+                    "{first_name}", user.first_name or ""
+                )
+                personalized_message = personalized_message.replace(
+                    "{last_name}", user.last_name or ""
+                )
+
                 # Determine platform
                 platform = "facebook"  # Default to facebook
-                
+
                 # Send message
-                result = message_handler.send_message(user.psid, personalized_message, platform=platform)
+                result = message_handler.send_message(
+                    user.psid, personalized_message, platform=platform
+                )
                 success = result.get("success", False)
-                
+
                 if success:
                     sent_count += 1
                 else:
                     failed_count += 1
-                    
+
             except Exception as e:
                 logger.error(f"Error sending bulk message to {user.psid}: {e}")
                 failed_count += 1
 
-        logger.info(f"Bulk message campaign '{campaign_name}': Sent {sent_count}/{len(users)}, Failed {failed_count}")
+        logger.info(
+            f"Bulk message campaign '{campaign_name}': "
+            f"Sent {sent_count}/{len(users)}, Failed {failed_count}"
+        )
 
         return {
             "success": True,
@@ -296,19 +328,20 @@ async def get_users(
     """Get users list with optional search"""
     try:
         query = db.query(User)
-        
+
         # Apply search filter if provided
         if search:
             search_term = f"%{search.lower()}%"
+            # Build filter conditions including phone_number
             query = query.filter(
                 or_(
                     User.first_name.ilike(search_term),
                     User.last_name.ilike(search_term),
                     User.psid.ilike(search_term),
-                    User.phone.ilike(search_term) if User.phone else False
+                    User.phone_number.ilike(search_term)
                 )
             )
-        
+
         users = query.order_by(desc(User.last_message_at)).offset(skip).limit(limit).all()
 
         return {
@@ -415,79 +448,21 @@ async def update_user(
 ) -> Dict[str, Any]:
     """Update user information"""
     try:
-        # Get JSON body
         update_data = await request.json()
-
         user = db.query(User).filter(User.psid == psid).first()
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Track changes for lead activity
-        changes: List[tuple[str, Optional[str], str]] = []
-
-        if "first_name" in update_data:
-            user.first_name = update_data["first_name"]
-        if "last_name" in update_data:
-            user.last_name = update_data["last_name"]
-        if "governorate" in update_data:
-            from database import Governorate
-            try:
-                old_value = enum_to_value(user.governorate)
-                setattr(user, 'governorate', Governorate(update_data["governorate"]))
-                if old_value != update_data["governorate"]:
-                    changes.append(("governorate", old_value, update_data["governorate"]))
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid governorate")
-
-        if "lead_stage" in update_data:
-            try:
-                old_value = enum_to_value(user.lead_stage)
-                setattr(user, 'lead_stage', LeadStage(update_data["lead_stage"]))
-                setattr(user, 'last_stage_change', datetime.now(timezone.utc))
-                if old_value != update_data["lead_stage"]:
-                    changes.append(("lead_stage", old_value, update_data["lead_stage"]))
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid lead stage")
-
-        if "customer_type" in update_data:
-            try:
-                old_value = enum_to_value(user.customer_type)
-                setattr(user, 'customer_type', CustomerType(update_data["customer_type"]))
-                if old_value != update_data["customer_type"]:
-                    changes.append(("customer_type", old_value, update_data["customer_type"]))
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid customer type")
-
-        if "customer_label" in update_data:
-            try:
-                old_value = enum_to_value(user.customer_label)
-                setattr(user, 'customer_label', CustomerLabel(update_data["customer_label"]))
-                if old_value != update_data["customer_label"]:
-                    changes.append(("customer_label", old_value, update_data["customer_label"]))
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid customer label")
-
+        changes = update_user_fields(user, update_data)
         db.commit()
 
-        # Log changes to lead activities
-        for activity_type, old_val, new_val in changes:
-            activity = LeadActivity(
-                user_id=user.id,
-                activity_type=f"{activity_type}_change",
-                old_value=old_val,
-                new_value=new_val,
-                reason="Manual update from dashboard",
-                automated=False,
-                timestamp=datetime.now(timezone.utc)
-            )
-            db.add(activity)
+        log_lead_activities(user, changes, db)
 
         if changes:
             db.commit()
 
         logger.info(f"Updated user {psid}: {changes}")
-
         return {"success": True, "message": "User updated successfully", "changes": len(changes)}
 
     except HTTPException:
@@ -1085,7 +1060,7 @@ async def sync_leads_to_facebook() -> Dict[str, Any]:
         lead_automation = get_facebook_lead_center_service()
         if not lead_automation:
             raise HTTPException(status_code=503, detail="Lead automation service unavailable")
-            
+
         results = lead_automation.sync_all_leads_to_facebook()
 
         return {
@@ -1106,7 +1081,7 @@ async def get_lead_analytics() -> Dict[str, Any]:
         lead_automation = get_facebook_lead_center_service()
         if not lead_automation:
             raise HTTPException(status_code=503, detail="Lead automation service unavailable")
-            
+
         analytics = lead_automation.get_lead_analytics()
 
         return {
@@ -1131,7 +1106,7 @@ async def create_lead_in_facebook(psid: str, db: Session = Depends(get_session))
         lead_automation = get_facebook_lead_center_service()
         if not lead_automation:
             raise HTTPException(status_code=503, detail="Lead automation service unavailable")
-            
+
         success = lead_automation.create_lead_in_facebook(user)
 
         return {
@@ -1677,7 +1652,7 @@ async def send_bulk_messages(
         # Scheduling is intentionally not supported here. Any scheduling
         # parameters received will be ignored and messages will be sent
         # immediately to recipients.
-        schedule_time = data.get("schedule_time")
+        _ = data.get("schedule_time")  # Acknowledge but ignore
 
         if not message_text:
             raise HTTPException(status_code=400, detail="Message text is required")
@@ -1724,7 +1699,7 @@ async def send_bulk_messages(
                 # Personalize message
                 personalized_message = message_text
                 user_full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
-                
+
                 if "{name}" in personalized_message:
                     personalized_message = personalized_message.replace("{name}", user_full_name)
                 if "{first_name}" in personalized_message:
@@ -1785,15 +1760,15 @@ async def test_ai_connection_v2(request: Request) -> Dict[str, Any]:
     try:
         data = await request.json()
         api_key = data.get("api_key") or settings.GEMINI_API_KEY
-        
+
         if not api_key:
             return {"success": False, "message": "API key is required"}
-        
+
         # Get AI service and test
         ai_service = get_gemini_service()
         if not ai_service:
             return {"success": False, "message": "AI service unavailable"}
-        
+
         # Test with simple prompt
         try:
             response = ai_service.generate_response("Hello, this is a test.")
@@ -1804,7 +1779,7 @@ async def test_ai_connection_v2(request: Request) -> Dict[str, Any]:
             }
         except Exception as e:
             return {"success": False, "message": f"AI test failed: {str(e)}"}
-            
+
     except Exception as e:
         logger.error(f"Error testing AI connection: {e}")
         return {"success": False, "message": f"Error: {str(e)}"}
@@ -1816,21 +1791,21 @@ async def test_messenger_connection(request: Request) -> Dict[str, Any]:
     try:
         data = await request.json()
         access_token = data.get("access_token")
-        
+
         if not access_token:
             return {"success": False, "message": "Access token is required"}
-        
+
         # Get Messenger service
         messenger_service = get_messenger_service()
         if not messenger_service:
             return {"success": False, "message": "Messenger service unavailable"}
-        
+
         # Test by getting page info
         import requests
         try:
             url = f"https://graph.facebook.com/v24.0/me?access_token={access_token}"
             response = requests.get(url, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return {
@@ -1845,7 +1820,7 @@ async def test_messenger_connection(request: Request) -> Dict[str, Any]:
                 }
         except Exception as e:
             return {"success": False, "message": f"Test failed: {str(e)}"}
-            
+
     except Exception as e:
         logger.error(f"Error testing Messenger connection: {e}")
         return {"success": False, "message": f"Error: {str(e)}"}
@@ -1858,26 +1833,26 @@ async def test_whatsapp_connection(request: Request) -> Dict[str, Any]:
         data = await request.json()
         access_token = data.get("access_token")
         phone_number_id = data.get("phone_number_id")
-        
+
         if not access_token:
             # Try to get from settings
             access_token = settings.WHATSAPP_ACCESS_TOKEN
             phone_number_id = settings.WHATSAPP_PHONE_NUMBER_ID
-        
+
         if not access_token or not phone_number_id:
             return {"success": False, "message": "Access token and phone number ID required"}
-        
+
         # Get WhatsApp service
         whatsapp_service = get_whatsapp_service()
         if not whatsapp_service:
             return {"success": False, "message": "WhatsApp service unavailable"}
-        
+
         # Test by getting phone number info
         import requests
         try:
             url = f"https://graph.facebook.com/v24.0/{phone_number_id}?access_token={access_token}"
             response = requests.get(url, timeout=10)
-            
+
             if response.status_code == 200:
                 data = response.json()
                 return {
@@ -1892,7 +1867,7 @@ async def test_whatsapp_connection(request: Request) -> Dict[str, Any]:
                 }
         except Exception as e:
             return {"success": False, "message": f"Test failed: {str(e)}"}
-            
+
     except Exception as e:
         logger.error(f"Error testing WhatsApp connection: {e}")
         return {"success": False, "message": f"Error: {str(e)}"}

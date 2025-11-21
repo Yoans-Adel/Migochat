@@ -8,7 +8,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Awaitable, Callable, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Optional, TypeVar, cast
 
 from .models import APIResponse
 
@@ -49,11 +49,14 @@ def api_error_handler(func: F) -> F:
     async def wrapper(*args: Any, **kwargs: Any) -> APIResponse:
         try:
             return await func(*args, **kwargs)
-        except Exception as exc:  # noqa: BLE001 - intentional to standardize error surface
-            logger.error("Unhandled error in %s: %s", func.__name__, exc)
+        except (ValueError, TypeError, KeyError, AttributeError, RuntimeError) as exc:
+            logger.error("Expected error in %s: %s", func.__name__, exc)
+            return APIResponse(success=False, error=str(exc), status_code=500)
+        except Exception as exc:
+            logger.exception("Unexpected error in %s: %s", func.__name__, exc)
             return APIResponse(success=False, error=str(exc), status_code=500)
 
-    return wrapper  # type: ignore[return-value]
+    return cast(F, wrapper)
 
 
 def retry_on_error(config: RetryConfig) -> Callable[[F], F]:
@@ -65,16 +68,20 @@ def retry_on_error(config: RetryConfig) -> Callable[[F], F]:
             while attempt <= config.max_retries:
                 try:
                     return await func(*args, **kwargs)
-                except Exception as exc:  # noqa: BLE001
+                except (ValueError, TypeError, KeyError, AttributeError, RuntimeError, ConnectionError, TimeoutError) as exc:
                     last_error = str(exc)
                     attempt += 1
                     if attempt > config.max_retries:
                         break
-                    # backoff-ish simple delay
+                    logger.debug("Retry attempt %d/%d for %s: %s", attempt, config.max_retries, func.__name__, exc)
                     await asyncio.sleep(config.delay)
+                except Exception as exc:
+                    # Unexpected errors should not be retried
+                    logger.exception("Unexpected error in %s (not retrying): %s", func.__name__, exc)
+                    return APIResponse(success=False, error=str(exc), status_code=500)
             return APIResponse(success=False, error=last_error or "retry failed", status_code=500)
 
-        return wrapper  # type: ignore[return-value]
+        return cast(F, wrapper)
 
     return decorator
 
@@ -97,13 +104,21 @@ def circuit_breaker(name: str, config: CircuitBreakerConfig) -> Callable[[F], F]
                 # close the circuit on success
                 state["failures"] = 0
                 return result
-            except Exception as exc:  # noqa: BLE001
+            except (ValueError, TypeError, KeyError, AttributeError, RuntimeError, ConnectionError, TimeoutError) as exc:
                 state["failures"] += 1
                 if state["failures"] >= config.failure_threshold:
                     state["open_until"] = now + config.reset_timeout
                     logger.warning("Circuit breaker %s tripped (failures=%s)", name, state["failures"])
-                raise exc
+                logger.error("Error in circuit breaker %s: %s", name, exc)
+                return APIResponse(success=False, error=str(exc), status_code=500)
+            except Exception as exc:
+                # Unexpected errors increment counter but log as critical
+                state["failures"] += 1
+                if state["failures"] >= config.failure_threshold:
+                    state["open_until"] = now + config.reset_timeout
+                logger.exception("Unexpected error in circuit breaker %s (failures=%s)", name, state["failures"])
+                return APIResponse(success=False, error=str(exc), status_code=500)
 
-        return wrapper  # type: ignore[return-value]
+        return cast(F, wrapper)
 
     return decorator

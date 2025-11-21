@@ -35,7 +35,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Main application log handler
     handlers['app'] = logging.handlers.RotatingFileHandler(
         log_files['app'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -47,7 +47,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Error log handler
     handlers['error'] = logging.handlers.RotatingFileHandler(
         log_files['error'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -59,7 +59,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Debug log handler
     handlers['debug'] = logging.handlers.RotatingFileHandler(
         log_files['debug'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -71,7 +71,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Access log handler
     handlers['access'] = logging.handlers.RotatingFileHandler(
         log_files['access'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -83,7 +83,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # AI service log handler
     handlers['ai'] = logging.handlers.RotatingFileHandler(
         log_files['ai'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -95,7 +95,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Database log handler
     handlers['database'] = logging.handlers.RotatingFileHandler(
         log_files['database'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -107,7 +107,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Webhook log handler
     handlers['webhook'] = logging.handlers.RotatingFileHandler(
         log_files['webhook'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -119,7 +119,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # Messenger log handler
     handlers['messenger'] = logging.handlers.RotatingFileHandler(
         log_files['messenger'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
@@ -131,7 +131,7 @@ def setup_logging() -> Tuple[Dict[str, logging.Handler], Dict[str, Path]]:
     # WhatsApp log handler
     handlers['whatsapp'] = logging.handlers.RotatingFileHandler(
         log_files['whatsapp'],
-        maxBytes=10*1024*1024,  # 10MB
+        maxBytes=10 * 1024 * 1024,  # 10MB
         backupCount=5,
         encoding='utf-8'
     )
