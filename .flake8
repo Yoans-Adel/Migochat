@@ -18,21 +18,22 @@ exclude =
     dist,
     *.egg-info,
     temp,
-    .tox
+    .tox,
+    docs/_build
 
 # Select error codes to check
 select = E,W,F,C
 
 # Ignore specific errors
 ignore =
-    # E203: whitespace before ':' (conflicts with Black)
+    # E203: whitespace before ':' (conflicts with Black formatter)
     E203,
-    # W503: line break before binary operator (outdated)
-    W503,
+    # W503: line break before binary operator (outdated, PEP 8 now allows it)
+    W503
 
 # Per-file ignores
 per-file-ignores =
-    # Allow import order issues in files that modify sys.path
+    # E402: Allow import order issues in files that modify sys.path
     **/conftest.py:E402
     **/webhook.py:E402
     **/dashboard.py:E402
@@ -40,19 +41,18 @@ per-file-ignores =
     scripts/*.py:E402
     database/scripts/*.py:E402
     run.py:E402
-    # Allow complexity and long lines in product operations (complex business logic)
+    # C901: Complex business logic in product operations
+    # E501: Long lines with detailed product data
     bww_store/product_ops.py:C901,E501
-    # Allow long lines in service helpers (DI container type hints)
+    # E501: Long lines for DI container type hints
     Server/routes/service_helpers.py:E501
+    # F401: Unused imports in __init__.py files (re-exports)
+    **/__init__.py:F401
 
-# Complexity
+# Complexity threshold
 max-complexity = 15
 
-# Show source code for errors
+# Output options
 show-source = True
-
-# Show statistics
 statistics = True
-
-# Count errors
 count = True
