@@ -88,12 +88,22 @@ See Also
 from . import config_manager
 from . import database_config
 from . import logging_config
+from . import settings_manager
 
 # =============================================================================
 # Settings API (Primary Interface)
 # =============================================================================
 
 from .settings import settings
+
+# =============================================================================
+# Settings Manager (Database-backed Dynamic Settings)
+# =============================================================================
+
+from .settings_manager import (
+    SettingsManager,
+    get_settings_manager,
+)
 
 # =============================================================================
 # Configuration Manager Functions (Advanced Usage)
@@ -113,6 +123,11 @@ from .config_manager import (
 __all__ = [
     # Primary API (Most Common Usage)
     "settings",
+    
+    # Settings Manager (DB-backed)
+    "settings_manager",
+    "SettingsManager",
+    "get_settings_manager",
     
     # Configuration Manager
     "config_manager",

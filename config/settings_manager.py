@@ -1,7 +1,7 @@
 """
-Settings Manager Service
-Manages application settings stored in database (Admin editable)
-Falls back to environment variables if not in database
+Settings Manager - Database-backed dynamic settings
+Moved from app/services/infrastructure to config/ for centralization
+Priority: Database > Environment Variables > Defaults
 """
 
 import logging
