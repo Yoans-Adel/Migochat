@@ -5,8 +5,7 @@ Main FastAPI application with lifecycle management
 
 from typing import Any, Dict
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
@@ -93,23 +92,11 @@ app.include_router(api.router, prefix="/api", tags=["api"])
 app.include_router(settings_api.router, tags=["settings-api"])  # Settings API endpoints
 
 
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
+@app.get("/")
+async def root():
     """Root endpoint - redirect to dashboard"""
-    try:
-        return templates.TemplateResponse("dashboard.html", {
-            "request": request,
-            "stats": {
-                "total_users": 0,
-                "total_messages": 0,
-                "active_conversations": 0,
-                "active_users": 0,
-                "recent_messages": []
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error rendering root template: {e}")
-        return HTMLResponse("<h1>Welcome to BWW Assistant</h1><p>Dashboard is loading...</p>", status_code=200)
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/dashboard", status_code=302)
 
 
 @app.get("/health")
