@@ -226,24 +226,24 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <!-- Webhook Status -->
+                        <!-- Messenger Status -->
                         <div class="status-item d-flex justify-content-between align-items-center mb-3 p-2 rounded">
                             <div class="d-flex align-items-center">
-                                <i class="fas fa-plug me-2 text-primary"></i>
-                                <span class="fw-medium">Webhook Status</span>
+                                <i class="fab fa-facebook-messenger me-2 text-primary"></i>
+                                <span class="fw-medium">Messenger</span>
                             </div>
-                            {% set webhook_status = stats.system_status.webhook %}
-                            {% if webhook_status.status == 'active' %}
+                            {% set messenger_status = stats.system_status.messenger %}
+                            {% if messenger_status.status == 'active' %}
                                 <span class="badge bg-success">
-                                    <i class="fas fa-check-circle me-1"></i>{{ webhook_status.label }}
+                                    <i class="fas fa-check-circle me-1"></i>{{ messenger_status.label }}
                                 </span>
-                            {% elif webhook_status.status == 'inactive' %}
+                            {% elif messenger_status.status == 'inactive' %}
                                 <span class="badge bg-warning">
-                                    <i class="fas fa-pause-circle me-1"></i>{{ webhook_status.label }}
+                                    <i class="fas fa-exclamation-circle me-1"></i>{{ messenger_status.label }}
                                 </span>
                             {% else %}
                                 <span class="badge bg-danger">
-                                    <i class="fas fa-times-circle me-1"></i>{{ webhook_status.label }}
+                                    <i class="fas fa-times-circle me-1"></i>{{ messenger_status.label }}
                                 </span>
                             {% endif %}
                         </div>
@@ -311,10 +311,10 @@
                         </div>
 
                         <!-- WhatsApp Integration Status -->
-                        <div class="status-item d-flex justify-content-between align-items-center p-2 rounded">
+                        <div class="status-item d-flex justify-content-between align-items-center mb-3 p-2 rounded">
                             <div class="d-flex align-items-center">
                                 <i class="fab fa-whatsapp me-2 text-success"></i>
-                                <span class="fw-medium">WhatsApp Integration</span>
+                                <span class="fw-medium">WhatsApp</span>
                             </div>
                             {% set whatsapp_status = stats.system_status.whatsapp %}
                             {% if whatsapp_status.status == 'active' %}
@@ -328,6 +328,28 @@
                             {% else %}
                                 <span class="badge bg-danger">
                                     <i class="fas fa-times-circle me-1"></i>{{ whatsapp_status.label }}
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Webhook Status -->
+                        <div class="status-item d-flex justify-content-between align-items-center p-2 rounded">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-plug me-2 text-info"></i>
+                                <span class="fw-medium">Webhooks</span>
+                            </div>
+                            {% set webhook_status = stats.system_status.webhook %}
+                            {% if webhook_status.status == 'active' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ webhook_status.label }}
+                                </span>
+                            {% elif webhook_status.status == 'inactive' %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-pause-circle me-1"></i>{{ webhook_status.label }}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle me-1"></i>{{ webhook_status.label }}
                                 </span>
                             {% endif %}
                         </div>

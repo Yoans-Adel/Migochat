@@ -56,86 +56,128 @@ async def crm_view(request: Request):
 async def dashboard_home(request: Request):
     """Main dashboard page with lead analytics"""
     try:
-        with get_db_session() as db:
-            # Get statistics
-            total_users = db.query(User).count()
-            total_messages = db.query(Message).count()
-            active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
+        # Initialize default values in case database is unavailable
+        total_users = 0
+        total_messages = 0
+        active_conversations = 0
+        active_users = 0
+        recent_messages = []
+        lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
+        
+        # Initialize system status with defaults
+        system_status = {
+            "webhook": {"status": "active", "label": "Active"},
+            "database": {"status": "unknown", "label": "Checking..."},
+            "messenger": {"status": "unknown", "label": "Checking..."},
+            "ai_service": {"status": "unknown", "label": "Checking..."},
+            "lead_automation": {"status": "unknown", "label": "Checking..."},
+            "whatsapp": {"status": "unknown", "label": "Checking..."}
+        }
 
-            # Lead analytics with error handling
-            try:
-                lead_analytics = lead_automation.get_lead_analytics()
-            except Exception as e:
-                logger.warning(f"Lead analytics failed: {e}")
-                lead_analytics = {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0}
-
-            # Recent messages (last 24 hours)
-            yesterday = datetime.now(timezone.utc) - timedelta(days=1)
-            recent_messages = db.query(Message).join(User).filter(
-                Message.timestamp >= yesterday
-            ).order_by(desc(Message.timestamp)).limit(10).all()
-
-            # Active users (messaged in last 7 days)
-            week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-            active_users = db.query(User).filter(
-                User.last_message_at >= week_ago
-            ).count()
-
-            # System Status Checks
-            system_status = {
-                "webhook": {"status": "active", "label": "Active"},
-                "database": {"status": "connected", "label": "Connected"},
-                "ai_service": {"status": "unknown", "label": "Unknown"},
-                "lead_automation": {"status": "unknown", "label": "Unknown"},
-                "whatsapp": {"status": "unknown", "label": "Unknown"}
-            }
-
-            # Check Database
-            try:
-                db.execute("SELECT 1")
+        # Check Database Connection
+        db_connected = False
+        try:
+            with get_db_session() as db:
+                db.execute("SELECT 1").fetchone()
                 system_status["database"] = {"status": "connected", "label": "Connected"}
-            except Exception:
-                system_status["database"] = {"status": "error", "label": "Disconnected"}
+                db_connected = True
+                
+                # Get statistics only if database is connected
+                try:
+                    total_users = db.query(User).count()
+                    total_messages = db.query(Message).count()
+                    active_conversations = db.query(Conversation).filter(Conversation.is_active.is_(True)).count()
+                    
+                    # Recent messages (last 24 hours)
+                    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+                    recent_messages = db.query(Message).join(User).filter(
+                        Message.timestamp >= yesterday
+                    ).order_by(desc(Message.timestamp)).limit(10).all()
+                    
+                    # Active users (messaged in last 7 days)
+                    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+                    active_users = db.query(User).filter(
+                        User.last_message_at >= week_ago
+                    ).count()
+                except Exception as e:
+                    logger.warning(f"Error getting database statistics: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Database connection failed: {e}")
+            system_status["database"] = {"status": "error", "label": "Disconnected"}
 
-            # Check AI Service (Gemini)
-            try:
-                gemini_key = settings.GEMINI_API_KEY
-                if gemini_key and len(gemini_key) > 20:
-                    system_status["ai_service"] = {"status": "active", "label": "Active"}
-                else:
-                    system_status["ai_service"] = {"status": "inactive", "label": "Not Configured"}
-            except Exception:
-                system_status["ai_service"] = {"status": "error", "label": "Error"}
+        # Check Messenger Service
+        try:
+            # Verify Messenger API token and connection
+            fb_token = settings.FB_PAGE_ACCESS_TOKEN
+            if fb_token and len(fb_token) > 50:
+                # Try to verify token is valid
+                try:
+                    import httpx
+                    verify_url = f"https://graph.facebook.com/v24.0/me?access_token={fb_token}"
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        response = await client.get(verify_url)
+                        if response.status_code == 200:
+                            system_status["messenger"] = {"status": "active", "label": "Active"}
+                        else:
+                            system_status["messenger"] = {"status": "error", "label": "Invalid Token"}
+                except Exception as verify_error:
+                    logger.warning(f"Messenger token verification failed: {verify_error}")
+                    # If verification fails but token exists, mark as inactive
+                    system_status["messenger"] = {"status": "inactive", "label": "Token Error"}
+            else:
+                system_status["messenger"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.error(f"Messenger check failed: {e}")
+            system_status["messenger"] = {"status": "error", "label": "Error"}
 
-            # Check Lead Automation
-            try:
+        # Check AI Service (Gemini)
+        try:
+            gemini_key = settings.GEMINI_API_KEY
+            if gemini_key and len(gemini_key) > 20:
+                system_status["ai_service"] = {"status": "active", "label": "Active"}
+            else:
+                system_status["ai_service"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.warning(f"AI service check failed: {e}")
+            system_status["ai_service"] = {"status": "error", "label": "Error"}
+
+        # Check Lead Automation
+        try:
+            if db_connected:
+                lead_analytics = lead_automation.get_lead_analytics()
                 if lead_analytics.get("total_leads", 0) >= 0:
                     system_status["lead_automation"] = {"status": "active", "label": "Active"}
                 else:
                     system_status["lead_automation"] = {"status": "inactive", "label": "Inactive"}
-            except Exception:
-                system_status["lead_automation"] = {"status": "error", "label": "Error"}
+            else:
+                system_status["lead_automation"] = {"status": "inactive", "label": "DB Required"}
+        except Exception as e:
+            logger.warning(f"Lead automation check failed: {e}")
+            system_status["lead_automation"] = {"status": "error", "label": "Error"}
 
-            # Check WhatsApp Integration
-            try:
-                whatsapp_token = settings.WHATSAPP_ACCESS_TOKEN
-                whatsapp_phone = settings.WHATSAPP_PHONE_NUMBER_ID
-                if whatsapp_token and whatsapp_phone:
-                    system_status["whatsapp"] = {"status": "active", "label": "Active"}
-                else:
-                    system_status["whatsapp"] = {"status": "inactive", "label": "Not Configured"}
-            except Exception:
-                system_status["whatsapp"] = {"status": "error", "label": "Error"}
+        # Check WhatsApp Integration
+        try:
+            whatsapp_token = settings.WHATSAPP_ACCESS_TOKEN
+            whatsapp_phone = settings.WHATSAPP_PHONE_NUMBER_ID
+            if whatsapp_token and whatsapp_phone and len(whatsapp_token) > 50:
+                system_status["whatsapp"] = {"status": "active", "label": "Active"}
+            else:
+                system_status["whatsapp"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.warning(f"WhatsApp check failed: {e}")
+            system_status["whatsapp"] = {"status": "error", "label": "Error"}
 
-            stats = {
-                "total_users": total_users,
-                "total_messages": total_messages,
-                "active_conversations": active_conversations,
-                "active_users": active_users,
-                "recent_messages": recent_messages,
-                "lead_analytics": lead_analytics,
-                "system_status": system_status
-            }
+        # Prepare stats for template
+        stats = {
+            "total_users": total_users,
+            "total_messages": total_messages,
+            "active_conversations": active_conversations,
+            "active_users": active_users,
+            "recent_messages": recent_messages,
+            "lead_analytics": lead_analytics,
+            "system_status": system_status
+        }
 
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
@@ -143,7 +185,28 @@ async def dashboard_home(request: Request):
         })
 
     except Exception as e:
-        handle_dashboard_error(e, "dashboard")
+        logger.error(f"Critical error in dashboard: {e}")
+        logger.exception("Dashboard exception details:")
+        # Return error page with minimal data
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "stats": {
+                "total_users": 0,
+                "total_messages": 0,
+                "active_conversations": 0,
+                "active_users": 0,
+                "recent_messages": [],
+                "lead_analytics": {"total_leads": 0, "qualified_leads": 0, "converted_leads": 0},
+                "system_status": {
+                    "webhook": {"status": "error", "label": "Error"},
+                    "database": {"status": "error", "label": "Error"},
+                    "messenger": {"status": "error", "label": "Error"},
+                    "ai_service": {"status": "error", "label": "Error"},
+                    "lead_automation": {"status": "error", "label": "Error"},
+                    "whatsapp": {"status": "error", "label": "Error"}
+                }
+            }
+        })
 
 
 @router.get("/settings", response_class=HTMLResponse)
