@@ -230,9 +230,71 @@ async def settings_view(request: Request):
         except Exception:
             gemini_model = "gemini-2.5-flash"
 
+        # Real-time System Status Checks
+        system_status = {
+            "messenger": {"status": "unknown", "label": "Checking..."},
+            "database": {"status": "unknown", "label": "Checking..."},
+            "ai_service": {"status": "unknown", "label": "Checking..."},
+            "whatsapp": {"status": "unknown", "label": "Checking..."}
+        }
+
+        # Check Messenger Service (Real-time Graph API verification)
+        try:
+            fb_token = settings.FB_PAGE_ACCESS_TOKEN
+            if fb_token and len(fb_token) > 50:
+                try:
+                    import httpx
+                    verify_url = f"https://graph.facebook.com/v24.0/me?access_token={fb_token}"
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        response = await client.get(verify_url)
+                        if response.status_code == 200:
+                            system_status["messenger"] = {"status": "active", "label": "Active"}
+                        else:
+                            system_status["messenger"] = {"status": "invalid_token", "label": "Invalid Token"}
+                except Exception as verify_error:
+                    logger.warning(f"Messenger token verification failed: {verify_error}")
+                    system_status["messenger"] = {"status": "error", "label": "Token Error"}
+            else:
+                system_status["messenger"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.error(f"Messenger check failed: {e}")
+            system_status["messenger"] = {"status": "error", "label": "Error"}
+
+        # Check Database Connection (Real-time query)
+        try:
+            with get_db_session() as db:
+                db.execute("SELECT 1").fetchone()
+                system_status["database"] = {"status": "connected", "label": "Connected"}
+        except Exception as e:
+            logger.error(f"Database connection check failed: {e}")
+            system_status["database"] = {"status": "error", "label": "Disconnected"}
+
+        # Check AI Service (Gemini key validation)
+        try:
+            if gemini_key and len(gemini_key) > 20:
+                system_status["ai_service"] = {"status": "active", "label": "Active"}
+            else:
+                system_status["ai_service"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.warning(f"AI service check failed: {e}")
+            system_status["ai_service"] = {"status": "error", "label": "Error"}
+
+        # Check WhatsApp Integration
+        try:
+            whatsapp_token = settings.WHATSAPP_ACCESS_TOKEN
+            whatsapp_phone = settings.WHATSAPP_PHONE_NUMBER_ID
+            if whatsapp_token and whatsapp_phone and len(whatsapp_token) > 50:
+                system_status["whatsapp"] = {"status": "active", "label": "Active"}
+            else:
+                system_status["whatsapp"] = {"status": "inactive", "label": "Not Configured"}
+        except Exception as e:
+            logger.warning(f"WhatsApp check failed: {e}")
+            system_status["whatsapp"] = {"status": "error", "label": "Error"}
+
         # Don't mask tokens - show full values for editing
         # Users can see/hide them using the password toggle button
         settings_info = {
+            "system_status": system_status,
             # Facebook Settings
             "fb_app_id": settings.FB_APP_ID or "",
             "fb_page_id": settings.FB_PAGE_ID or "",
